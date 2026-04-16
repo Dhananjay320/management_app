@@ -1,0 +1,114 @@
+/* ═══ TASKS ═══ */
+.task-filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.task-filter-chip {
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.task-filter-chip:hover { border-color: #CBD5E1; }
+.task-filter-chip.active { background: rgba(99,102,241,0.08); color: #6366F1; border-color: rgba(99,102,241,0.2); }
+
+/* Task Card */
+.task-card {
+  background: #fff;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  border-left: 3px solid;
+}
+.task-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-color: #CBD5E1; }
+.task-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.task-card-title { font-size: 13px; font-weight: 600; color: #1E293B; flex: 1; }
+.task-card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.task-card-deadline { font-size: 10px; color: #94A3B8; }
+.task-card-deadline.overdue { color: #EF4444; font-weight: 600; }
+.task-card-progress { margin-top: 4px; }
+.task-card-progress-bar { height: 5px; background: #E2E8F0; border-radius: 3px; overflow: hidden; }
+.task-card-progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.task-card-progress-text { font-size: 9px; color: #94A3B8; text-align: right; margin-top: 2px; }
+
+/* Priority Section */
+.task-priority-section { margin-bottom: 20px; }
+.task-priority-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px; font-size: 12px; font-weight: 700; color: #1E293B;
+}
+.task-priority-count { font-size: 10px; color: #94A3B8; font-weight: 500; }
+
+/* Task Detail */
+.task-detail { display: flex; gap: 16px; }
+.task-detail-main { flex: 1; }
+.task-detail-side { width: 260px; flex-shrink: 0; }
+.task-field { margin-bottom: 14px; }
+.task-field-label { font-size: 10px; font-weight: 600; color: #94A3B8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.task-field-value { font-size: 12px; color: #1E293B; }
+.task-status-note {
+  background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15);
+  border-radius: 8px; padding: 10px; font-size: 12px; color: #92400E;
+}
+.task-activity-item {
+  display: flex; gap: 8px; padding: 6px 0;
+  border-bottom: 1px solid #F0F2F7; font-size: 11px;
+}
+.task-activity-text { color: #64748B; flex: 1; }
+.task-activity-time { color: #CBD5E1; flex-shrink: 0; }
+
+/* Subtask */
+.subtask-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid #F0F2F7;
+}
+.subtask-check {
+  width: 18px; height: 18px; border-radius: 4px;
+  border: 1.5px solid #E2E8F0; display: flex;
+  align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; font-size: 10px; color: #fff;
+  transition: all 0.15s;
+}
+.subtask-check.done { background: #10B981; border-color: #10B981; }
+.subtask-text { font-size: 11px; color: #1E293B; flex: 1; }
+.subtask-text.done { color: #CBD5E1; text-decoration: line-through; }
+
+/* To-Do */
+.todo-input-row {
+  display: flex; gap: 8px; margin-bottom: 14px;
+}
+.todo-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid #F0F2F7;
+  transition: opacity 0.2s;
+}
+.todo-item.done { opacity: 0.5; }
+.todo-check {
+  width: 20px; height: 20px; border-radius: 5px;
+  border: 1.5px solid #E2E8F0; display: flex;
+  align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; font-size: 11px; color: #fff;
+  transition: all 0.15s;
+}
+.todo-check.done { background: #10B981; border-color: #10B981; }
+.todo-text { flex: 1; font-size: 12px; color: #1E293B; }
+.todo-text.done { color: #CBD5E1; text-decoration: line-through; }
+.todo-priority-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.todo-actions { display: flex; gap: 4px; }
+.todo-action-btn {
+  font-size: 10px; color: #94A3B8; cursor: pointer; padding: 2px 6px;
+  border-radius: 4px; transition: background 0.1s;
+}
+.todo-action-btn:hover { background: #F0F2F7; color: #6366F1; }

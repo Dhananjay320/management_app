@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://images.unsplash.com https://fonts.googleapis.com https://fonts.gstatic.com;">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TrouvéToi — Screen Navigator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Jost:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#09090B;--s1:#0D0D10;--s2:#111114;--s3:#161618;--s4:#1C1C1F;
+  --bd:rgba(255,255,255,.06);--t1:#E8E4DC;--t2:#8A8680;--t3:#4A4844;--t4:#2A2826;
+  --gold:#C9A55C;--std:#B4AFA8;--plat:#8BAED4;--wg:#7BA87B;--adm:#E07070;
+  --F:'Cormorant Garamond',Georgia,serif;--S:'Jost',sans-serif;--M:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--t1);font-family:var(--S);font-size:13px}
+.app{display:flex;flex-direction:column;height:100vh}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--bd);flex-shrink:0;background:rgba(9,9,11,.97);backdrop-filter:blur(20px)}
+.logo{display:flex;align-items:center;gap:10px;padding:12px 0}
+.wm{font-family:var(--F);font-size:17px;font-style:italic;color:var(--t1)}
+.sep{width:1px;height:16px;background:var(--bd)}
+.ltag{font-size:8px;color:var(--t3);letter-spacing:.14em;text-transform:uppercase;font-family:var(--M)}
+.tnav{display:flex;gap:2px}
+.np{padding:6px 14px;border:1px solid transparent;border-radius:2px;background:transparent;color:var(--t3);font-family:var(--S);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .18s}
+.np:hover{color:var(--t2);border-color:var(--bd)}
+.np.na{background:rgba(201,165,92,.08);border-color:rgba(201,165,92,.2);color:var(--gold)}
+.np.nw{background:rgba(123,168,123,.08);border-color:rgba(123,168,123,.2);color:var(--wg)}
+.np.nad{background:rgba(224,112,112,.08);border-color:rgba(224,112,112,.2);color:var(--adm)}
+.body{display:flex;flex:1;overflow:hidden}
+.sb{width:234px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--bd);overflow:hidden}
+.tstrip{padding:8px 12px;border-bottom:1px solid var(--bd);display:flex;gap:3px}
+.tb{padding:4px 9px;border-radius:2px;border:1px solid var(--bd);background:transparent;color:var(--t3);font-family:var(--M);font-size:9px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.tb:hover{border-color:rgba(255,255,255,.1);color:var(--t2)}
+.tb.ta{background:rgba(201,165,92,.08);border-color:rgba(201,165,92,.22);color:var(--gold)}
+.tb.tp{background:rgba(139,174,212,.08);border-color:rgba(139,174,212,.2);color:var(--plat)}
+.sl{flex:1;overflow-y:auto;padding:4px 0 14px;scrollbar-width:thin;scrollbar-color:var(--s4) transparent}
+.sl::-webkit-scrollbar{width:2px}
+.sh{font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--t4);padding:11px 14px 4px;font-family:var(--M)}
+.sbt{display:flex;align-items:center;gap:8px;width:100%;padding:7px 14px;background:transparent;border:none;border-left:2px solid transparent;color:var(--t3);font-family:var(--S);font-size:11px;cursor:pointer;text-align:left;transition:all .12s}
+.sbt:hover{background:rgba(255,255,255,.02);color:var(--t2)}
+.sbt.ac{background:rgba(201,165,92,.04);color:var(--gold);border-left-color:var(--gold)}
+.sbt.acw{background:rgba(123,168,123,.04);color:var(--wg);border-left-color:var(--wg)}
+.sbt.acad{background:rgba(224,112,112,.04);color:var(--adm);border-left-color:var(--adm)}
+.sn{font-size:8px;color:var(--t4);min-width:24px;font-family:var(--M);flex-shrink:0}
+.pv{flex:1;display:flex;align-items:stretch;overflow:hidden;background:var(--s1)}
+.es{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.pc{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 20px;flex-shrink:0;border-right:1px solid var(--bd)}
+.plbl{font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--t4);margin-bottom:10px;font-family:var(--M)}
+.dev{width:252px;background:#050507;border-radius:42px;border:1.5px solid #191921;padding:8px;box-shadow:0 0 0 1px #0A0A0D,0 32px 60px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.03)}
+.isl{width:72px;height:18px;background:#050507;border-radius:9px;margin:0 auto 7px;border:1px solid #141418}
+.dscr{border-radius:28px;overflow:hidden;height:504px;background:#090909;position:relative}
+.chin{display:flex;justify-content:center;padding:7px 0 2px}
+.hib{width:68px;height:3px;background:#18181e;border-radius:2px}
+.snl{margin-top:9px;font-family:var(--F);font-size:11px;font-style:italic;color:var(--t3);text-align:center;max-width:252px}
+.wf{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--bd)}
+.wfbar{display:flex;align-items:center;gap:7px;padding:8px 12px;border-bottom:1px solid var(--bd);background:var(--s2);flex-shrink:0}
+.wfd{width:9px;height:9px;border-radius:50%}
+.wfurl{flex:1;background:var(--s3);border:1px solid var(--bd);border-radius:3px;padding:3px 9px;font-size:9px;color:var(--t3);font-family:var(--M)}
+.wfbody{flex:1;overflow-y:auto;background:var(--s1);scrollbar-width:thin;scrollbar-color:var(--s4) transparent}
+.wfbody::-webkit-scrollbar{width:2px}
+.dc{flex:1;overflow-y:auto;padding:24px 26px;scrollbar-width:thin;scrollbar-color:var(--s4) transparent;min-width:240px;max-width:286px}
+.dc::-webkit-scrollbar{width:2px}
+.dnum{font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px;font-family:var(--M)}
+.dtit{font-family:var(--F);font-size:21px;color:var(--t1);margin-bottom:4px;line-height:1.25}
+.dtag{display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:2px;margin-bottom:14px;font-family:var(--M)}
+.drule{width:26px;height:1px;margin:0 0 14px}
+.dsec{margin-bottom:14px}
+.dstit{font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding-bottom:6px;border-bottom:1px solid var(--bd);margin-bottom:8px;font-family:var(--M)}
+.dit{display:flex;align-items:flex-start;gap:7px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.02);font-size:10px;color:var(--t2);line-height:1.55}
+.dit:last-child{border-bottom:none}
+.dbul{width:3px;height:3px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.dleads{background:var(--s2);border:1px solid var(--bd);border-radius:2px;padding:9px 12px;display:flex;align-items:center;gap:8px;margin-top:4px}
+.dll{font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);white-space:nowrap;font-family:var(--M)}
+.dlv{font-size:10px;color:var(--t2);font-style:italic}
+.tnote{border-radius:2px;padding:8px 11px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="hdr">
+  <div class="logo">
+    <span class="wm">trouvétoi</span>
+    <div class="sep"></div>
+    <span class="ltag">Screen Navigator · 46 screens × 3 tiers · Real Unsplash images</span>
+  </div>
+  <nav class="tnav">
+    <button class="np na" id="np-mobile" onclick="setJ('mobile')">Mobile App</button>
+    <button class="np" id="np-web" onclick="setJ('web')">Pre-Reg Web</button>
+    <button class="np" id="np-admin" onclick="setJ('admin')">Admin Panel</button>
+  </nav>
+</header>
+<div class="body">
+  <aside class="sb">
+    <div class="tstrip" id="tstrip">
+      <button class="tb ta" id="tb-s" onclick="setT('s')">Standard</button>
+      <button class="tb" id="tb-g" onclick="setT('g')">Gold</button>
+      <button class="tb" id="tb-p" onclick="setT('p')">Platinum</button>
+    </div>
+    <div class="sl" id="sl"></div>
+  </aside>
+  <div class="pv" id="pv">
+    <div class="es" id="es">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" opacity=".15"><path d="M4 24L14 4l10 20" stroke="#C9A55C" stroke-width="1.3" stroke-linecap="round"/><path d="M7 17h14" stroke="#C9A55C" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <p style="font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:#2A2826">Select a screen to preview</p>
+      <p style="font-size:9px;color:#2A2826;letter-spacing:.06em">Switch tiers with the Gold / Platinum buttons to see per-tier differences</p>
+    </div>
+    <div id="phone-col" class="pc" style="display:none">
+      <div class="plbl" id="plbl">Mobile App</div>
+      <div class="dev"><div class="isl"></div><div class="dscr" id="dscr"></div><div class="chin"><div class="hib"></div></div></div>
+      <div class="snl" id="snl"></div>
+    </div>
+    <div id="web-col" class="wf" style="display:none">
+      <div class="wfbar">
+        <div style="display:flex;gap:4px"><div class="wfd" style="background:#FF5F57"></div><div class="wfd" style="background:#FEBC2E"></div><div class="wfd" style="background:#28C840"></div></div>
+        <div class="wfurl" id="wfurl">trouvetoi.com</div>
+      </div>
+      <div class="wfbody" id="wfbody"></div>
+    </div>
+    <div id="dc" class="dc" style="display:none"></div>
+  </div>
+</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   TROUVÉTOI COMPLETE NAVIGATOR
+   46 screens rendered dynamically per tier (Standard / Gold / Platinum)
+   Real Unsplash womens fashion images on every screen
+══════════════════════════════════════════════════════════ */
+
+var J='mobile', T='s', CID=null;
+
+/* ─── REAL UNSPLASH IMAGE MAP ─── */
+/* All IDs confirmed from Unsplash search — free to use under Unsplash License */
+var U='https://images.unsplash.com/photo-';
+var I={
+  /* Hero / full-bleed editorial */
+  h1: U+'1469334031218-e382a71b716b?w=700&q=82&fit=crop',   /* woman black coat editorial */
+  h2: U+'1515886657613-9f3515b0c78f?w=700&q=82&fit=crop',   /* fashion editorial standing */
+  h3: U+'1529139574466-a303027c1d8b?w=700&q=82&fit=crop',   /* dark editorial moody */
+  h4: U+'1581044777550-4cfa60707c03?w=700&q=82&fit=crop',   /* woman long trench */
+  h5: U+'1550614000-4895a10e1bfd?w=700&q=82&fit=crop',      /* editorial studio light */
+  h6: U+'1520975916090-3105956dac38?w=700&q=82&fit=crop',   /* luxury collection editorial */
+  /* Splash/Login/Greeting hero */
+  sp: U+'1469334031218-e382a71b716b?w=900&q=85&fit=crop&crop=top',
+  lg: U+'1515886657613-9f3515b0c78f?w=900&q=85&fit=crop&crop=top',
+  gr: U+'1529139574466-a303027c1d8b?w=900&q=85&fit=crop',
+  /* Product shots */
+  p1: U+'1539008835657-9e8e9680c956?w=500&q=80&fit=crop',   /* woman in coat */
+  p2: U+'1603252109303-2751441dd157?w=500&q=80&fit=crop',   /* silk dress */
+  p3: U+'1551698618-1dfe5d97d256?w=500&q=80&fit=crop',      /* knit sweater */
+  p4: U+'1519238263530-99bdd11df2ea?w=500&q=80&fit=crop',   /* trench coat woman */
+  p5: U+'1548036328-c9fa89d128fa?w=500&q=80&fit=crop',      /* handbag */
+  p6: U+'1564584217132-2271feaeb3c5?w=500&q=80&fit=crop',   /* wide leg trousers */
+  p7: U+'1566206091558-7f218b696731?w=500&q=80&fit=crop',   /* silk scarf accessories */
+  p8: U+'1509631179647-0177331693ae?w=500&q=80&fit=crop',   /* fashion editorial model */
+  p9: U+'1483985988355-763728e1935b?w=500&q=80&fit=crop',   /* luxury shopping bags */
+  /* Drop / collection */
+  d1: U+'1581044777550-4cfa60707c03?w=700&q=82&fit=crop',   /* drop hero */
+  d2: U+'1520975916090-3105956dac38?w=700&q=82&fit=crop',   /* private collection hero */
+  /* Feed */
+  f1: U+'1469334031218-e382a71b716b?w=800&q=82&fit=crop&crop=top', /* feed full screen */
+  /* Web hero */
+  w1: U+'1515886657613-9f3515b0c78f?w=900&q=85&fit=crop&crop=top'
+};
+
+/* ─── HELPERS ─── */
+function go(id){selectScreen(id);}
+function ac(){return J==='admin'?'#E07070':J==='web'?'#7BA87B':T==='p'?'#8BAED4':T==='g'?'#C9A55C':'#B4AFA8';}
+function tc(){return T==='p'?'Platinum':T==='g'?'Gold':'Standard';}
+
+/* Image tag with fallback gradient */
+function img(src,h,extra,ob){
+  ob=ob||'center';
+  /* Wrapper always provides the height context */
+  var wh=(extra&&extra.indexOf('absolute')>=0)?'100%':h+'px';
+  var wex=(extra&&extra.indexOf('absolute')>=0)?'position:absolute;inset:0;':'';
+  return '<div style="'+wex+'position:relative;width:100%;height:'+wh+';overflow:hidden;background:#0E0E11;flex-shrink:0">'    +'<img src="'+src+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:'+ob+'" referrerpolicy="no-referrer">'    +'</div>';
+}
+
+function stbar(){
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px 2px">'
+    +'<span style="font-size:10px;color:rgba(232,228,220,.5);font-family:\'JetBrains Mono\',monospace">9:41</span>'
+    +'<div style="display:flex;gap:3px;align-items:flex-end">'
+    +'<div style="width:2px;height:4px;background:rgba(232,228,220,.3);border-radius:1px"></div>'
+    +'<div style="width:2px;height:6px;background:rgba(232,228,220,.3);border-radius:1px"></div>'
+    +'<div style="width:2px;height:8px;background:rgba(232,228,220,.3);border-radius:1px"></div>'
+    +'<div style="width:2px;height:10px;background:rgba(232,228,220,.3);border-radius:1px"></div>'
+    +'</div></div>';
+}
+
+function gbtn(txt,fn,bg,fg){
+  bg=bg||'#C9A55C'; fg=fg||'#09090B';
+  return '<button style="width:100%;padding:12px;background:'+bg+';border:none;color:'+fg
+    +';font-family:\'Jost\',sans-serif;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer"'
+    +(fn?' onclick="'+fn+'"':'')+'>'+txt+'</button>';
+}
+function gsbtn(txt,fn){
+  return '<button style="width:100%;padding:11px;background:transparent;border:1px solid rgba(255,255,255,.1);color:#8A8680'
+    +';font-family:\'Jost\',sans-serif;font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer"'
+    +(fn?' onclick="'+fn+'"':'')+'>'+txt+'</button>';
+}
+function bdg(t,c){
+  c=c||ac();
+  return '<span style="display:inline-block;background:'+c+'14;color:'+c+';border:1px solid '+c+'26'
+    +';font-size:7px;padding:2px 7px;border-radius:2px;letter-spacing:.08em;font-weight:600;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace">'+t+'</span>';
+}
+function tbdg(){return T==='p'?bdg('Platinum','#8BAED4'):T==='g'?bdg('Gold','#C9A55C'):bdg('Standard','#B4AFA8');}
+function drow(l,v){
+  return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03)">'
+    +'<span style="font-size:9px;color:#4A4844">'+l+'</span><span style="font-size:9px;color:#8A8680">'+v+'</span></div>';
+}
+function bbtn(l,sc){
+  return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:12px;cursor:pointer" onclick="go(\''+sc+'\')">'
+    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4A4844" stroke-width="1.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>'
+    +'<span style="font-size:9px;color:#4A4844">'+l+'</span></div>';
+}
+function fld(l,v,act){
+  return '<div style="margin-bottom:13px"><div style="font-size:8px;color:#3A3835;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">'+l+'</div>'
+    +'<div style="font-size:11px;color:'+(act?'#E8E4DC':'#2A2826')+';padding-bottom:7px;border-bottom:1px solid rgba(255,255,255,'+(act?.1:.04)+')">'+v+'</div></div>';
+}
+function bnav(active){
+  var ns=[{k:'home',l:'Home',d:'M3 9l9-7 9 7v10H15v-5H9v5H3z',sc:'M-05-'+T},
+    {k:'feed',l:'Feed',d:'M3 9l9-7 9 7v10H15v-5H9v5H3',sc:'M-08'},
+    {k:'discover',l:'Discover',d:'M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35',sc:'M-10'},
+    {k:'activity',l:'Activity',d:'M20 12V22H4V12M22 7H2v5h20V7z',sc:'M-16'},
+    {k:'profile',l:'Profile',d:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',sc:'M-25'}];
+  var h='<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(9,9,11,.97);border-top:1px solid rgba(255,255,255,.05);display:flex;padding:5px 0 8px;z-index:10">';
+  ns.forEach(function(n){
+    var isA=(n.k===active),c=isA?ac():'#2A2826';
+    h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:2px 0" onclick="go(\''+n.sc+'\')">'
+      +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="'+(isA?'1.8':'1.4')+'" stroke-linecap="round" stroke-linejoin="round"><path d="'+n.d+'"/></svg>'
+      +'<span style="font-size:7px;letter-spacing:.05em;font-weight:500;text-transform:uppercase;color:'+c+'">'+n.l+'</span></div>';
+  });
+  return h+'</div>';
+}
+function tierbar(){
+  if(T==='s') return '';
+  var c=T==='p'?'#8BAED4':'#C9A55C';
+  return '<div style="position:absolute;top:0;left:0;right:0;z-index:20;padding:3px 12px;background:'+c+'0D;border-bottom:1px solid '+c+'18;display:flex;align-items:center;gap:5px">'
+    +'<div style="width:3px;height:3px;border-radius:50%;background:'+c+';flex-shrink:0"></div>'
+    +'<span style="font-size:7px;font-weight:600;color:'+c+';letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace">'+(T==='p'?'PLATINUM TIER':'GOLD TIER')+'</span></div>';
+}
+/* Product card for grids */
+function pcard(src,name,price,sc,height){
+  height=height||155;
+  var id=sc||'M-14';
+  return '<div onclick="go(\''+id+'\');" style="cursor:pointer;flex-shrink:0;width:108px">'    +'<div style="width:108px;height:'+height+'px;overflow:hidden;background:#0E0E11;flex-shrink:0;position:relative">'    +'<img src="'+src+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" referrerpolicy="no-referrer">'    +'</div>'    +'<div style="padding:5px 0 2px"><div style="font-size:9px;color:#6A6664;margin-bottom:1px">'+name+'</div>'    +'<div style="font-size:9px;color:'+ac()+'">'+price+'</div></div></div>';
+}
+/* Horizontal scroll product */
+function hcard(src,name,price,w){
+  w=w||112;
+  return '<div onclick="go(\'M-14\');" style="flex-shrink:0;width:'+w+'px;cursor:pointer">'    +'<div style="width:'+w+'px;height:'+(w+20)+'px;overflow:hidden;background:#0E0E11;position:relative">'    +'<img src="'+src+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" referrerpolicy="no-referrer">'    +'</div>'    +'<div style="padding:4px 0 2px"><div style="font-size:8px;color:#6A6664;margin-bottom:1px">'+name+'</div>'    +'<div style="font-size:8px;color:'+ac()+'">'+price+'</div></div></div>';
+}
+
+/* Back arrow button overlaid on image */
+function backBtn(to){
+  return '<div onclick="go(\''+to+'\')" style="position:absolute;top:11px;left:13px;cursor:pointer;z-index:5;background:rgba(0,0,0,.45);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center">'
+    +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(232,228,220,.85)" stroke-width="1.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></div>';
+}
+
+/* ═══════════════════════════════════════
+   SCREEN DEFINITIONS
+═══════════════════════════════════════ */
+var S={};
+
+/* ── M-01 SPLASH ── */
+S['M-01']={n:'Splash screen',tab:'Auth',web:false,
+  info:['Full-bleed editorial woman in coat — real Unsplash photo','trouvétoi italic serif wordmark centred large','THE SILENT CURATOR all-caps tagline','Gold progress bar animates — auto-navigates 2s','PARIS / LONDON / NYC footer note'],
+  acts:['Auto-advances — no user input required'],leads:'Login (M-02)',
+  r:function(){
+    return '<div style="height:100%;position:relative;overflow:hidden">'
+      +img(I.sp,504,'position:absolute;inset:0;width:100%;height:100%','top')
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(9,9,11,.4) 0%,rgba(9,9,11,.72) 100%)"></div>'
+      +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:48px;font-weight:300;color:#E8E4DC;margin-bottom:9px;letter-spacing:.01em;text-shadow:0 4px 24px rgba(0,0,0,.4)">trouvétoi</div>'
+      +'<div style="font-size:7px;color:rgba(232,228,220,.38);letter-spacing:.32em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace">THE SILENT CURATOR</div>'
+      +'</div>'
+      +'<div style="position:absolute;bottom:26px;left:50%;transform:translateX(-50%);width:84px;height:1px;background:rgba(255,255,255,.07)">'
+      +'<div style="width:62%;height:100%;background:linear-gradient(to right,rgba(201,165,92,.3),rgba(201,165,92,.6))"></div></div>'
+      +'<div style="position:absolute;bottom:12px;left:16px;font-size:6px;color:rgba(232,228,220,.16);letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace">PARIS / LONDON / NYC</div>'
+      +'<div style="position:absolute;bottom:12px;right:16px;font-size:6px;color:rgba(232,228,220,.16);letter-spacing:.08em;font-family:\'JetBrains Mono\',monospace">© 2026 TROUVÉTOI</div>'
+      +'</div>';
+  }
+};
+
+/* ── M-02 LOGIN ── */
+S['M-02']={n:'Login screen',tab:'Auth',web:false,
+  info:['F-06 slideshow editorial background — woman fashion photography','trouvétoi italic serif wordmark over image','UNIQUE ACCESS ID bottom-border only input','ENTER gold full-width CTA','REQUEST AN INVITATION → W-01'],
+  acts:['Enter Access ID → ENTER → M-03','Tap Request an Invitation → W-01'],leads:'Greeting (M-03)',
+  r:function(){
+    return '<div style="height:100%;position:relative;overflow:hidden">'
+      +img(I.lg,504,'position:absolute;inset:0;width:100%;height:100%','top')
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(9,9,11,.5) 0%,rgba(9,9,11,.86) 50%,rgba(9,9,11,.97) 100%)"></div>'
+      +'<div style="position:absolute;inset:0;display:flex;flex-direction:column">'
+      +'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:42px;font-weight:300;color:#E8E4DC;margin-bottom:7px;text-shadow:0 4px 24px rgba(0,0,0,.4)">trouvétoi</div>'
+      +'<div style="font-size:7px;color:rgba(232,228,220,.36);letter-spacing:.3em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace">THE SILENT CURATOR</div>'
+      +'</div>'
+      +'<div style="padding:0 22px 36px">'
+      +'<div style="font-size:8px;color:#8A8680;letter-spacing:.14em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">UNIQUE ACCESS ID</div>'
+      +'<div style="border-bottom:1px solid rgba(201,165,92,.3);padding-bottom:9px;margin-bottom:18px;font-size:13px;color:#E8E4DC;font-family:\'JetBrains Mono\',monospace;letter-spacing:.06em">apd1345</div>'
+      +gbtn('ENTER',"go('M-03')")
+      +'<div style="text-align:center;margin-top:9px;font-size:8px;color:rgba(232,228,220,.22)">By entering, you accept our Terms of Access</div>'
+      +'<div onclick="go(\'W-01\')" style="text-align:center;margin-top:14px;font-size:8px;color:#C9A55C;letter-spacing:.12em;text-transform:uppercase;cursor:pointer">Request an Invitation</div>'
+      +'<div style="text-align:center;margin-top:30px;font-size:7px;color:rgba(232,228,220,.14);letter-spacing:.12em;font-family:\'JetBrains Mono\',monospace">PARIS · MILAN · TOKYO</div>'
+      +'</div></div></div>';
+  }
+};
+
+/* ── M-03 GREETING ── */
+S['M-03']={n:'Greeting screen',tab:'Auth',web:false,
+  info:['F-07 time-based greeting — Good Evening, name in italic serif','Tier badge in tier accent colour','Dark moody editorial background — fashion photography','Auto-advances or tap ENTER to continue'],
+  acts:['Auto-advances 1.5s or tap ENTER → M-05'],leads:'Home feed (M-05)',
+  r:function(){
+    var a=ac();
+    return '<div style="height:100%;position:relative;overflow:hidden">'
+      +img(I.gr,504,'position:absolute;inset:0;width:100%;height:100%')
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(9,9,11,.45) 0%,rgba(9,9,11,.9) 60%,#09090B 100%)"></div>'
+      +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:0 22px 72px">'
+      +'<div style="font-size:8px;color:'+a+';letter-spacing:.2em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:9px">GOOD EVENING</div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:42px;font-weight:300;color:#E8E4DC;margin-bottom:11px">Alexandra</div>'
+      +'<div style="margin-bottom:18px">'+tbdg()+'</div>'
+      +'<div style="font-size:11px;color:#5A5856;letter-spacing:.04em;line-height:1.7;margin-bottom:18px">Your curation awaits.</div>'
+      +'<div onclick="go(\'M-05\')" style="font-size:9px;color:'+a+';letter-spacing:.1em;cursor:pointer;font-family:\'JetBrains Mono\',monospace">ENTER →</div>'
+      +'</div></div>';
+  }
+};
+
+/* ── M-04 WALKTHROUGH ── */
+S['M-04']={n:'App walkthrough',tab:'Auth',web:false,
+  info:['5-step tooltip overlay on dimmed editorial background','Step: icon + title + description card','Gold progress bar dots at top','Next / Got it in gold','Skip exits immediately to Home'],
+  acts:['Tap GOT IT → next step','Tap Skip → M-05'],leads:'Home feed (M-05)',
+  r:function(){
+    var a=ac();
+    return '<div style="height:100%;position:relative;overflow:hidden">'
+      +img(I.h1,504,'position:absolute;inset:0;width:100%;height:100%;opacity:.12')
+      +'<div style="position:absolute;inset:0;background:rgba(9,9,11,.86)"></div>'
+      +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px">'
+      +'<div style="display:flex;gap:5px;margin-bottom:15px">'
+      +'<div style="width:20px;height:2px;border-radius:1px;background:'+a+'"></div>'
+      +['','','',''].map(function(){return '<div style="width:6px;height:2px;border-radius:1px;background:rgba(255,255,255,.1)"></div>';}).join('')
+      +'</div>'
+      +'<div style="background:#111114;border:1px solid rgba(201,165,92,.2);padding:22px;width:100%;max-width:224px">'
+      +'<div style="width:30px;height:30px;background:'+a+'09;border:1px solid '+a+'18;display:flex;align-items:center;justify-content:center;margin-bottom:13px">'
+      +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="'+a+'" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v10H15v-5H9v5H3z"/></svg></div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;margin-bottom:6px">Your curated home</div>'
+      +'<div style="font-size:10px;color:#5A5856;line-height:1.65">Editorial drops, exclusive collections, and items curated specifically for you — all in one feed.</div>'
+      +'<div style="margin-top:15px">'+gbtn('GOT IT',"go('M-05')")+'</div>'
+      +'<div onclick="go(\'M-05\')" style="text-align:center;margin-top:8px;font-size:9px;color:#2A2826;cursor:pointer">Skip tour</div>'
+      +'</div></div></div>';
+  }
+};
+
+/* ── M-05 HOME FEED ── */
+S['M-05']={n:'Home feed',tab:'Home',web:false,
+  info:['Full-bleed hero banner — real editorial woman photography','Trending Now horizontal product scroll with real product images','Editorial essay card over a moody fashion photograph','Suggested for You AI-ranked row with fashion photography','F-22 Exclusive Drop countdown + SECURE PRE-ACCESS — Gold/Platinum only','F-31 Trending in Your Size section','F-34 Standard tier sees blurred locked drop teaser'],
+  acts:['Tap product → M-14','Tap hero → M-13','Tap drop → M-06','Tap editorial → M-08','Bell → M-20','Avatar → M-25'],leads:'Product / Drop / Collections',
+  r:function(){
+    var a=ac(),hasDrop=(T==='g'||T==='p');
+    var h='<div style="overflow-y:auto;height:100%;padding-bottom:54px">'+tierbar()+stbar()
+      +'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 16px 8px">'
+      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;font-weight:600;letter-spacing:.12em;color:#E8E4DC">TROUVÉTOI</div>'
+      +'<div style="display:flex;gap:10px;align-items:center">'
+      +'<div onclick="go(\'M-20\')" style="cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8680" stroke-width="1.4" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg></div>'
+      +'<div onclick="go(\'M-25\')" style="width:26px;height:26px;border-radius:50%;background:'+a+'10;border:1px solid '+a+'20;display:flex;align-items:center;justify-content:center;font-size:9px;color:'+a+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">AF</div>'
+      +'</div></div>'
+      /* Hero */
+      +'<div onclick="go(\'M-13\')" style="position:relative;height:226px;overflow:hidden;cursor:pointer">'
+      +img(I.h1,226,'position:absolute;inset:0;width:100%;height:100%','top')
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 20%,rgba(9,9,11,.94) 100%)"></div>'
+      +'<div style="position:absolute;bottom:0;left:0;right:0;padding:14px 16px">'
+      +'<div style="font-size:8px;color:#5A5856;letter-spacing:.14em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:4px">TRENDING NOW</div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:32px;font-weight:300;color:#E8E4DC;line-height:1.1;margin-bottom:10px">L\'Hiver<br>Noir</div>'
+      +'<button style="padding:6px 14px;background:transparent;border:1px solid rgba(232,228,220,.3);color:#E8E4DC;font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-family:\'Jost\',sans-serif;cursor:pointer">VIEW COLLECTION</button>'
+      +'</div></div>'
+      /* Trending Now row */
+      +'<div style="padding:13px 16px 0">'
+      +'<div style="font-size:8px;color:#4A4844;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:9px">Trending Now</div>'
+      +'<div style="display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px 12px;scrollbar-width:none">'
+      +hcard(I.p1,'Sculpted Coat','$490')
+      +hcard(I.p2,'Silk Wrap Dress','$280')
+      +hcard(I.p3,'Ribbed Knit','$320')
+      +'</div>'
+      /* Editorial card */
+      +'<div onclick="go(\'M-08\')" style="position:relative;height:100px;overflow:hidden;margin-bottom:13px;cursor:pointer">'
+      +img(I.h5,100,'position:absolute;inset:0;width:100%;height:100%')
+      +'<div style="position:absolute;inset:0;background:rgba(9,9,11,.64)"></div>'
+      +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 16px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:18px;color:#E8E4DC;margin-bottom:3px">The Poetry of Silhouette</div>'
+      +'<div style="font-size:7px;color:#5A5856;letter-spacing:.06em;margin-bottom:5px">EXPLORING THE SPACE BETWEEN FABRIC AND FORM</div>'
+      +'<div style="font-size:8px;color:#C9A55C;letter-spacing:.1em;text-transform:uppercase">READ ESSAY</div>'
+      +'</div></div>'
+      /* Suggested for You */
+      +'<div style="margin-bottom:13px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div style="font-size:8px;color:#4A4844;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace">Suggested for You</div>'
+      +'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2A2826" stroke-width="1.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>'
+      +'<div style="display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none">'
+      +hcard(I.p4,'Long Trench','$740',128)
+      +hcard(I.p7,'Silk Scarf','$530',128)
+      +hcard(I.p5,'Archive Bag','$1,840',128)
+      +'</div></div>';
+    /* Drop section — tier gated */
+    if(hasDrop){
+      h+='<div onclick="go(\'M-06\')" style="position:relative;overflow:hidden;margin-bottom:13px;cursor:pointer">'
+        +img(I.d1,188,'position:absolute;inset:0;width:100%;height:100%')
+        +'<div style="position:absolute;top:9px;right:9px">'+bdg(T==='p'?'PLATINUM ACCESS':'GOLD ACCESS',a)+'</div>'
+        +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,11,.96) 0%,transparent 50%)"></div>'
+        +'<div style="position:absolute;bottom:0;left:0;right:0;padding:13px 16px">'
+        +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:22px;color:#E8E4DC;margin-bottom:3px">The Chrome Capsule</div>'
+        +'<div style="font-size:9px;color:#5A5856;line-height:1.5;margin-bottom:9px">A limited run of 50 serialised pieces. Hand assembled in Lyon.</div>'
+        +'<div style="display:flex;gap:14px;margin-bottom:9px">'
+        +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC">04</div><div style="font-size:7px;color:#2A2826;letter-spacing:.12em;font-family:\'JetBrains Mono\',monospace">HRS</div></div>'
+        +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC">22</div><div style="font-size:7px;color:#2A2826;letter-spacing:.12em;font-family:\'JetBrains Mono\',monospace">MIN</div></div>'
+        +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC">58</div><div style="font-size:7px;color:#2A2826;letter-spacing:.12em;font-family:\'JetBrains Mono\',monospace">SEC</div></div>'
+        +'</div>'+gbtn('SECURE PRE-ACCESS',"go('M-06')")+'</div></div>';
+    } else {
+      h+='<div style="position:relative;overflow:hidden;margin-bottom:13px">'
+        +'<div style="position:relative;height:80px;overflow:hidden;filter:blur(2px);opacity:.25">'
+        +img(I.d1,80,'position:absolute;inset:0;width:100%;height:100%')
+        +'</div>'
+        +'<div style="position:absolute;inset:0;background:rgba(9,9,11,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 20px">'
+        +'<div style="font-size:8px;color:#C9A55C;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:4px">EXCLUSIVE DROPS</div>'
+        +'<div style="font-size:9px;color:#4A4844">Upgrade to Gold to unlock early-access drops</div>'
+        +'</div></div>';
+    }
+    /* Trending in your size */
+    h+='<div style="font-size:8px;color:#4A4844;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:8px">Trending in Your Size <span style="color:#2A2826">EU 42</span></div>'
+      +'<div style="display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none">'
+      +hcard(I.p6,'Wide Leg','' ,90)
+      +hcard(I.p3,'Knit Set','',90)
+      +hcard(I.p2,'Linen Dress','',90)
+      +'</div></div>'+bnav('home')+'</div>';
+    return h;
+  }
+};
+
+/* ── M-06 DROP DETAIL ── */
+S['M-06']={n:'Drop / announcement detail',tab:'Home',web:false,
+  info:['Full-bleed hero campaign photo — womens fashion editorial','Collection name italic serif','F-22 countdown HH MM SS with labels','F-14 pre-book window per tier: Gold 24hr, Platinum 72hr','Tier access badge top-right'],
+  acts:['Tap SECURE PRE-ACCESS → M-15','Back arrow → M-05'],leads:'Pre-book (M-15)',
+  r:function(){
+    var a=ac(),hasD=(T==='g'||T==='p'),win_=T==='p'?'72hr window':'24hr window';
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()
+      +'<div style="position:relative;height:272px">'
+      +img(I.d1,272,'position:absolute;inset:0;width:100%;height:100%','center')
+      +backBtn('M-05')
+      +(hasD?'<div style="position:absolute;top:11px;right:13px;z-index:5">'+bdg(T==='p'?'PLATINUM ACCESS':'GOLD ACCESS',a)+'</div>':'')
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,11,1) 0%,transparent 50%)"></div></div>'
+      +'<div style="padding:13px 17px">'
+      +'<div style="font-size:8px;color:'+a+';letter-spacing:.16em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">EXCLUSIVE DROP · LIMITED EDITION</div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:32px;font-weight:300;color:#E8E4DC;line-height:1.15;margin-bottom:8px">The Chrome Capsule</div>'
+      +'<div style="font-size:10px;color:#5A5856;line-height:1.7;margin-bottom:14px">A limited run of 50 serialised pieces. Hand assembled in a Lyon atelier using aerospace-grade hardware. Each carries a unique edition mark.</div>'
+      +'<div style="display:flex;gap:22px;margin-bottom:16px">'
+      +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:36px;color:#E8E4DC">04</div><div style="font-size:7px;color:#2A2826;letter-spacing:.14em;font-family:\'JetBrains Mono\',monospace">HOURS</div></div>'
+      +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:36px;color:#E8E4DC">22</div><div style="font-size:7px;color:#2A2826;letter-spacing:.14em;font-family:\'JetBrains Mono\',monospace">MINUTES</div></div>'
+      +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:36px;color:#E8E4DC">58</div><div style="font-size:7px;color:#2A2826;letter-spacing:.14em;font-family:\'JetBrains Mono\',monospace">SECONDS</div></div>'
+      +'</div>'
+      +(hasD?gbtn('SECURE PRE-ACCESS',"go('M-15')")+'<div style="text-align:center;margin-top:7px;font-size:8px;color:#2A2826">'+win_+'</div>':gsbtn('UPGRADE TO ACCESS DROPS'))
+      +'</div>'+bnav('home')+'</div>';
+  }
+};
+
+/* ── M-07 PRIVATE COLLECTION ── */
+S['M-07']={n:'Private collection view',tab:'Home',web:false,
+  info:['Full-bleed editorial collection photography','F-12 tier gating — Standard: access request; Gold: read-only; Platinum: full grid','Curatorial description text','Real fashion product images in the grid (Platinum)'],
+  acts:['Platinum: tap products → M-14','Gold: REQUEST FULL ACCESS','Standard: REQUEST ACCESS'],leads:'Product page / access request',
+  r:function(){
+    var a=ac(),isP=(T==='p'),isG=(T==='g');
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()
+      +'<div style="position:relative;height:256px">'
+      +img(I.d2,256,'position:absolute;inset:0;width:100%;height:100%','center')
+      +backBtn('M-05')
+      +'<div style="position:absolute;top:11px;right:13px;z-index:5">'+bdg('PRIVATE COLLECTION','#8BAED4')+'</div>'
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,11,1) 0%,transparent 50%)"></div></div>'
+      +'<div style="padding:13px 17px">'
+      +'<div style="font-size:8px;color:#4A4844;letter-spacing:.16em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">EXCLUSIVE COLLECTION · 2026</div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:28px;color:#E8E4DC;line-height:1.2;margin-bottom:7px">Minuit à Paris</div>'
+      +'<div style="font-size:10px;color:#5A5856;line-height:1.7;margin-bottom:14px">A private evening collaboration. Twelve pieces. Forty-eight hours only.</div>'
+      +(isP
+        ?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px">'
+          +[[I.p1,'Onyx Midi','$2,400'],[I.p2,'Archive Wrap','$1,850'],[I.p5,'Velvet Cuff','$480'],[I.p8,'Sheer Panel','$960']].map(function(x){
+            return '<div onclick="go(\'M-14\')" style="cursor:pointer">'+img(x[0],130,'width:100%')+'<div style="padding:4px 0"><div style="font-size:8px;color:#8A8680">'+x[1]+'</div><div style="font-size:8px;color:'+a+'">'+x[2]+'</div></div></div>';
+          }).join('')+'</div>'+gsbtn('MAKE AN ENQUIRY')
+        :(isG
+          ?'<div style="opacity:.38;pointer-events:none;margin-bottom:12px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+            +[[I.p1,'Onyx Midi'],[I.p2,'Archive Wrap']].map(function(x){
+              return '<div>'+img(x[0],110,'width:100%')+'<div style="padding:4px 0;font-size:8px;color:#8A8680">'+x[1]+'</div></div>';
+            }).join('')+'</div></div>'
+            +'<div style="background:rgba(139,174,212,.05);border:1px solid rgba(139,174,212,.14);padding:12px;margin-bottom:10px"><div style="font-size:8px;color:#8BAED4;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:4px">FULL ACCESS — PLATINUM ONLY</div><div style="font-size:10px;color:#5A5856;line-height:1.6">Upgrade to Platinum to purchase from this collection.</div></div>'+gbtn('REQUEST FULL ACCESS')
+          :'<div style="text-align:center;padding:26px 0"><div style="font-family:\'Cormorant Garamond\',serif;font-size:14px;color:#2A2826;font-style:italic;margin-bottom:12px">This collection is private</div>'
+            +'<div style="font-size:10px;color:#5A5856;line-height:1.7;margin-bottom:16px">Access is by invitation or Gold/Platinum tier.</div>'+gbtn('REQUEST ACCESS')+'</div>'))
+      +'</div>'+bnav('home')+'</div>';
+  }
+};
+
+/* ── M-08 FEED REELS ── */
+S['M-08']={n:'Feed — Reels-style content',tab:'Feed',web:false,
+  info:['Full-screen womens fashion editorial photography — Unsplash real photo','Progress segments at top','Heart / bookmark / share icons right rail','Caption + author at bottom','SHOP THE LOOK CTA → M-09','Swipe up/down navigation'],
+  acts:['Tap SHOP THE LOOK → M-09','Bookmark → M-18','Tap → M-06 for drop content','Swipe navigation'],leads:'Product / Drop / Shop the Look',
+  r:function(){
+    var a=ac();
+    return '<div style="height:100%;position:relative;overflow:hidden">'+tierbar()
+      +img(I.f1,504,'position:absolute;inset:0;width:100%;height:100%','top')
+      +'<div style="position:absolute;top:0;left:0;right:0;display:flex;gap:2px;padding:10px 14px;z-index:5">'
+      +'<div style="flex:1;height:1px;background:'+a+'55"></div>'
+      +'<div style="flex:3;height:1px;background:rgba(255,255,255,.14)"></div>'
+      +'<div style="flex:3;height:1px;background:rgba(255,255,255,.14)"></div>'
+      +'</div>'
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,11,.97) 0%,transparent 50%,rgba(9,9,11,.18) 100%)"></div>'
+      +'<div style="position:absolute;right:13px;bottom:130px;display:flex;flex-direction:column;gap:16px;align-items:center;z-index:5">'
+      +'<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,228,220,.7)" stroke-width="1.4" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><span style="font-size:7px;color:rgba(232,228,220,.45)">342</span></div>'
+      +'<div onclick="go(\'M-18\')" style="cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,228,220,.7)" stroke-width="1.4" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></div>'
+      +'<div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,228,220,.7)" stroke-width="1.4" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></div>'
+      +'</div>'
+      +'<div style="position:absolute;bottom:60px;left:0;right:0;padding:0 15px;z-index:5">'
+      +'<div style="font-size:8px;color:rgba(232,228,220,.45);letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">EDITORIAL · TROUVÉTOI STUDIO</div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:24px;color:#E8E4DC;line-height:1.2;margin-bottom:5px">The Architect<br>of Silhouettes</div>'
+      +'<div style="font-size:9px;color:rgba(232,228,220,.45);margin-bottom:9px">Elena Rossi · 5 min read</div>'
+      +'<div onclick="go(\'M-09\')" style="display:inline-flex;padding:5px 11px;background:rgba(201,165,92,.14);border:1px solid rgba(201,165,92,.3);cursor:pointer">'
+      +'<span style="font-size:8px;color:'+a+';letter-spacing:.08em;font-weight:500">SHOP THE LOOK</span></div>'
+      +'</div>'+bnav('feed')+'</div>';
+  }
+};
+
+/* ── M-09 SHOP THE LOOK ── */
+S['M-09']={n:'Shop-the-look detail',tab:'Feed',web:false,
+  info:['Real fashion editorial image with gold dot hotspot markers','Bottom sheet with tagged item and real product photo','Item name, brand, price','Add to Cart + View Product buttons'],
+  acts:['Tap hotspot → product sheet','ADD TO CART','VIEW → M-14','Back → M-08'],leads:'Product page / Cart',
+  r:function(){
+    var a=ac();
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()
+      +'<div style="position:relative;height:325px">'
+      +img(I.h3,325,'position:absolute;inset:0;width:100%;height:100%')
+      +backBtn('M-08')
+      +'<div style="position:absolute;top:28%;left:26%;width:19px;height:19px;border-radius:50%;background:rgba(201,165,92,.9);border:2px solid rgba(9,9,11,.8);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5"><div style="width:4px;height:4px;border-radius:50%;background:#09090B"></div></div>'
+      +'<div style="position:absolute;top:55%;left:62%;width:19px;height:19px;border-radius:50%;background:rgba(201,165,92,.9);border:2px solid rgba(9,9,11,.8);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5"><div style="width:4px;height:4px;border-radius:50%;background:#09090B"></div></div>'
+      +'</div>'
+      +'<div style="background:#111114;border-top:1px solid rgba(255,255,255,.05);padding:14px 17px 16px">'
+      +'<div style="width:22px;height:2px;background:#1E1E22;margin:0 auto 12px"></div>'
+      +'<div style="font-size:8px;color:'+a+';letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:9px">TAGGED ITEM</div>'
+      +'<div style="display:flex;gap:11px;align-items:flex-start;margin-bottom:13px">'
+      +img(I.p2,62,'width:58px;flex-shrink:0')
+      +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:16px;color:#E8E4DC;margin-bottom:2px">Sculpted Linen Dress</div>'
+      +'<div style="font-size:10px;color:'+a+';margin-bottom:4px">TrouvéToi Atelier</div>'
+      +'<div style="font-size:10px;color:#5A5856;line-height:1.5">Sand-washed Belgian linen. Cut on the bias.</div></div></div>'
+      +drow('Price','$1,240')
+      +'<div style="display:flex;gap:7px;margin-top:12px">'
+      +gbtn('ADD TO CART')
+      +'<button onclick="go(\'M-14\')" style="flex:1;padding:11px;background:transparent;border:1px solid rgba(255,255,255,.1);color:#8A8680;font-family:\'Jost\',sans-serif;font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap">VIEW</button>'
+      +'</div></div>'+bnav('feed')+'</div>';
+  }
+};
+
+/* ── M-10 DISCOVER ── */
+S['M-10']={n:'Discover home',tab:'Discover',web:false,
+  info:['Search bar at top','Category grid 6 items with icons','F-31 Trending in Your Size — real fashion product images','Find Similar F-21 entry card'],
+  acts:['Category → M-11','Find Similar → M-12','Product → M-14'],leads:'Product grid / Find Similar / Collections',
+  r:function(){
+    var a=ac();
+    var cats=[{l:'Womenswear',ic:'M5 3h14v18H5z'},{l:'Menswear',ic:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2'},{l:'Accessories',ic:'M12 22a10 10 0 100-20 10 10 0 000 20z'},{l:'Footwear',ic:'M2 12h20M12 2v20'},{l:'Jewellery',ic:'M12 2l2 7h7l-5.5 4 2 7L12 17'},{l:'Collections',ic:'M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z'}];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()
+      +'<div style="padding:8px 15px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:22px;color:#E8E4DC;margin-bottom:11px">Discover</div>'
+      +'<div style="background:#111114;padding:9px 11px;display:flex;align-items:center;gap:7px;margin-bottom:13px">'
+      +'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2A2826" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>'
+      +'<span style="font-size:11px;color:#2A2826">Search products, designers…</span></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:14px">'
+      +cats.map(function(c){return '<div onclick="go(\'M-11\')" style="background:#111114;padding:11px 7px;text-align:center;cursor:pointer">'
+        +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+a+'" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 4px"><path d="'+c.ic+'"/></svg>'
+        +'<div style="font-size:8px;color:#5A5856">'+c.l+'</div></div>';}).join('')
+      +'</div>'
+      +'<div style="font-size:8px;color:#4A4844;letter-spacing:.14em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">TRENDING IN YOUR SIZE <span style="color:#2A2826">EU 42</span></div>'
+      +'<div style="display:flex;gap:5px;overflow-x:auto;margin:0 -15px;padding:0 15px 11px;scrollbar-width:none">'
+      +[[I.p6,'Wide Leg','$420'],[I.p3,'Knit Set','$340'],[I.p2,'Linen Dress','$280']].map(function(x){
+        return '<div onclick="go(\'M-14\')" style="flex-shrink:0;width:97px;cursor:pointer">'+img(x[0],116,'width:97px')+'<div style="padding:4px 0"><div style="font-size:8px;color:#5A5856">'+x[1]+'</div><div style="font-size:8px;color:'+a+'">'+x[2]+'</div></div></div>';
+      }).join('')
+      +'</div>'
+      +'<div onclick="go(\'M-12\')" style="background:#111114;border:1px solid rgba(201,165,92,.13);padding:11px;display:flex;align-items:center;gap:9px;cursor:pointer">'
+      +'<div style="width:34px;height:34px;background:rgba(201,165,92,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+      +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+a+'" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="5"/><path d="M21 21l-4.35-4.35"/></svg></div>'
+      +'<div><div style="font-size:11px;color:#E8E4DC">Find Similar</div><div style="font-size:9px;color:#4A4844">Visual search across all inventory</div></div>'
+      +'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2A2826" stroke-width="1.5" stroke-linecap="round" style="margin-left:auto"><path d="M9 18l6-6-6-6"/></svg>'
+      +'</div></div>'+bnav('discover')+'</div>';
+  }
+};
+
+/* ── M-11 PRODUCT GRID ── */
+S['M-11']={n:'Product grid',tab:'Discover',web:false,
+  info:['Category header with item count','Filter chips: size, price, sort (pre-set from profile)','2-column product grid with real Unsplash women\'s fashion photos','F-34 tier-exclusive badge on gated items (Gold/Platinum)'],
+  acts:['Tap product → M-14','Adjust filters'],leads:'Product page (M-14)',
+  r:function(){
+    var a=ac();
+    var prods=[[I.p1,'Sculpted Coat','$1,240'],[I.p2,'Silk Set','$860'],[I.p4,'Linen Trench','$740'],[I.p3,'Knit Wrap','$480'],[I.p6,'Wide Trousers','$560'],[I.p8,'Draped Blouse','$390']];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()
+      +'<div style="padding:7px 15px">'
+      +bbtn('Discover','M-10')
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC">Womenswear</div>'
+      +'<div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace">42 items</div></div>'
+      +'<div style="display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none">'
+      +['Size: EU 42','Price','Sort','Material'].map(function(f,i){return '<div style="padding:4px 9px;border:1px solid '+(i===0?a+'32':'rgba(255,255,255,.05)')+';background:'+(i===0?a+'08':'transparent')+';font-size:8px;color:'+(i===0?a:'#2A2826')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace;white-space:nowrap">'+f+'</div>';}).join('')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+      +prods.map(function(x,i){
+        var exc=(i===1&&(T==='g'||T==='p'));
+        return '<div onclick="go(\'M-14\')" style="cursor:pointer"><div style="position:relative">'+img(x[0],158,'width:100%')+(exc?'<div style="position:absolute;top:5px;right:5px">'+bdg(T==='p'?'PLAT ONLY':'GOLD ONLY',a)+'</div>':'')+'</div><div style="padding:4px 0"><div style="font-size:8px;color:#5A5856">'+x[1]+'</div><div style="font-size:8px;color:'+a+'">'+x[2]+'</div></div></div>';
+      }).join('')
+      +'</div></div>'+bnav('discover')+'</div>';
+  }
+};
+
+/* ── M-12 FIND SIMILAR ── */
+S['M-12']={n:'Find similar results',tab:'Discover',web:false,
+  info:['Reference product shown at top with real photo','F-21 visual search results — real fashion product photos ranked by style','Filter by price, tier, availability','18 results found'],
+  acts:['Tap result → M-14','Adjust filters'],leads:'Product page (M-14)',
+  r:function(){
+    var a=ac();
+    var results=[[I.p1,'$1,180'],[I.p4,'$920'],[I.p2,'$1,440'],[I.p3,'$780'],[I.p6,'$1,050'],[I.p8,'$860']];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()
+      +'<div style="padding:7px 15px">'
+      +bbtn('Product','M-14')
+      +'<div style="font-size:8px;color:#4A4844;letter-spacing:.14em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:9px">FIND SIMILAR</div>'
+      +'<div style="display:flex;gap:9px;align-items:center;background:#111114;padding:9px;margin-bottom:12px">'
+      +img(I.p1,52,'width:48px;flex-shrink:0')
+      +'<div><div style="font-size:8px;color:#4A4844;margin-bottom:2px">Based on</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:14px;color:#E8E4DC">Sculpted Obsidian Overcoat</div></div></div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:9px">18 SIMILAR RESULTS</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">'
+      +results.map(function(x){return '<div onclick="go(\'M-14\')" style="cursor:pointer">'+img(x[0],106,'width:100%')+'<div style="padding:3px 0;font-size:8px;color:'+a+'">'+x[1]+'</div></div>';}).join('')
+      +'</div></div>'+bnav('discover')+'</div>';
+  }
+};
+
+/* ── M-13 COLLECTIONS ── */
+S['M-13']={n:'Collections browser',tab:'Discover',web:false,
+  info:['Real editorial fashion hero image for featured collection','Collection cards with real Unsplash fashion photos','Tier badges on gated collections'],
+  acts:['Tap hero → M-07','Tap collection → M-07'],leads:'Private collection / Product page',
+  r:function(){
+    var a=ac();
+    var colls=[{n:"L'Hiver Noir",d:'Winter 2026 · 24 pieces',t:'All',src:I.h1},{n:'Chrome Capsule',d:'Limited run · 50 units',t:'Gold+',src:I.d1},{n:'Minuit à Paris',d:'Private · 12 pieces',t:'Platinum',src:I.d2}];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()
+      +'<div onclick="go(\'M-07\')" style="position:relative;height:176px;cursor:pointer">'
+      +img(I.d2,176,'position:absolute;inset:0;width:100%;height:100%')
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,11,.92),transparent 50%)"></div>'
+      +'<div style="position:absolute;bottom:0;left:0;right:0;padding:13px 15px">'
+      +'<div style="font-size:7px;color:'+a+';letter-spacing:.16em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">FEATURED</div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:24px;color:#E8E4DC">Minuit à Paris</div>'
+      +'</div></div>'
+      +'<div style="padding:13px 15px">'
+      +'<div style="font-size:8px;color:#4A4844;letter-spacing:.14em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:9px">ALL COLLECTIONS</div>'
+      +colls.map(function(c){return '<div onclick="go(\'M-07\')" style="display:flex;gap:9px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer">'
+        +img(c.src,52,'width:48px;flex-shrink:0')
+        +'<div style="flex:1"><div style="font-size:11px;color:#E8E4DC">'+c.n+'</div><div style="font-size:8px;color:#4A4844;margin-top:2px">'+c.d+'</div></div>'
+        +(c.t!=='All'?bdg(c.t,c.t==='Platinum'?'#8BAED4':'#C9A55C'):'')+'</div>';}).join('')
+      +'</div>'+bnav('discover')+'</div>';
+  }
+};
+
+/* ── M-14 PRODUCT PAGE ── */
+S['M-14']={n:'Product page',tab:'Discover',web:false,
+  info:['Real Unsplash women\'s fashion product photo carousel','Brand label + product name italic serif','F-34 tier pricing: Standard/Gold/Platinum display','F-32 size auto-selected from profile — size chips to change','Low stock badge · delivery estimate','F-21 Find Similar · F-13 Suggest anonymously','F-15 Hold 48hr — Platinum tier only','The Curation: real editorial fashion product images'],
+  acts:['Size chip → select','ADD TO CART','BUY NOW → M-21','HOLD 48H (Platinum) → lock','Find Similar → M-12','Pre-book → M-15'],leads:'Cart / Checkout / Find Similar',
+  r:function(){
+    var a=ac(),isP=(T==='p'),isG=(T==='g');
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:16px">'+tierbar()
+      +'<div style="position:relative;height:220px">'
+      +img(I.p1,220,'position:absolute;inset:0;width:100%;height:100%','top')
+      +backBtn('M-11')
+      +'<div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);display:flex;gap:3px">'
+      +'<div style="width:18px;height:1.5px;background:'+a+'"></div><div style="width:5px;height:1.5px;background:rgba(255,255,255,.2)"></div><div style="width:5px;height:1.5px;background:rgba(255,255,255,.2)"></div>'
+      +'</div></div>'
+      +'<div style="padding:11px 15px 0">'
+      +'<div style="font-size:8px;color:'+a+';letter-spacing:.14em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">ATELIER</div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC;margin-bottom:5px;line-height:1.2">Sculpted Obsidian Overcoat</div>'
+      +'<div style="display:flex;align-items:baseline;gap:7px;margin-bottom:9px">'
+      +'<span style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:'+a+'">$3,450</span>'
+      +(isP?bdg('HOLD AVAILABLE','#8BAED4'):isG?bdg('PRIORITY ACCESS','#C9A55C'):'')
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace">SIZE</div><div style="font-size:8px;color:'+a+';cursor:pointer">Guide</div></div>'
+      +'<div style="display:flex;gap:3px;margin-bottom:7px">'
+      +['IT 44','IT 46','IT 48','IT 50','IT 52'].map(function(s,i){return '<div style="padding:5px 7px;border:1px solid '+(i===1?a:'rgba(255,255,255,.07)')+';font-size:8px;color:'+(i===1?a:'#2A2826')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">'+s+'</div>';}).join('')
+      +'</div>'
+      +'<div style="font-size:8px;color:#5DCAA5;letter-spacing:.05em;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">● LOW STOCK — 1 ITEM LEFT</div>'
+      +'<div style="font-size:9px;color:#5A5856;margin-bottom:10px">Express Shipping by Oct 24–26</div>'
+      +'<div style="font-size:10px;color:#5A5856;line-height:1.65;margin-bottom:10px">A definitive statement in modern tailoring. Double-breasted, engineered from heavy bouclé wool and cashmere from the Biella region.</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">THE CURATION</div>'
+      +'<div style="display:flex;gap:5px;overflow-x:auto;margin:0 -15px;padding:0 15px 11px;scrollbar-width:none">'
+      +[[I.p4,'Long Trench','$740'],[I.p5,'Archive Bag','$1,840']].map(function(x){
+        return '<div onclick="go(\'M-14\')" style="flex-shrink:0;width:108px;cursor:pointer">'+img(x[0],128,'width:108px')+'<div style="padding:4px 0"><div style="font-size:8px;color:#5A5856">'+x[1]+'</div><div style="font-size:8px;color:'+a+'">'+x[2]+'</div></div></div>';
+      }).join('')
+      +'</div>'
+      +'<div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">'
+      +'<div style="width:30px;height:30px;background:#111114;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5A5856" stroke-width="1.4" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>'
+      +'<div onclick="go(\'M-12\')" style="width:30px;height:30px;background:#111114;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5A5856" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>'
+      +(isP?'<div style="flex:1;padding:7px;background:rgba(139,174,212,.07);border:1px solid rgba(139,174,212,.18);text-align:center;cursor:pointer"><span style="font-size:8px;color:#8BAED4;letter-spacing:.08em;font-weight:600;font-family:\'JetBrains Mono\',monospace">HOLD 48H</span></div>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:5px;margin-bottom:7px">'
+      +gbtn('ADD TO CART')
+      +'<button onclick="go(\'M-21\')" style="flex:1;padding:11px;background:'+a+'16;border:none;color:'+a+';font-family:\'Jost\',sans-serif;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">BUY NOW</button>'
+      +'</div>'
+      +(T!=='s'?gbtn('SECURE PRE-ACCESS',"go('M-15')",'rgba(201,165,92,.1)',a)+'<br>':'')
+      +'<div style="display:flex;gap:12px;justify-content:center;padding:5px 0">'
+      +'<div onclick="go(\'M-12\')" style="font-size:8px;color:#2A2826;cursor:pointer">⊕ FIND SIMILAR</div>'
+      +'<div style="font-size:8px;color:#2A2826;cursor:pointer">→ SUGGEST</div>'
+      +'</div></div></div>';
+  }
+};
+
+/* Remaining screens — compact but full */
+S['M-15']={n:'Pre-book confirmation',tab:'Activity',web:false,
+  info:['F-14 tier window: Gold 24hr, Platinum 72hr','Product photo + name','Slot reserved + arrival estimate','Notification promise'],
+  acts:['CONFIRM PRE-BOOK → M-05','Cancel → M-14'],leads:'Home (M-05)',
+  r:function(){
+    var a=ac(),w=T==='p'?'72 hour':'24 hour';
+    return '<div style="overflow-y:auto;height:100%">'+tierbar()+stbar()+'<div style="padding:14px 16px">'
+      +bbtn('Product','M-14')
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC;margin-bottom:3px">Secure your slot</div>'
+      +'<div style="font-size:8px;color:'+a+';letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:14px">'+w.toUpperCase()+' PRE-BOOK WINDOW</div>'
+      +'<div style="display:flex;gap:9px;align-items:center;background:#111114;padding:11px;margin-bottom:14px">'
+      +img(I.p1,56,'width:52px;flex-shrink:0')
+      +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:14px;color:#E8E4DC">Sculpted Obsidian Overcoat</div><div style="font-size:9px;color:'+a+';margin-top:2px">IT 46 · $3,450</div></div></div>'
+      +drow('Window',w)+drow('Estimated arrival','Apr 28 – May 2')+drow('Notification','Email + in-app')
+      +'<div style="margin-top:18px">'
+      +gbtn('CONFIRM PRE-BOOK',"go('M-05')")
+      +'<div onclick="go(\'M-14\')" style="text-align:center;margin-top:9px;font-size:8px;color:#2A2826;cursor:pointer">Cancel</div>'
+      +'</div></div></div>';
+  }
+};
+
+S['M-16']={n:'Activity hub',tab:'Activity',web:false,
+  info:['5 tabs: Cart · Wishlist · Orders · Notifications · Recent','Gold count badges','Tap each tab to navigate directly'],
+  acts:['Cart → M-17','Wishlist → M-18','Orders → M-19','Notifs → M-20','Recent → M-31'],leads:'All activity sub-screens',
+  r:function(){
+    var a=ac();
+    var tabs=[{l:'Cart',sc:'M-17'},{l:'Wishlist',sc:'M-18'},{l:'Orders',sc:'M-19'},{l:'Notifs',sc:'M-20'},{l:'Recent',sc:'M-31'}];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()
+      +'<div style="padding:7px 0"><div style="padding:0 15px 9px"><div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC">Activity</div></div>'
+      +'<div style="display:flex;border-bottom:1px solid rgba(255,255,255,.04)">'
+      +tabs.map(function(t,i){return '<div onclick="go(\''+t.sc+'\')" style="flex:1;text-align:center;padding:7px 0;font-size:8px;font-weight:600;letter-spacing:.07em;cursor:pointer;color:'+(i===0?a:'#2A2826')+';border-bottom:1.5px solid '+(i===0?a:'transparent')+';font-family:\'JetBrains Mono\',monospace">'+t.l+'</div>';}).join('')
+      +'</div>'
+      +'<div style="padding:12px 15px">'
+      +'<div onclick="go(\'M-14\')" style="display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer">'
+      +img(I.p1,54,'width:50px;flex-shrink:0')
+      +'<div style="flex:1"><div style="font-family:\'Cormorant Garamond\',serif;font-size:13px;color:#E8E4DC">Sculpted Obsidian Overcoat</div><div style="font-size:9px;color:#4A4844;margin-top:2px">IT 46 · 1 item</div><div style="font-size:10px;color:'+a+';margin-top:2px">$3,450</div></div>'
+      +'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2A2826" stroke-width="1.4" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>'
+      +'<div style="margin-top:12px">'+gbtn('PROCEED TO CHECKOUT',"go('M-21')")+'</div>'
+      +'</div></div>'+bnav('activity')+'</div>';
+  }
+};
+
+S['M-17']={n:'Cart',tab:'Activity',web:false,
+  info:['Real product photos in cart','Soft-reserve timer','Checkout CTA'],
+  acts:['Remove items','PROCEED TO CHECKOUT → M-21'],leads:'Checkout (M-21)',
+  r:function(){
+    var a=ac();
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +bbtn('Activity','M-16')
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:12px">My Bag <span style="font-size:12px;color:#2A2826;font-style:normal;font-family:\'JetBrains Mono\',monospace">2</span></div>'
+      +'<div style="border-bottom:1px solid rgba(255,255,255,.04);padding-bottom:11px;margin-bottom:10px"><div style="display:flex;gap:9px">'
+      +img(I.p1,70,'width:60px;flex-shrink:0')
+      +'<div style="flex:1"><div style="font-family:\'Cormorant Garamond\',serif;font-size:13px;color:#E8E4DC;margin-bottom:2px">Sculpted Obsidian Overcoat</div><div style="font-size:9px;color:#4A4844;margin-bottom:3px">IT 46</div><div style="font-size:10px;color:'+a+'">$3,450</div></div>'
+      +'<div style="font-size:10px;color:#2A2826;cursor:pointer">✕</div></div>'
+      +'<div style="font-size:8px;color:#4A4844;margin-top:5px">Soft-reserved 15 min</div></div>'
+      +'<div style="border-bottom:1px solid rgba(255,255,255,.04);padding-bottom:11px;margin-bottom:12px"><div style="display:flex;gap:9px">'
+      +img(I.p7,56,'width:52px;flex-shrink:0')
+      +'<div style="flex:1"><div style="font-family:\'Cormorant Garamond\',serif;font-size:13px;color:#E8E4DC;margin-bottom:2px">Silk Scarf</div><div style="font-size:9px;color:#4A4844;margin-bottom:3px">One size</div><div style="font-size:10px;color:'+a+'">$530</div></div>'
+      +'<div style="font-size:10px;color:#2A2826;cursor:pointer">✕</div></div></div>'
+      +drow('Subtotal','$3,980')+drow('Shipping','Calculated at checkout')
+      +'<div style="margin-top:12px">'+gbtn('PROCEED TO CHECKOUT',"go('M-21')")+'</div>'
+      +'</div>'+bnav('activity')+'</div>';
+  }
+};
+
+S['M-18']={n:'Wishlist / saved',tab:'Activity',web:false,
+  info:['Real Unsplash fashion product photos in grid','Move to cart one tap','Share anonymously F-13'],
+  acts:['Tap product → M-14','Move to Cart'],leads:'Product page / Cart',
+  r:function(){
+    var a=ac();
+    var items=[[I.p1,'Linen Wrap','$1,240'],[I.p3,'Cardigan','$480'],[I.p6,'Wide Trousers','$560'],[I.p7,'Archive Scarf','$530'],[I.p2,'Draped Top','$390'],[I.p8,'Knit Midi','$620']];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +bbtn('Activity','M-16')
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:12px">Saved <span style="font-size:12px;color:#2A2826;font-style:normal;font-family:\'JetBrains Mono\',monospace">6</span></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+      +items.map(function(x){return '<div onclick="go(\'M-14\')" style="cursor:pointer">'+img(x[0],148,'width:100%')+'<div style="padding:4px 0"><div style="font-size:8px;color:#5A5856">'+x[1]+'</div><div style="font-size:8px;color:'+a+'">'+x[2]+'</div><div style="font-size:7px;color:#5DCAA5;margin-top:2px;font-family:\'JetBrains Mono\',monospace">IN STOCK</div></div></div>';}).join('')
+      +'</div></div>'+bnav('activity')+'</div>';
+  }
+};
+
+S['M-19']={n:'Orders & tracking',tab:'Activity',web:false,
+  info:['Active / Past tabs','Order card with 5-step timeline','Carrier info and delivery estimate'],
+  acts:['Tap order → detail','Timeline view'],leads:'Home or Activity',
+  r:function(){
+    var a=ac();
+    var steps=[{l:'Order placed',d:true},{l:'Confirmed',d:true},{l:'Dispatched',d:true},{l:'In transit',d:false},{l:'Delivered',d:false}];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +bbtn('Activity','M-16')
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:9px">Orders</div>'
+      +'<div style="display:flex;border-bottom:1px solid rgba(255,255,255,.04);margin-bottom:12px">'
+      +['Active (1)','Past (3)'].map(function(t,i){return '<div style="padding:5px 12px;font-size:8px;font-weight:600;letter-spacing:.07em;cursor:pointer;color:'+(i===0?a:'#2A2826')+';border-bottom:1.5px solid '+(i===0?a:'transparent')+';font-family:\'JetBrains Mono\',monospace">'+t+'</div>';}).join('')
+      +'</div>'
+      +'<div style="background:#111114;padding:11px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace">TRT-2026-00847</div>'
+      +'<div style="font-size:7px;padding:2px 6px;background:rgba(93,202,165,.09);color:#5DCAA5;letter-spacing:.07em;font-family:\'JetBrains Mono\',monospace">IN TRANSIT</div></div>'
+      +'<div style="font-size:10px;color:#4A4844;margin-bottom:11px">2 items · $3,980</div>'
+      +'<div style="padding-left:16px;border-left:1px solid rgba(255,255,255,.04)">'
+      +steps.map(function(s){return '<div style="display:flex;align-items:center;gap:7px;padding:5px 0"><div style="width:7px;height:7px;border-radius:50%;background:'+(s.d?a:'#1E1E22')+';border:1px solid '+(s.d?a:'rgba(255,255,255,.07)')+';flex-shrink:0;margin-left:-19px"></div><div style="font-size:9px;color:'+(s.d?'#E8E4DC':'#2A2826')+'">'+s.l+'</div></div>';}).join('')
+      +'</div></div></div>'+bnav('activity')+'</div>';
+  }
+};
+
+S['M-20']={n:'Notifications',tab:'Activity',web:false,
+  info:['F-17 personalised: drop alerts, restock, birthday/anniversary','Unread = left gold border','Deep link on tap to relevant screen'],
+  acts:['Tap → relevant screen','Mark all read'],leads:'Product / Drop / Home',
+  r:function(){
+    var a=ac();
+    var ns=[{t:'Drop Alert',m:'The Chrome Capsule drops in 4 hrs — secure your slot.',time:'2h',u:true,sc:'M-06'},{t:'Restock',m:'Sculpted Obsidian — IT 46 back in stock.',time:'5h',u:true,sc:'M-14'},{t:'Personal',m:'Happy birthday, Alexandra. Your gift awaits.',time:'1d',u:false,sc:'M-05'},{t:'Drop',m:"L'Hiver Noir — new arrivals from Winter 2026.",time:'2d',u:false,sc:'M-13'}];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC">Notifications</div>'
+      +'<div style="font-size:8px;color:'+a+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">MARK ALL READ</div></div>'
+      +ns.map(function(n){return '<div onclick="go(\''+n.sc+'\')" style="display:flex;gap:9px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer;'+(n.u?'border-left:2px solid '+a+';padding-left:9px;margin-left:-2px':'')+'">'
+        +'<div style="flex:1"><div style="font-size:8px;color:'+a+';letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">'+n.t+'</div>'
+        +'<div style="font-size:10px;color:'+(n.u?'#E8E4DC':'#5A5856')+';line-height:1.55">'+n.m+'</div></div>'
+        +'<div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;white-space:nowrap">'+n.time+'</div></div>';}).join('')
+      +'</div>'+bnav('activity')+'</div>';
+  }
+};
+
+S['M-21']={n:'Checkout — address',tab:'Activity',web:false,
+  info:['3-step progress bar step 1','Saved addresses with gold border on selected','Platinum: international shipping toggle'],
+  acts:['Select address','CONTINUE TO PAYMENT → M-22'],leads:'Checkout payment (M-22)',
+  r:function(){
+    var a=ac();
+    return '<div style="overflow-y:auto;height:100%">'+tierbar()+stbar()+'<div style="padding:9px 15px">'
+      +bbtn('Cart','M-17')
+      +'<div style="display:flex;gap:2px;margin-bottom:12px"><div style="flex:1;height:1.5px;background:'+a+'"></div><div style="flex:1;height:1.5px;background:rgba(255,255,255,.07)"></div><div style="flex:1;height:1.5px;background:rgba(255,255,255,.07)"></div></div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:3px">Delivery address</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:12px">STEP 1 OF 3</div>'
+      +'<div style="border:1px solid '+a+';padding:11px;margin-bottom:7px"><div style="font-size:10px;color:#E8E4DC;margin-bottom:1px">Home <span style="font-size:7px;color:'+a+';letter-spacing:.08em;font-family:\'JetBrains Mono\',monospace">DEFAULT</span></div><div style="font-size:9px;color:#4A4844">24 Rue du Faubourg, 75001 Paris</div></div>'
+      +'<div style="border:1px solid rgba(255,255,255,.05);padding:11px;margin-bottom:9px"><div style="font-size:10px;color:#E8E4DC;margin-bottom:1px">Studio</div><div style="font-size:9px;color:#4A4844">1 The Strand, London WC2N 5BW</div></div>'
+      +(T==='p'?'<div style="display:flex;justify-content:space-between;align-items:center;padding:9px;background:#111114;margin-bottom:9px"><div><div style="font-size:10px;color:#E8E4DC">International shipping</div><div style="font-size:8px;color:#4A4844">Platinum perk</div></div><div style="width:26px;height:13px;background:'+a+';border-radius:6px;position:relative"><div style="position:absolute;right:2px;top:2px;width:9px;height:9px;border-radius:50%;background:#09090B"></div></div></div>':'')
+      +'<div style="font-size:9px;color:'+a+';margin-bottom:12px;cursor:pointer">+ Add new address</div>'
+      +gbtn('CONTINUE TO PAYMENT',"go('M-22')")
+      +'</div></div>';
+  }
+};
+
+S['M-22']={n:'Checkout — payment',tab:'Activity',web:false,
+  info:['Step 2 progress bar','F-36 wallet balance + use full/partial','Card / UPI / mixed payment'],
+  acts:['Select method','CONTINUE TO REVIEW → M-23'],leads:'Checkout review (M-23)',
+  r:function(){
+    var a=ac();
+    return '<div style="overflow-y:auto;height:100%">'+tierbar()+stbar()+'<div style="padding:9px 15px">'
+      +bbtn('Address','M-21')
+      +'<div style="display:flex;gap:2px;margin-bottom:12px"><div style="flex:1;height:1.5px;background:'+a+'"></div><div style="flex:1;height:1.5px;background:'+a+'"></div><div style="flex:1;height:1.5px;background:rgba(255,255,255,.07)"></div></div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:3px">Payment</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:12px">STEP 2 OF 3</div>'
+      +'<div style="background:'+a+'07;border:1px solid '+a+'15;padding:11px;margin-bottom:9px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:8px;color:'+a+';letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:2px">WALLET</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC">$2,400</div></div><div style="font-size:8px;color:'+a+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">USE FULL</div></div></div>'
+      +'<div style="border:1px solid '+a+';padding:11px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:10px;color:#E8E4DC">Wallet · $2,400</div><div style="font-size:8px;color:#4A4844;margin-top:2px">Remaining $1,580 on card</div></div><div style="width:9px;height:9px;border-radius:50%;background:'+a+'"></div></div>'
+      +'<div style="border:1px solid rgba(255,255,255,.05);padding:11px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:10px;color:#4A4844">Visa ····4242</div><div style="width:9px;height:9px;border-radius:50%;border:1px solid #2A2826"></div></div>'
+      +'<div style="border:1px solid rgba(255,255,255,.05);padding:11px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:10px;color:#4A4844">UPI</div><div style="width:9px;height:9px;border-radius:50%;border:1px solid #2A2826"></div></div>'
+      +gbtn('CONTINUE TO REVIEW',"go('M-23')")
+      +'</div></div>';
+  }
+};
+
+S['M-23']={n:'Checkout — review & confirm',tab:'Activity',web:false,
+  info:['All 3 steps gold in progress bar','Full order summary','PLACE ORDER CTA'],
+  acts:['PLACE ORDER → M-24'],leads:'Order success (M-24)',
+  r:function(){
+    var a=ac();
+    return '<div style="overflow-y:auto;height:100%">'+tierbar()+stbar()+'<div style="padding:9px 15px">'
+      +bbtn('Payment','M-22')
+      +'<div style="display:flex;gap:2px;margin-bottom:12px"><div style="flex:1;height:1.5px;background:'+a+'"></div><div style="flex:1;height:1.5px;background:'+a+'"></div><div style="flex:1;height:1.5px;background:'+a+'"></div></div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:3px">Review order</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:12px">STEP 3 OF 3</div>'
+      +'<div style="background:#111114;padding:10px;margin-bottom:7px">'
+      +'<div style="display:flex;gap:7px;padding-bottom:7px;border-bottom:1px solid rgba(255,255,255,.03);margin-bottom:7px">'
+      +img(I.p1,44,'width:40px;flex-shrink:0')
+      +'<div><div style="font-size:10px;color:#E8E4DC">Sculpted Obsidian Overcoat</div><div style="font-size:9px;color:#2A2826">IT 46 · $3,450</div></div></div>'
+      +drow('Deliver to','Home — 24 Rue du Faubourg')+drow('Payment','Wallet $2,400 + Visa $1,580')+drow('Shipping','Standard 5–7 days')
+      +'<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid rgba(255,255,255,.04);margin-top:3px"><span style="font-family:\'Cormorant Garamond\',serif;font-size:16px;color:#E8E4DC">Total</span><span style="font-family:\'Cormorant Garamond\',serif;font-size:16px;color:'+a+'">$3,980</span></div>'
+      +'</div>'
+      +gbtn('PLACE ORDER',"go('M-24')")
+      +'</div></div>';
+  }
+};
+
+S['M-24']={n:'Order success',tab:'Activity',web:false,
+  info:['Gold circle checkmark centred','Order confirmed italic serif','Reference number in monospace','Track Order + Continue Shopping'],
+  acts:['TRACK ORDER → M-19','CONTINUE SHOPPING → M-05'],leads:'Orders / Home',
+  r:function(){
+    var a=ac();
+    return '<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 22px">'+tierbar()
+      +'<div style="width:46px;height:46px;border-radius:50%;border:1px solid '+a+'28;display:flex;align-items:center;justify-content:center;margin-bottom:18px">'
+      +'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="'+a+'" stroke-width="1.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:28px;color:#E8E4DC;margin-bottom:5px">Order confirmed</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:18px">TRT-2026-00847</div>'
+      +'<div style="background:#111114;padding:11px 18px;margin-bottom:22px;width:100%">'
+      +drow('Estimated delivery','Apr 24–26')+drow('Shipping','Standard delivery')
+      +'</div>'
+      +'<div style="width:100%">'+gbtn('TRACK ORDER',"go('M-19')")+'</div>'
+      +'<div onclick="go(\'M-05\')" style="margin-top:9px;font-size:9px;color:#2A2826;cursor:pointer">CONTINUE SHOPPING</div>'
+      +'</div>';
+  }
+};
+
+S['M-25']={n:'Profile hub',tab:'Profile',web:false,
+  info:['Member avatar in tier accent colour','Name + Access ID monospace','Tier badge F-11','Wallet balance preview — real tier colour','Menu: Wardrobe, Preferences, Wallet, Recent, Settings'],
+  acts:['Wardrobe → M-26','Wallet → M-28','Preferences → M-27','Settings → M-30','Recent → M-31'],leads:'Profile sub-screens',
+  r:function(){
+    var a=ac();
+    var menu=[{l:'Private Wardrobe',s:'F-16A · Offline access',sc:'M-26'},{l:'Preferences',s:'Size · Style · Brands',sc:'M-27'},{l:'Wallet',s:'Balance & top-up',sc:'M-28'},{l:'Recently Viewed',s:'Browse history',sc:'M-31'},{l:'Settings',s:'Language · Currency',sc:'M-30'}];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()+'<div style="padding:14px 15px 0">'
+      +'<div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">'
+      +'<div style="width:48px;height:48px;border-radius:50%;background:'+a+'10;border:1px solid '+a+'22;display:flex;align-items:center;justify-content:center;font-size:13px;color:'+a+';font-family:\'JetBrains Mono\',monospace">AF</div>'
+      +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;margin-bottom:2px">Alexandra Fontaine</div><div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">apd1345</div>'+tbdg()+'</div>'
+      +'</div>'
+      +'<div onclick="go(\'M-28\')" style="background:#111114;padding:9px 11px;margin-bottom:11px;display:flex;justify-content:space-between;align-items:center;cursor:pointer">'
+      +'<div><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:2px">WALLET</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:'+a+'">$2,400</div></div>'
+      +'<div style="font-size:8px;color:'+a+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">TOP UP →</div></div>'
+      +menu.map(function(m){return '<div onclick="go(\''+m.sc+'\')" style="display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer">'
+        +'<div style="flex:1"><div style="font-size:12px;color:#E8E4DC">'+m.l+'</div><div style="font-size:9px;color:#2A2826;margin-top:1px">'+m.s+'</div></div>'
+        +'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2A2826" stroke-width="1.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></div>';}).join('')
+      +'<div onclick="go(\'M-02\')" style="padding:13px 0;text-align:center;font-size:9px;color:#2A2826;cursor:pointer;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace">LOG OUT</div>'
+      +'</div>'+bnav('profile')+'</div>';
+  }
+};
+
+S['M-26']={n:'Private wardrobe',tab:'Profile',web:false,
+  info:['F-16A purchased items — real fashion photography','Available offline — no internet needed','Category filter chips','Search within wardrobe'],
+  acts:['Browse items','Filter category','Tap → M-14'],leads:'Product page or Profile',
+  r:function(){
+    var a=ac();
+    var wItems=[[I.p1,'Sculpted Overcoat','Mar 2026'],[I.p7,'Silk Scarf','Feb 2026'],[I.p2,'Linen Dress','Jan 2026'],[I.p6,'Wide Trousers','Dec 2025']];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +bbtn('Profile','M-25')
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:2px">My Wardrobe</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.08em;font-family:\'JetBrains Mono\',monospace;margin-bottom:12px">AVAILABLE OFFLINE · 12 ITEMS</div>'
+      +'<div style="background:#111114;padding:8px 10px;display:flex;align-items:center;gap:7px;margin-bottom:10px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2A2826" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><span style="font-size:10px;color:#2A2826">Search wardrobe…</span></div>'
+      +'<div style="display:flex;gap:4px;overflow-x:auto;margin:0 -15px;padding:0 15px 10px;scrollbar-width:none">'
+      +['All','Outerwear','Tops','Bottoms','Footwear'].map(function(f,i){return '<div style="flex-shrink:0;padding:4px 9px;border:1px solid '+(i===0?a+'35':'rgba(255,255,255,.05)')+';background:'+(i===0?a+'07':'transparent')+';font-size:8px;color:'+(i===0?a:'#2A2826')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">'+f+'</div>';}).join('')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+      +wItems.map(function(x){return '<div>'+img(x[0],138,'width:100%')+'<div style="padding:4px 0"><div style="font-size:8px;color:#5A5856">'+x[1]+'</div><div style="font-size:7px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;margin-top:2px">'+x[2]+'</div></div></div>';}).join('')
+      +'</div></div>'+bnav('profile')+'</div>';
+  }
+};
+
+S['M-27']={n:'Preferences',tab:'Profile',web:false,
+  info:['EU/US/UK size toggle + chips','Style profile grid','Favourite brands multi-select','Save → feed re-ranks immediately'],
+  acts:['Update sizes/style/brands','SAVE PREFERENCES → M-25'],leads:'Profile hub',
+  r:function(){
+    var a=ac();
+    return '<div style="overflow-y:auto;height:100%">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +bbtn('Profile','M-25')
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:12px">Preferences</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">CLOTHING SIZE</div>'
+      +'<div style="display:flex;gap:3px;margin-bottom:4px">'+['EU','US','UK'].map(function(s,i){return '<div style="padding:4px 9px;border:1px solid '+(i===0?a+'38':'rgba(255,255,255,.05)')+';font-size:8px;color:'+(i===0?a:'#2A2826')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">'+s+'</div>';}).join('')+'</div>'
+      +'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:12px">'+['34','36','38','40','42','44','46','48'].map(function(s){return '<div style="padding:5px 9px;border:1px solid '+(s==='42'?a+'38':'rgba(255,255,255,.05)')+';background:'+(s==='42'?a+'06':'transparent')+';font-size:8px;color:'+(s==='42'?a:'#2A2826')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">'+s+'</div>';}).join('')+'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">STYLE PROFILE</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px">'+['Classic','Contemporary','Avant-garde','Streetwear'].map(function(s,i){return '<div style="padding:9px;border:1px solid '+(i===0?a+'28':'rgba(255,255,255,.05)')+';background:'+(i===0?a+'05':'transparent')+';font-size:10px;color:'+(i===0?a:'#4A4844')+';cursor:pointer">'+s+'</div>';}).join('')+'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">BRANDS</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px">'+['The Row','Totême','Loewe','Jacquemus','Bottega','Alaïa'].map(function(b,i){return '<div style="padding:4px 9px;border:1px solid '+(i<2?a+'28':'rgba(255,255,255,.05)')+';font-size:9px;color:'+(i<2?a:'#4A4844')+';cursor:pointer">'+b+'</div>';}).join('')+'</div>'
+      +gbtn('SAVE PREFERENCES',"go('M-25')")
+      +'</div></div>';
+  }
+};
+
+S['M-28']={n:'Wallet',tab:'Profile',web:false,
+  info:['F-36 balance in large serif coloured per tier','F-39 currency display','Transaction ledger'],
+  acts:['ADD MONEY → M-29','Change currency'],leads:'Wallet top-up (M-29)',
+  r:function(){
+    var a=ac();
+    var txns=[{l:'Purchase — TRT-00847',v:'-$3,980',c:'#E8E4DC',d:'Mar 26'},{l:'Top-up via UPI',v:'+$5,000',c:'#5DCAA5',d:'Mar 24'},{l:'Return — TRT-00812',v:'+$530',c:'#5DCAA5',d:'Mar 20'},{l:'Membership renewal',v:'-$1,200',c:'#2A2826',d:'Mar 01'}];
+    return '<div style="overflow-y:auto;height:100%">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +bbtn('Profile','M-25')
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.14em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">WALLET BALANCE</div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:44px;font-weight:300;color:'+a+';margin-bottom:3px">$2,400</div>'
+      +'<div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;margin-bottom:14px">F-39 · Displaying in USD</div>'
+      +gbtn('ADD MONEY',"go('M-29')")
+      +'<div style="margin-top:8px;margin-bottom:14px">'+gsbtn('CHANGE CURRENCY')+'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:9px">TRANSACTIONS</div>'
+      +txns.map(function(t){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03)"><div><div style="font-size:10px;color:#5A5856">'+t.l+'</div><div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;margin-top:2px">'+t.d+'</div></div><div style="font-size:11px;color:'+t.c+'">'+t.v+'</div></div>';}).join('')
+      +'</div></div>';
+  }
+};
+
+S['M-29']={n:'Wallet — add money',tab:'Profile',web:false,
+  info:['Quick amount chips + custom','UPI or saved card','Confirm → balance updated'],
+  acts:['Select amount','Choose method','ADD → M-28'],leads:'Wallet (M-28)',
+  r:function(){
+    var a=ac();
+    return '<div style="overflow-y:auto;height:100%">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +bbtn('Wallet','M-28')
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:2px">Add money</div>'
+      +'<div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;margin-bottom:14px">CURRENT · $2,400</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">'+['$100','$250','$500','$1,000','Custom'].map(function(amt,i){return '<div style="padding:7px 11px;border:1px solid '+(i===2?a+'38':'rgba(255,255,255,.05)')+';background:'+(i===2?a+'06':'transparent')+';font-size:8px;color:'+(i===2?a:'#2A2826')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">'+amt+'</div>';}).join('')+'</div>'
+      +fld('AMOUNT','$500',true)
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">PAY VIA</div>'
+      +'<div style="border:1px solid '+a+'28;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:10px;color:#E8E4DC">UPI</div><div style="width:8px;height:8px;border-radius:50%;background:'+a+'"></div></div>'
+      +'<div style="border:1px solid rgba(255,255,255,.05);padding:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:10px;color:#4A4844">Visa ····4242</div><div style="width:8px;height:8px;border-radius:50%;border:1px solid #2A2826"></div></div>'
+      +gbtn('ADD $500 TO WALLET',"go('M-28')")
+      +'</div></div>';
+  }
+};
+
+S['M-30']={n:'Settings',tab:'Profile',web:false,
+  info:['Language / Currency / Theme toggles','F-17 Notification rule toggles per category','Biometric login toggle','Logout → M-02'],
+  acts:['Toggle any setting','LOG OUT → M-02'],leads:'Login (M-02) or Profile',
+  r:function(){
+    var a=ac();
+    var togs=[{l:'Drop alerts',on:true},{l:'Restock alerts',on:true},{l:'Events',on:false},{l:'Personal messages',on:true},{l:'Biometric login',on:true}];
+    return '<div style="overflow-y:auto;height:100%">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +bbtn('Profile','M-25')
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC;margin-bottom:14px">Settings</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">LANGUAGE</div>'
+      +'<div style="display:flex;gap:4px;margin-bottom:12px">'+['English','Français'].map(function(l,i){return '<div style="padding:6px 12px;border:1px solid '+(i===0?a+'28':'rgba(255,255,255,.05)')+';font-size:9px;color:'+(i===0?a:'#4A4844')+';cursor:pointer">'+l+'</div>';}).join('')+'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">CURRENCY</div>'
+      +'<div style="display:flex;gap:4px;margin-bottom:12px">'+['USD $','EUR €','INR ₹'].map(function(c,i){return '<div style="padding:6px 10px;border:1px solid '+(i===0?a+'28':'rgba(255,255,255,.05)')+';font-size:9px;color:'+(i===0?a:'#4A4844')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">'+c+'</div>';}).join('')+'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">NOTIFICATIONS</div>'
+      +'<div style="margin-bottom:14px">'+togs.map(function(t){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03)"><span style="font-size:10px;color:#5A5856">'+t.l+'</span><div style="width:26px;height:13px;background:'+(t.on?a:'#1C1C1F')+';border-radius:6px;position:relative"><div style="position:absolute;'+(t.on?'right':'left')+':2px;top:2px;width:9px;height:9px;border-radius:50%;background:#09090B"></div></div></div>';}).join('')+'</div>'
+      +'<div onclick="go(\'M-02\')" style="padding:11px 0;border-top:1px solid rgba(255,255,255,.04);text-align:center;font-size:9px;color:#E84444;cursor:pointer">LOG OUT</div>'
+      +'</div></div>';
+  }
+};
+
+S['M-31']={n:'Recently viewed',tab:'Profile',web:false,
+  info:['F-30 chronological product history with real fashion photos','In-stock status badges','Clear history','Tap → product page'],
+  acts:['Tap item → M-14','Clear all'],leads:'Product page (M-14)',
+  r:function(){
+    var a=ac();
+    var rv=[[I.p1,'Sculpted Overcoat','$3,450'],[I.p7,'Silk Scarf','$530'],[I.p2,'Linen Dress','$1,240'],[I.p6,'Knit Set','$780']];
+    return '<div style="overflow-y:auto;height:100%;padding-bottom:52px">'+tierbar()+stbar()+'<div style="padding:7px 15px">'
+      +bbtn('Profile','M-25')
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:#E8E4DC">Recently Viewed</div>'
+      +'<div style="font-size:8px;color:#2A2826;cursor:pointer;font-family:\'JetBrains Mono\',monospace">CLEAR ALL</div></div>'
+      +'<div style="display:flex;gap:5px;overflow-x:auto;margin:0 -15px;padding:0 15px;scrollbar-width:none">'
+      +rv.map(function(x){return '<div onclick="go(\'M-14\')" style="flex-shrink:0;width:110px;cursor:pointer">'+img(x[0],128,'width:110px')+'<div style="padding:4px 0"><div style="font-size:8px;color:#5A5856">'+x[1]+'</div><div style="font-size:8px;color:'+a+'">'+x[2]+'</div></div></div>';}).join('')
+      +'</div></div>'+bnav('profile')+'</div>';
+  }
+};
+
+/* ═══════════════════════════════════════
+   WEB SCREENS — Pre-Registration
+═══════════════════════════════════════ */
+function wshell(url,nav,body){
+  var h='<div style="display:flex;height:100%">'
+    +'<div style="width:158px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06);padding:14px 0;background:#0D0D10;display:flex;flex-direction:column">'
+    +'<div style="padding:0 13px 13px;border-bottom:1px solid rgba(255,255,255,.05);margin-bottom:8px">'
+    +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:13px;font-style:italic;color:#E8E4DC">trouvétoi</div>'
+    +'<div style="font-size:7px;color:#7BA87B;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-top:2px;opacity:.65">Pre-registration</div></div>';
+  nav.forEach(function(n){
+    h+='<div onclick="go(\''+n.sc+'\')" style="padding:6px 13px;font-size:10px;cursor:pointer;color:'+(n.a?'#7BA87B':'#3A3835')+';border-left:2px solid '+(n.a?'#7BA87B':'transparent')+';background:'+(n.a?'rgba(123,168,123,.04)':'transparent')+'">'+n.l+'</div>';
+  });
+  h+='</div><div style="flex:1;overflow-y:auto;padding:17px 19px;scrollbar-width:thin;scrollbar-color:#1C1C1F transparent">'+body+'</div></div>';
+  return h;
+}
+function wnav(aid){
+  return [{l:'Invite landing',sc:'W-01',a:aid==='W-01'},{l:'Register',sc:'W-02',a:aid==='W-02'||aid==='W-03'||aid==='W-04'},{l:'Pending',sc:'W-05',a:aid==='W-05'},{l:'Tier & payment',sc:'W-06',a:aid==='W-06'},{l:'Preferences',sc:'W-07',a:aid==='W-07'}];
+}
+
+S['W-01']={n:'Invite landing',tab:'Web',web:true,url:'trouvetoi.com/invite',
+  info:['Real Unsplash editorial fashion hero — woman in coat','trouvétoi italic serif wordmark over photo','Referrer ID captured silently from URL','BEGIN APPLICATION gold CTA'],
+  acts:['BEGIN APPLICATION → W-02','Sign in → login (M-02)'],leads:'Registration Step 1 (W-02)',
+  r:function(){
+    var body='<div style="position:relative;height:255px;overflow:hidden;margin:-17px -19px 17px">'
+      +img(I.w1,255,'position:absolute;inset:0;width:100%;height:100%','top')
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(9,9,11,.35),rgba(9,9,11,.88))"></div>'
+      +'<div style="position:absolute;bottom:0;left:0;right:0;padding:20px 22px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:36px;color:#E8E4DC;line-height:1.1;margin-bottom:5px">trouvétoi</div>'
+      +'<div style="font-size:7px;color:rgba(232,228,220,.4);letter-spacing:.22em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace">THE SILENT CURATOR</div></div></div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;margin-bottom:5px">You have been invited</div>'
+      +'<div style="font-size:10px;color:#5A5856;line-height:1.7;margin-bottom:8px">TrouvéToi is an invitation-only luxury fashion platform. You\'ve been referred by a member of our community.</div>'
+      +'<div style="background:#111114;padding:9px 11px;margin-bottom:14px;border-left:2px solid rgba(123,168,123,.28)"><div style="font-size:8px;color:#7BA87B;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:2px">REFERRAL DETECTED</div><div style="font-size:9px;color:#5A5856">Invite ID captured automatically from your link.</div></div>'
+      +gbtn('BEGIN APPLICATION',"go('W-02')")
+      +'<div style="text-align:center;margin-top:9px;font-size:9px;color:#3A3835;cursor:pointer">Already approved? <span style="color:#7BA87B" onclick="go(\'M-02\')">Sign in</span></div>';
+    return wshell('trouvetoi.com/invite',wnav('W-01'),body);
+  }
+};
+
+S['W-02']={n:'Registration — Step 1',tab:'Web',web:true,url:'trouvetoi.com/register',
+  info:['3-step progress bar','Full name, email + OTP verify, phone','Bottom-border only inputs'],
+  acts:['Fill details','Verify OTP','CONTINUE → W-03'],leads:'Step 2 (W-03)',
+  r:function(){
+    var body='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic;margin-bottom:13px">Your details</div>'
+      +'<div style="display:flex;gap:2px;margin-bottom:13px"><div style="flex:1;height:1.5px;background:#7BA87B"></div><div style="flex:1;height:1.5px;background:rgba(255,255,255,.07)"></div><div style="flex:1;height:1.5px;background:rgba(255,255,255,.07)"></div></div>'
+      +'<div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;margin-bottom:12px">STEP 1 OF 3 · PERSONAL INFORMATION</div>'
+      +fld('FULL NAME','Alexandra Fontaine',true)
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">EMAIL ADDRESS</div>'
+      +'<div style="display:flex;gap:7px;align-items:center;margin-bottom:4px"><div style="flex:1;border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:7px;font-size:11px;color:#E8E4DC">alex@example.com</div>'
+      +'<div style="background:rgba(123,168,123,.1);border:1px solid rgba(123,168,123,.18);color:#7BA87B;font-size:8px;padding:5px 9px;cursor:pointer;letter-spacing:.06em;white-space:nowrap">VERIFY</div></div>'
+      +'<div style="background:rgba(123,168,123,.05);border:1px solid rgba(123,168,123,.13);padding:10px;margin-bottom:12px">'
+      +'<div style="font-size:8px;color:#7BA87B;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">OTP SENT</div>'
+      +'<div style="display:flex;gap:5px">'+[3,7,'·','·','·','·'].map(function(d,i){return '<div style="width:32px;height:38px;background:#111114;border:1px solid '+(i<2?'rgba(123,168,123,.28)':'rgba(255,255,255,.05)')+';display:flex;align-items:center;justify-content:center;font-size:15px;color:'+(i<2?'#7BA87B':'#2A2826')+';font-family:\'JetBrains Mono\',monospace">'+d+'</div>';}).join('')+'</div></div>'
+      +fld('PHONE NUMBER','+44 ···· ······',false)
+      +gbtn('CONTINUE TO STEP 2',"go('W-03')");
+    return wshell('trouvetoi.com/register',wnav('W-02'),body);
+  }
+};
+
+S['W-03']={n:'Registration — Step 2',tab:'Web',web:true,url:'trouvetoi.com/register/about',
+  info:['Step 2 progress','Intent + tier interest form'],
+  acts:['Answer questions','CONTINUE → W-04'],leads:'Step 3 (W-04)',
+  r:function(){
+    var body='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic;margin-bottom:13px">About you</div>'
+      +'<div style="display:flex;gap:2px;margin-bottom:13px"><div style="flex:1;height:1.5px;background:#7BA87B"></div><div style="flex:1;height:1.5px;background:#7BA87B"></div><div style="flex:1;height:1.5px;background:rgba(255,255,255,.07)"></div></div>'
+      +'<div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;margin-bottom:12px">STEP 2 OF 3 · INTERESTS</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">WHY ARE YOU HERE?</div>'
+      +'<div style="background:#111114;border:1px solid rgba(255,255,255,.05);padding:9px;margin-bottom:12px;font-size:11px;color:#5A5856;font-style:italic;min-height:52px">I\'ve been exploring quiet luxury and editorial fashion…</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:8px">WHAT BRINGS YOU HERE?</div>'
+      +'<div style="margin-bottom:12px">'+['Early access to limited drops','Exclusive private collections','Editorial content and storytelling','Investment pieces at curated prices'].map(function(item,i){return '<div style="display:flex;align-items:center;gap:7px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer"><div style="width:11px;height:11px;border:1px solid '+(i<2?'rgba(123,168,123,.45)':'rgba(255,255,255,.08)')+';background:'+(i<2?'rgba(123,168,123,.07)':'transparent')+';flex-shrink:0;display:flex;align-items:center;justify-content:center">'+(i<2?'<svg width="6" height="6" viewBox="0 0 12 12" fill="none" stroke="#7BA87B" stroke-width="2.5" stroke-linecap="round"><path d="M1 6l3.5 3.5L11 2"/></svg>':'')+'</div><span style="font-size:10px;color:#5A5856">'+item+'</span></div>';}).join('')+'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:8px">TIER INTEREST</div>'
+      +'<div style="margin-bottom:16px">'+[{t:'Standard',c:'#B4AFA8',d:'Free'},{t:'Gold',c:'#C9A55C',d:'$120/yr',sel:true},{t:'Platinum',c:'#8BAED4',d:'$480/yr'}].map(function(x){return '<div style="display:flex;align-items:center;gap:7px;padding:8px;margin-bottom:4px;border:1px solid '+(x.sel?x.c+'28':'rgba(255,255,255,.05)')+';cursor:pointer"><div style="width:9px;height:9px;border-radius:50%;border:1px solid '+(x.sel?x.c+'55':'rgba(255,255,255,.09)')+';background:'+(x.sel?x.c:'transparent')+';flex-shrink:0"></div><span style="font-size:10px;color:'+(x.sel?x.c:'#4A4844')+'">'+x.t+' — '+x.d+'</span></div>';}).join('')+'</div>'
+      +gbtn('CONTINUE TO STEP 3',"go('W-04')");
+    return wshell('trouvetoi.com/register/about',wnav('W-03'),body);
+  }
+};
+
+S['W-04']={n:'Registration — Step 3',tab:'Web',web:true,url:'trouvetoi.com/register/submit',
+  info:['Tier comparison table Standard/Gold/Platinum','SUBMIT APPLICATION CTA','1–2 day review note'],
+  acts:['Review table','SUBMIT APPLICATION → W-05'],leads:'Application pending (W-05)',
+  r:function(){
+    var rows=[['Full catalogue','✓','✓','✓'],['Exclusive drops','—','24hr early','72hr first'],['Private collections','—','Read-only','Full access'],['Item hold (48hr)','—','—','✓'],['Private events','—','Virtual','IRL + Virtual'],['Concierge','Basic','Full','Priority'],['Support','In-app','Priority','Dedicated']];
+    var body='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic;margin-bottom:13px">Review & submit</div>'
+      +'<div style="display:flex;gap:2px;margin-bottom:13px"><div style="flex:1;height:1.5px;background:#7BA87B"></div><div style="flex:1;height:1.5px;background:#7BA87B"></div><div style="flex:1;height:1.5px;background:#7BA87B"></div></div>'
+      +'<table style="width:100%;border-collapse:collapse;margin-bottom:13px"><thead><tr>'
+      +'<th style="font-size:8px;color:#2A2826;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left;font-family:\'JetBrains Mono\',monospace"></th>'
+      +[{n:'Standard',c:'#B4AFA8',p:'Free'},{n:'Gold',c:'#C9A55C',p:'$120/yr'},{n:'Platinum',c:'#8BAED4',p:'$480/yr'}].map(function(t){return '<th style="font-size:8px;color:'+t.c+';padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.05);text-align:center;font-family:\'JetBrains Mono\',monospace">'+t.n+'<br><span style="color:#2A2826;font-weight:400">'+t.p+'</span></th>';}).join('')
+      +'</tr></thead><tbody>'
+      +rows.map(function(r){return '<tr><td style="font-size:9px;color:#5A5856;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.02)">'+r[0]+'</td><td style="font-size:9px;color:#B4AFA8;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.02);text-align:center">'+r[1]+'</td><td style="font-size:9px;color:#C9A55C;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.02);text-align:center">'+r[2]+'</td><td style="font-size:9px;color:#8BAED4;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.02);text-align:center">'+r[3]+'</td></tr>';}).join('')
+      +'</tbody></table>'
+      +'<div style="background:#111114;padding:9px 11px;margin-bottom:12px;border-left:2px solid rgba(123,168,123,.25)"><div style="font-size:9px;color:#5A5856;line-height:1.65">Review within <strong style="color:#E8E4DC">1–2 working days</strong>. You\'ll receive an email with next steps.</div></div>'
+      +gbtn('SUBMIT APPLICATION',"go('W-05')")
+      +'<div style="text-align:center;margin-top:8px;font-size:8px;color:#2A2826">Your information is kept private and never shared.</div>';
+    return wshell('trouvetoi.com/register/submit',wnav('W-04'),body);
+  }
+};
+
+S['W-05']={n:'Application pending',tab:'Web',web:true,url:'trouvetoi.com/pending',
+  info:['Confirmation received','What happens next — 4 steps','Reference number','SKIP TO TIER SELECTION for demo'],
+  acts:['No action — wait for email','SKIP TO TIER SELECTION (demo) → W-06'],leads:'Tier & payment (W-06)',
+  r:function(){
+    var steps=['Application received and under review','Admin decision within 1–2 working days','Approval email sent with return link','Return to select tier and complete payment'];
+    var body='<div style="text-align:center;padding:26px 0 18px">'
+      +'<div style="width:44px;height:44px;border-radius:50%;border:1px solid rgba(123,168,123,.22);display:flex;align-items:center;justify-content:center;margin:0 auto 13px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7BA87B" stroke-width="1.4" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:26px;color:#E8E4DC;margin-bottom:4px">Application received</div>'
+      +'<div style="font-size:10px;color:#5A5856;max-width:280px;margin:0 auto 18px;line-height:1.7">Thank you. Our team will review within 1–2 working days.</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:4px">REFERENCE</div>'
+      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:16px;color:#E8E4DC;margin-bottom:20px">TRT-APP-2026-04821</div></div>'
+      +'<div style="background:#111114;padding:12px;margin-bottom:12px">'+steps.map(function(s,i){return '<div style="display:flex;align-items:flex-start;gap:9px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.03)"><div style="width:17px;height:17px;border-radius:50%;background:rgba(123,168,123,.07);border:1px solid rgba(123,168,123,.16);display:flex;align-items:center;justify-content:center;font-size:8px;color:#7BA87B;flex-shrink:0;font-family:\'JetBrains Mono\',monospace">'+(i+1)+'</div><div style="font-size:9px;color:#5A5856;line-height:1.55;padding-top:1px">'+s+'</div></div>';}).join('')+'</div>'
+      +'<div onclick="go(\'W-06\')" style="background:#111114;border:1px solid rgba(123,168,123,.15);padding:10px;text-align:center;cursor:pointer;font-size:9px;color:#7BA87B;letter-spacing:.08em;font-family:\'JetBrains Mono\',monospace">SKIP TO TIER SELECTION (DEMO)</div>';
+    return wshell('trouvetoi.com/pending',wnav('W-05'),body);
+  }
+};
+
+S['W-06']={n:'Tier selection & payment',tab:'Web',web:true,url:'trouvetoi.com/onboarding/tier',
+  info:['Approved notice','3 tier cards — Gold highlighted as popular','Card payment form + auto-pay toggle','COMPLETE PAYMENT → W-07'],
+  acts:['Select tier','Fill card details','COMPLETE PAYMENT → W-07'],leads:'Preferences & Access ID (W-07)',
+  r:function(){
+    var tiers=[{n:'Standard',c:'#B4AFA8',p:'Free',b:['Full catalogue','Standard drops','In-app support']},{n:'Gold',c:'#C9A55C',p:'$120/yr',b:['All Standard','24hr early drops','Private events','Priority support'],pop:true},{n:'Platinum',c:'#8BAED4',p:'$480/yr',b:['All Gold','Item hold 48hr','72hr first access','Concierge']}];
+    var body='<div style="margin-bottom:12px"><div style="font-size:8px;color:#7BA87B;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">APPROVED</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic;margin-bottom:3px">Choose your tier</div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px">'
+      +tiers.map(function(t){return '<div style="background:#111114;border:1px solid '+(t.pop?t.c:t.c+'20')+';padding:12px;position:relative">'+(t.pop?'<div style="position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:'+t.c+';color:#09090B;font-size:7px;font-weight:600;padding:2px 9px;letter-spacing:.05em;white-space:nowrap;font-family:\'JetBrains Mono\',monospace">POPULAR</div>':'')+'<div style="font-family:\'Cormorant Garamond\',serif;font-size:15px;color:'+t.c+';margin-bottom:2px;margin-top:'+(t.pop?'6px':'0')+'">'+t.n+'</div><div style="font-size:10px;color:'+t.c+';margin-bottom:8px">'+t.p+'</div>'+t.b.map(function(b){return '<div style="font-size:8px;color:#5A5856;padding:2px 0">· '+b+'</div>';}).join('')+'</div>';}).join('')
+      +'</div>'
+      +'<div style="background:#111114;padding:12px;margin-bottom:10px">'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:8px">PAYMENT — GOLD $120/YR</div>'
+      +fld('CARD NUMBER','4242 4242 4242 4242',false)
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px">'+fld('EXPIRY','MM / YY',false)+fld('CVC','···',false)+'</div>'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px"><div style="width:22px;height:12px;background:#C9A55C;border-radius:6px;position:relative"><div style="position:absolute;right:1.5px;top:1.5px;width:9px;height:9px;border-radius:50%;background:#09090B"></div></div><span style="font-size:9px;color:#5A5856">Enable auto-renewal</span></div></div>'
+      +gbtn('COMPLETE PAYMENT',"go('W-07')");
+    return wshell('trouvetoi.com/onboarding/tier',wnav('W-06'),body);
+  }
+};
+
+S['W-07']={n:'Preferences & Access ID reveal',tab:'Web',web:true,url:'trouvetoi.com/onboarding/preferences',
+  info:['Size toggle + chips','Colours swatches','Materials + brands multi-select','Submit → Unique Access ID revealed','App download link + manual entry'],
+  acts:['Set preferences','SAVE → receive Access ID','DOWNLOAD APP','Manual entry → M-02'],leads:'App install (M-02)',
+  r:function(){
+    var body='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic;margin-bottom:11px">Set your preferences</div>'
+      +'<div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;margin-bottom:12px">PERSONALISE YOUR CURATION</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">SIZE</div>'
+      +'<div style="display:flex;gap:4px;margin-bottom:7px">'+['EU','US','UK'].map(function(s,i){return '<div style="padding:5px 11px;border:1px solid '+(i===0?'rgba(123,168,123,.28)':'rgba(255,255,255,.05)')+';font-size:8px;color:'+(i===0?'#7BA87B':'#2A2826')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">'+s+'</div>';}).join('')+'</div>'
+      +'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:11px">'+['34','36','38','40','42','44','46','48'].map(function(s){return '<div style="padding:5px 8px;border:1px solid '+(s==='42'?'rgba(123,168,123,.28)':'rgba(255,255,255,.05)')+';font-size:8px;color:'+(s==='42'?'#7BA87B':'#2A2826')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">'+s+'</div>';}).join('')+'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">COLOURS</div>'
+      +'<div style="display:flex;gap:5px;margin-bottom:11px">'+[['#1a1a1a','Black'],['#F5E6D0','Ivory'],['#8B7355','Camel'],['#4a6741','Forest'],['#2C3E6B','Navy']].map(function(c){return '<div title="'+c[1]+'" style="width:19px;height:19px;border-radius:50%;background:'+c[0]+';border:2px solid rgba(255,255,255,.12);cursor:pointer"></div>';}).join('')+'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">MATERIALS</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:11px">'+['Silk','Cashmere','Linen','Wool','Cotton','Leather'].map(function(m,i){return '<div style="padding:4px 8px;border:1px solid '+(i<3?'rgba(123,168,123,.25)':'rgba(255,255,255,.05)')+';font-size:8px;color:'+(i<3?'#7BA87B':'#2A2826')+';cursor:pointer">'+m+'</div>';}).join('')+'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">BRANDS</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:13px">'+['The Row','Totême','Loewe','Jacquemus','Bottega','Alaïa','Lemaire'].map(function(b,i){return '<div style="padding:4px 8px;border:1px solid '+(i<2?'rgba(123,168,123,.25)':'rgba(255,255,255,.05)')+';font-size:9px;color:'+(i<2?'#7BA87B':'#2A2826')+';cursor:pointer">'+b+'</div>';}).join('')+'</div>'
+      +gbtn('SAVE & GET MY ACCESS ID')
+      +'<div style="background:rgba(123,168,123,.05);border:1px solid rgba(123,168,123,.13);padding:13px;margin-top:10px">'
+      +'<div style="font-size:8px;color:#7BA87B;letter-spacing:.12em;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">YOUR UNIQUE ACCESS ID</div>'
+      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:24px;color:#E8E4DC;letter-spacing:.06em;margin-bottom:7px">apd1345</div>'
+      +'<div style="font-size:9px;color:#5A5856;line-height:1.65;margin-bottom:9px">This is your only login credential. Keep it safe.</div>'
+      +gbtn('DOWNLOAD APP')
+      +'<div onclick="go(\'M-02\')" style="text-align:center;margin-top:6px;font-size:8px;color:#3A3835;cursor:pointer">Or open the app and enter your ID manually</div></div>';
+    return wshell('trouvetoi.com/onboarding/preferences',wnav('W-07'),body);
+  }
+};
+
+/* ═══════════════════════════════════════
+   ADMIN SCREENS
+═══════════════════════════════════════ */
+function ashell(aid,body){
+  var nav=[{l:'Dashboard',sc:'A-01'},{l:'Applications',sc:'A-02'},{l:'Members',sc:'A-03'},{l:'Member detail',sc:'A-04'},{l:'Content',sc:'A-05'},{l:'Drops',sc:'A-06'},{l:'Analytics',sc:'A-07'},{l:'Settings',sc:'A-08'}];
+  var h='<div style="display:flex;height:100%"><div style="width:164px;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06);padding:14px 0;background:#0D0D10;display:flex;flex-direction:column">'
+    +'<div style="padding:0 13px 13px;border-bottom:1px solid rgba(255,255,255,.05);margin-bottom:8px">'
+    +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:13px;font-style:italic;color:#E8E4DC">trouvétoi</div>'
+    +'<div style="font-size:7px;color:#E07070;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-top:2px;opacity:.65">Admin Panel</div></div>';
+  nav.forEach(function(n){h+='<div onclick="go(\''+n.sc+'\')" style="padding:6px 13px;font-size:10px;cursor:pointer;color:'+(n.sc===aid?'#E07070':'#2A2826')+';border-left:2px solid '+(n.sc===aid?'#E07070':'transparent')+';background:'+(n.sc===aid?'rgba(224,112,112,.04)':'transparent')+'">'+n.l+'</div>';});
+  h+='</div><div style="flex:1;overflow-y:auto;padding:17px 18px;scrollbar-width:thin;scrollbar-color:#1C1C1F transparent">'+body+'</div></div>';
+  return h;
+}
+
+S['A-01']={n:'Admin dashboard',tab:'Admin',web:true,url:'admin.trouvetoi.com',
+  info:['Platform stats grid','Urgent action queue','Click actions to navigate'],
+  acts:['Click urgent items → navigate to relevant section'],leads:'All admin sections',
+  r:function(){
+    var stats=[{v:'847',l:'Total members'},{v:'6',l:'Pending apps'},{v:'124',l:'Gold'},{v:'38',l:'Platinum'},{v:'$284K',l:'Revenue MTD'},{v:'12',l:'Active drops'}];
+    var alerts=[{t:'6 membership applications pending review',sc:'A-02'},{t:'2 payment failures requiring attention',sc:'A-08'},{t:'Drop "Chrome Capsule" ends in 4 hours',sc:'A-06'}];
+    var body='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic;margin-bottom:12px">Overview</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px">'
+      +stats.map(function(s){return '<div style="background:#111114;border:1px solid rgba(255,255,255,.05);padding:10px"><div style="font-size:20px;color:#E07070;font-family:\'Cormorant Garamond\',serif">'+s.v+'</div><div style="font-size:8px;color:#2A2826;margin-top:2px;font-family:\'JetBrains Mono\',monospace">'+s.l+'</div></div>';}).join('')
+      +'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:6px">ACTION REQUIRED</div>'
+      +alerts.map(function(a,i){return '<div onclick="go(\''+a.sc+'\')" style="background:#111114;border:1px solid rgba(224,112,112,'+(i===0?.18:.05)+');padding:9px 11px;margin-bottom:5px;display:flex;align-items:center;gap:7px;cursor:pointer"><div style="width:3px;height:3px;border-radius:50%;background:'+(i===0?'#E07070':'#2A2826')+';flex-shrink:0"></div><span style="font-size:10px;color:'+(i===0?'#E8E4DC':'#4A4844')+'">'+a.t+'</span></div>';}).join('');
+    return ashell('A-01',body);
+  }
+};
+
+S['A-02']={n:'Member applications',tab:'Admin',web:true,url:'admin.trouvetoi.com/applications',
+  info:['All applications with status filter','Approve / Reject per pending row','Click row → A-04'],
+  acts:['Approve → Access ID generated + email','Reject with note','Click row → A-04'],leads:'A-04 or A-03',
+  r:function(){
+    var apps=[{n:'Sophia Laurent',e:'sophia@example.com',t:'Gold',s:'Pending',d:'Mar 26'},{n:'Marcus Webb',e:'m.webb@email.co',t:'Platinum',s:'Pending',d:'Mar 25'},{n:'Isabelle Moreau',e:'isa@moreau.fr',t:'Standard',s:'Approved',d:'Mar 24'},{n:'James Thornton',e:'jt@thornton.com',t:'Gold',s:'Rejected',d:'Mar 23'}];
+    var stc={'Pending':'rgba(201,165,92,.1)','Approved':'rgba(93,202,165,.1)','Rejected':'rgba(224,112,112,.1)'};
+    var stv={'Pending':'#C9A55C','Approved':'#5DCAA5','Rejected':'#E07070'};
+    var body='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic">Applications</div>'
+      +'<div style="display:flex;gap:4px">'+['All','Pending','Approved','Rejected'].map(function(f,i){return '<div style="background:'+(i===1?'rgba(201,165,92,.09)':'rgba(255,255,255,.03)')+';border:1px solid '+(i===1?'rgba(201,165,92,.2)':'rgba(255,255,255,.05)')+';color:'+(i===1?'#C9A55C':'#4A4844')+';border-radius:2px;padding:4px 9px;font-size:8px;cursor:pointer">'+f+'</div>';}).join('')+'</div></div>'
+      +'<table style="width:100%;border-collapse:collapse"><thead><tr>'+['Applicant','Tier','Date','Status','Actions'].map(function(h){return '<th style="font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#2A2826;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left;font-family:\'JetBrains Mono\',monospace">'+h+'</th>';}).join('')+'</tr></thead><tbody>'
+      +apps.map(function(a){return '<tr onclick="go(\'A-04\')" style="cursor:pointer"><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-size:10px;color:#E8E4DC">'+a.n+'</div><div style="font-size:8px;color:#2A2826">'+a.e+'</div></td><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#C9A55C">'+a.t+'</td><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#2A2826">'+a.d+'</td><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02)"><span style="background:'+stc[a.s]+';color:'+stv[a.s]+';font-size:7px;padding:2px 6px;border-radius:2px;letter-spacing:.06em;font-family:\'JetBrains Mono\',monospace">'+a.s+'</span></td><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="display:flex;gap:3px">'+(a.s==='Pending'?'<div style="background:rgba(93,202,165,.09);color:#5DCAA5;border:1px solid rgba(93,202,165,.18);border-radius:2px;font-size:8px;padding:3px 6px;cursor:pointer">Approve</div><div style="background:rgba(224,112,112,.09);color:#E07070;border:1px solid rgba(224,112,112,.18);border-radius:2px;font-size:8px;padding:3px 6px;cursor:pointer">Reject</div>':'<span style="font-size:9px;color:#2A2826">—</span>')+'</div></td></tr>';}).join('')+'</tbody></table>';
+    return ashell('A-02',body);
+  }
+};
+
+S['A-03']={n:'Member list',tab:'Admin',web:true,url:'admin.trouvetoi.com/members',
+  info:['Full member list with search + CSV export','Tier/status filters','Click → A-04'],
+  acts:['Search','Filter','Click → A-04','Export CSV'],leads:'Member detail (A-04)',
+  r:function(){
+    var mem=[{n:'Alexandra Fontaine',id:'apd1345',t:'Gold',sp:'$4,200',j:'Jan 2026',la:'Today',st:'Active'},{n:'Raj Mehta',id:'apd1001',t:'Platinum',sp:'$18,400',j:'Nov 2025',la:'Yesterday',st:'Active'},{n:'Claire Dupont',id:'apd1089',t:'Standard',sp:'$840',j:'Feb 2026',la:'Mar 20',st:'Active'},{n:'Lucas Ferreira',id:'apd1123',t:'Gold',sp:'$2,900',j:'Dec 2025',la:'Mar 18',st:'Suspended'}];
+    var tc={'Gold':'#C9A55C','Platinum':'#8BAED4','Standard':'#B4AFA8'};
+    var body='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic">Members</div>'
+      +'<div style="display:flex;gap:5px"><input placeholder="Search…" style="background:#111114;border:none;border-bottom:1px solid rgba(255,255,255,.06);padding:4px 9px;font-size:10px;color:#E8E4DC;font-family:\'Jost\',sans-serif;outline:none;width:130px"><div style="background:rgba(224,112,112,.09);color:#E07070;border:1px solid rgba(224,112,112,.18);border-radius:2px;font-size:8px;padding:4px 9px;cursor:pointer">Export CSV</div></div></div>'
+      +'<table style="width:100%;border-collapse:collapse"><thead><tr>'+['Member','Tier','Spend','Joined','Last active','Status'].map(function(h){return '<th style="font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#2A2826;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left;font-family:\'JetBrains Mono\',monospace">'+h+'</th>';}).join('')+'</tr></thead><tbody>'
+      +mem.map(function(m){return '<tr onclick="go(\'A-04\')" style="cursor:pointer"><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02)"><div style="font-size:10px;color:#E8E4DC">'+m.n+'</div><div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace">'+m.id+'</div></td><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02)"><span style="background:'+tc[m.t]+'12;color:'+tc[m.t]+';font-size:7px;padding:2px 6px;border-radius:2px;font-family:\'JetBrains Mono\',monospace">'+m.t+'</span></td><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02);font-size:10px;color:#5A5856">'+m.sp+'</td><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#2A2826">'+m.j+'</td><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#2A2826">'+m.la+'</td><td style="padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.02)"><span style="background:'+(m.st==='Active'?'rgba(93,202,165,.09)':'rgba(224,112,112,.09)')+';color:'+(m.st==='Active'?'#5DCAA5':'#E07070')+';font-size:7px;padding:2px 6px;border-radius:2px;font-family:\'JetBrains Mono\',monospace">'+m.st+'</span></td></tr>';}).join('')+'</tbody></table>';
+    return ashell('A-03',body);
+  }
+};
+
+S['A-04']={n:'Member detail',tab:'Admin',web:true,url:'admin.trouvetoi.com/members/detail',
+  info:['Full profile with stats','Order history table','Change tier / Suspend / Send message'],
+  acts:['Change tier','Suspend','View orders','← Members'],leads:'Member list (A-03)',
+  r:function(){
+    var stats=[{v:'12',l:'Orders'},{v:'$4,200',l:'Spend'},{v:'3',l:'Drops'},{v:'1',l:'Holds'}];
+    var orders=[{id:'TRT-00847',i:'2 items',t:'$3,980',s:'Delivered',d:'Mar 22'},{id:'TRT-00791',i:'1 item',t:'$530',s:'Refunded',d:'Mar 01'},{id:'TRT-00644',i:'3 items',t:'$2,460',s:'Delivered',d:'Feb 14'}];
+    var body='<div onclick="go(\'A-03\')" style="font-size:9px;color:#2A2826;cursor:pointer;display:flex;align-items:center;gap:4px;margin-bottom:10px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2A2826" stroke-width="1.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Members</div>'
+      +'<div style="display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.04);margin-bottom:12px">'
+      +'<div style="width:42px;height:42px;border-radius:50%;background:rgba(201,165,92,.06);border:1px solid rgba(201,165,92,.16);display:flex;align-items:center;justify-content:center;font-size:13px;color:#C9A55C;font-family:\'JetBrains Mono\',monospace">AF</div>'
+      +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:17px;color:#E8E4DC">Alexandra Fontaine</div><div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace">apd1345 · Gold · Since Jan 2026</div></div>'
+      +'<div style="margin-left:auto;display:flex;gap:5px"><div style="background:rgba(201,165,92,.09);color:#C9A55C;border:1px solid rgba(201,165,92,.2);border-radius:2px;font-size:8px;padding:5px 9px;cursor:pointer">Change tier</div>'
+      +'<div style="background:rgba(224,112,112,.07);color:#E07070;border:1px solid rgba(224,112,112,.15);border-radius:2px;font-size:8px;padding:5px 9px;cursor:pointer">Suspend</div></div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-bottom:12px">'
+      +stats.map(function(s){return '<div style="background:#111114;border:1px solid rgba(255,255,255,.05);padding:9px"><div style="font-size:17px;color:#E07070;font-family:\'Cormorant Garamond\',serif">'+s.v+'</div><div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace;margin-top:2px">'+s.l+'</div></div>';}).join('')
+      +'</div>'
+      +'<div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:6px">RECENT ORDERS</div>'
+      +'<table style="width:100%;border-collapse:collapse"><thead><tr>'+['Order','Items','Total','Status','Date'].map(function(h){return '<th style="font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#2A2826;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left;font-family:\'JetBrains Mono\',monospace">'+h+'</th>';}).join('')+'</tr></thead><tbody>'
+      +orders.map(function(o){return '<tr><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-family:\'JetBrains Mono\',monospace;color:#5A5856;font-size:9px">'+o.id+'</td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#4A4844">'+o.i+'</td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:10px;color:#E8E4DC">'+o.t+'</td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02)"><span style="background:'+(o.s==='Delivered'?'rgba(93,202,165,.09)':'rgba(139,174,212,.09)')+';color:'+(o.s==='Delivered'?'#5DCAA5':'#8BAED4')+';font-size:7px;padding:2px 5px;border-radius:2px;font-family:\'JetBrains Mono\',monospace">'+o.s+'</span></td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#2A2826">'+o.d+'</td></tr>';}).join('')+'</tbody></table>';
+    return ashell('A-04',body);
+  }
+};
+
+S['A-05']={n:'Content management',tab:'Admin',web:true,url:'admin.trouvetoi.com/content',
+  info:['All editorial content with tier visibility','Create / Edit / Archive / Publish'],
+  acts:['+ NEW CONTENT','Edit row','Change tier visibility'],leads:'Content editor',
+  r:function(){
+    var items=[{t:"The Architect of Silhouettes",ty:'Editorial',tier:'All',st:'Live',a:'E.Rossi',d:'Mar 24'},{t:'Chrome Capsule Drop',ty:'Drop',tier:'Gold+',st:'Live',a:'Admin',d:'Mar 25'},{t:"L'Hiver Noir Campaign",ty:'Image',tier:'All',st:'Live',a:'Studio',d:'Mar 20'},{t:'Sculpted Obsidian Video',ty:'Video',tier:'Platinum',st:'Draft',a:'M.Laurent',d:'Mar 26'}];
+    var stc={'Live':'#5DCAA5','Draft':'#C9A55C'};
+    var body='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic">Content</div>'
+      +'<div style="background:#C9A55C;color:#09090B;border-radius:2px;font-size:8px;font-family:\'Jost\',sans-serif;font-weight:600;padding:6px 11px;cursor:pointer">+ NEW CONTENT</div></div>'
+      +'<table style="width:100%;border-collapse:collapse"><thead><tr>'+['Title','Type','Tier','Status','Author','Date'].map(function(h){return '<th style="font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#2A2826;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left;font-family:\'JetBrains Mono\',monospace">'+h+'</th>';}).join('')+'</tr></thead><tbody>'
+      +items.map(function(it){return '<tr><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#E8E4DC;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+it.t+'</td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#4A4844">'+it.ty+'</td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:8px;color:#C9A55C">'+it.tier+'</td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02)"><span style="background:'+stc[it.st]+'14;color:'+stc[it.st]+';font-size:7px;padding:2px 5px;border-radius:2px;font-family:\'JetBrains Mono\',monospace">'+it.st+'</span></td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#4A4844">'+it.a+'</td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#2A2826">'+it.d+'</td></tr>';}).join('')+'</tbody></table>';
+    return ashell('A-05',body);
+  }
+};
+
+S['A-06']={n:'Drops & announcements',tab:'Admin',web:true,url:'admin.trouvetoi.com/drops',
+  info:['Drop table + create drop form','Tier target selector','Schedule / publish'],
+  acts:['+ CREATE DROP','Set tier target','SCHEDULE DROP'],leads:'Drop detail',
+  r:function(){
+    var drops=[{n:'The Chrome Capsule',tier:'Gold+',start:'Mar 26 09:00',end:'Mar 26 13:00',st:'Live',cv:'34%'},{n:"L'Hiver Noir Launch",tier:'All',start:'Mar 20',end:'Mar 22',st:'Ended',cv:'61%'},{n:'Platinum Spring Preview',tier:'Platinum',start:'Apr 01',end:'Apr 02',st:'Scheduled',cv:'—'}];
+    var stc={'Live':'#5DCAA5','Ended':'#4A4844','Scheduled':'#C9A55C'};
+    var body='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic">Drops</div>'
+      +'<div style="background:#C9A55C;color:#09090B;border-radius:2px;font-size:8px;font-family:\'Jost\',sans-serif;font-weight:600;padding:6px 11px;cursor:pointer">+ CREATE DROP</div></div>'
+      +'<table style="width:100%;border-collapse:collapse;margin-bottom:13px"><thead><tr>'+['Drop','Target','Window','Status','Conv.'].map(function(h){return '<th style="font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#2A2826;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left;font-family:\'JetBrains Mono\',monospace">'+h+'</th>';}).join('')+'</tr></thead><tbody>'
+      +drops.map(function(d){return '<tr><td style="padding:7px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:10px;color:#E8E4DC">'+d.n+'</td><td style="padding:7px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#C9A55C">'+d.tier+'</td><td style="padding:7px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#4A4844">'+d.start+'</td><td style="padding:7px 7px;border-bottom:1px solid rgba(255,255,255,.02)"><span style="background:'+stc[d.st]+'14;color:'+stc[d.st]+';font-size:7px;padding:2px 5px;border-radius:2px;font-family:\'JetBrains Mono\',monospace">'+d.st+'</span></td><td style="padding:7px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:10px;color:#5A5856">'+d.cv+'</td></tr>';}).join('')+'</tbody></table>'
+      +'<div style="background:#111114;padding:12px"><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:8px">CREATE NEW DROP</div>'
+      +fld('DROP NAME','The Spring Archive',false)
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">'+fld('START TIME','Apr 01 10:00',false)+fld('END TIME','Apr 02 10:00',false)+'</div>'
+      +'<div style="display:flex;gap:4px;margin-bottom:9px">'+['All','Gold+','Platinum only'].map(function(t,i){return '<div style="padding:5px 9px;border:1px solid '+(i===1?'rgba(201,165,92,.28)':'rgba(255,255,255,.05)')+';font-size:8px;color:'+(i===1?'#C9A55C':'#2A2826')+';cursor:pointer">'+t+'</div>';}).join('')+'</div>'
+      +'<div style="background:#C9A55C;color:#09090B;border-radius:2px;font-size:9px;font-family:\'Jost\',sans-serif;font-weight:600;padding:8px 14px;cursor:pointer;display:inline-block">SCHEDULE DROP</div>'
+      +'</div>';
+    return ashell('A-06',body);
+  }
+};
+
+S['A-07']={n:'Analytics',tab:'Admin',web:true,url:'admin.trouvetoi.com/analytics',
+  info:['Revenue MTD cards','Membership funnel bar chart','Top content table'],
+  acts:['Filter date range','Export report'],leads:'Analytics only',
+  r:function(){
+    var funnel=[{l:'Applications',v:124,c:'#E07070'},{l:'Approved',v:98,c:'#C9A55C'},{l:'Paid',v:87,c:'#7BA87B'},{l:'Active 30d',v:74,c:'#5DCAA5'}];
+    var body='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic;margin-bottom:12px">Analytics</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+      +'<div style="background:#111114;border:1px solid rgba(255,255,255,.05);padding:10px"><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:4px">REVENUE MTD</div><div style="font-size:21px;color:#E07070;font-family:\'Cormorant Garamond\',serif">$284,400</div><div style="font-size:8px;color:#5DCAA5;font-family:\'JetBrains Mono\',monospace;margin-top:2px">↑ 18% vs last month</div></div>'
+      +'<div style="background:#111114;border:1px solid rgba(255,255,255,.05);padding:10px"><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:4px">AVG ORDER VALUE</div><div style="font-size:21px;color:#E07070;font-family:\'Cormorant Garamond\',serif">$1,840</div><div style="font-size:8px;color:#5DCAA5;font-family:\'JetBrains Mono\',monospace;margin-top:2px">↑ 6% vs last month</div></div>'
+      +'</div>'
+      +'<div style="background:#111114;padding:11px;margin-bottom:10px"><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:8px">MEMBERSHIP FUNNEL</div>'
+      +funnel.map(function(f){return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:9px;color:#5A5856">'+f.l+'</span><span style="font-size:9px;color:'+f.c+';font-family:\'JetBrains Mono\',monospace">'+f.v+'</span></div><div style="height:4px;background:rgba(255,255,255,.03)"><div style="width:'+(f.v/124*100)+'%;height:100%;background:'+f.c+'"></div></div></div>';}).join('')+'</div>'
+      +'<div style="background:#111114;padding:11px"><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">TOP CONTENT</div>'
+      +'<table style="width:100%;border-collapse:collapse"><thead><tr>'+['Title','Views','CTR'].map(function(h){return '<th style="font-size:8px;color:#2A2826;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.04);text-align:left;font-family:\'JetBrains Mono\',monospace">'+h+'</th>';}).join('')+'</tr></thead><tbody>'
+      +[{t:'The Chrome Capsule',v:'4,820',c:'34%'},{t:"Architect of Silhouettes",v:'3,180',c:'22%'},{t:"L'Hiver Noir",v:'2,940',c:'41%'}].map(function(r){return '<tr><td style="padding:5px 7px;font-size:9px;color:#E8E4DC;border-bottom:1px solid rgba(255,255,255,.02)">'+r.t+'</td><td style="padding:5px 7px;font-size:9px;color:#5A5856;font-family:\'JetBrains Mono\',monospace;border-bottom:1px solid rgba(255,255,255,.02)">'+r.v+'</td><td style="padding:5px 7px;font-size:9px;color:#5DCAA5;font-family:\'JetBrains Mono\',monospace;border-bottom:1px solid rgba(255,255,255,.02)">'+r.c+'</td></tr>';}).join('')+'</tbody></table></div>';
+    return ashell('A-07',body);
+  }
+};
+
+S['A-08']={n:'Platform settings',tab:'Admin',web:true,url:'admin.trouvetoi.com/settings',
+  info:['Tier pricing table','Notification rule toggles','Admin user management'],
+  acts:['Edit tier config','Toggle rules','Add admin'],leads:'Settings sub-pages',
+  r:function(){
+    var body='<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:#E8E4DC;font-style:italic;margin-bottom:11px">Platform Settings</div>'
+      +'<div style="background:#111114;padding:11px;margin-bottom:9px"><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">TIER PRICING</div>'
+      +'<table style="width:100%;border-collapse:collapse"><thead><tr>'+['Tier','Price/yr','Hold','Drop window'].map(function(h){return '<th style="font-size:8px;color:#2A2826;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left;font-family:\'JetBrains Mono\',monospace">'+h+'</th>';}).join('')+'</tr></thead><tbody>'
+      +[{t:'Standard',c:'#B4AFA8',p:'Free',h:'—',d:'Standard'},{t:'Gold',c:'#C9A55C',p:'$120',h:'—',d:'24 hours'},{t:'Platinum',c:'#8BAED4',p:'$480',h:'48 hours',d:'72 hours'}].map(function(r){return '<tr><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02)"><span style="background:'+r.c+'12;color:'+r.c+';font-size:7px;padding:2px 5px;border-radius:2px;font-family:\'JetBrains Mono\',monospace">'+r.t+'</span></td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:10px;color:#E8E4DC">'+r.p+'</td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#4A4844">'+r.h+'</td><td style="padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.02);font-size:9px;color:#4A4844">'+r.d+'</td></tr>';}).join('')+'</tbody></table></div>'
+      +'<div style="background:#111114;padding:11px;margin-bottom:9px"><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">NOTIFICATION RULES</div>'
+      +[{l:'Drop alert — Gold+',on:true},{l:'Drop alert — Standard',on:false},{l:'Restock — all tiers',on:true},{l:'Birthday message',on:true},{l:'Approval email',on:true}].map(function(r){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03)"><span style="font-size:9px;color:#5A5856">'+r.l+'</span><div style="width:24px;height:12px;background:'+(r.on?'rgba(224,112,112,.45)':'#1C1C1F')+';border-radius:6px;position:relative"><div style="position:absolute;'+(r.on?'right':'left')+':1.5px;top:1.5px;width:9px;height:9px;border-radius:50%;background:#09090B"></div></div></div>';}).join('')+'</div>'
+      +'<div style="background:#111114;padding:11px"><div style="font-size:8px;color:#2A2826;letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">ADMIN USERS</div>'
+      +[{n:'Admin — Main',r:'Super Admin',l:'Today'},{n:'Content Team',r:'Editor',l:'Mar 25'}].map(function(u){return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03)"><div><div style="font-size:10px;color:#E8E4DC">'+u.n+'</div><div style="font-size:8px;color:#2A2826">'+u.r+'</div></div><div style="font-size:8px;color:#2A2826;font-family:\'JetBrains Mono\',monospace">'+u.l+'</div></div>';}).join('')
+      +'<div style="background:transparent;border:1px solid rgba(224,112,112,.18);color:#E07070;border-radius:2px;font-size:8px;padding:6px 10px;margin-top:9px;cursor:pointer;display:inline-block">+ Add Admin</div></div>';
+    return ashell('A-08',body);
+  }
+};
+
+
+/* ═══════════════════════════════════════
+   GOLD & PLATINUM DEDICATED SCREENS
+   Full separate screens per tier for key screens
+   that differ meaningfully between tiers
+═══════════════════════════════════════ */
+
+/* ─ HOME TIER VARIANTS ─ */
+function mkHome(tier){
+  var a=tier==='p'?'#8BAED4':tier==='g'?'#C9A55C':'#B4AFA8';
+  var tN=tier==='p'?'Platinum':tier==='g'?'Gold':'Standard';
+  var hasD=(tier==='g'||tier==='p'), hasColl=(tier==='p');
+  var savedT=T; T=tier;
+  var result = '<div style="height:100%;overflow-y:auto;padding-bottom:52px">'+stbar()
+    +'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 15px 8px">'
+    +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;font-weight:600;letter-spacing:.12em;color:#E8E4DC">TROUVÉTOI</div>'
+    +'<div style="display:flex;gap:10px;align-items:center">'
+    +'<div onclick="go(\'M-20\')" style="cursor:pointer;position:relative"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8680" stroke-width="1.4" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>'
+    +(tier!=='s'?'<div style="position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:50%;background:'+a+'"></div>':'')
+    +'</div>'
+    +'<div style="width:26px;height:26px;border-radius:50%;background:'+a+'10;border:1px solid '+a+'22;display:flex;align-items:center;justify-content:center;font-size:9px;color:'+a+';cursor:pointer;font-family:\'JetBrains Mono\',monospace" onclick="go(\'M-25\')">AF</div>'
+    +'</div></div>'
+    +'<div style="margin:0 15px 10px;padding:5px 8px;background:'+a+'0C;border:1px solid '+a+'1C;display:flex;align-items:center;gap:6px">'
+    +'<div style="width:3px;height:3px;border-radius:50%;background:'+a+'"></div>'
+    +'<span style="font-size:8px;color:'+a+';letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace">'+tN.toUpperCase()+' MEMBER</span>'
+    +'</div>'
+    +'<div style="position:relative;height:220px;overflow:hidden;cursor:pointer" onclick="go(\'M-13\')">'
+    +img(I.h1,220,'width:100%;position:absolute;inset:0')
+    +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 20%,rgba(9,9,11,.92) 100%)"></div>'
+    +'<div style="position:absolute;bottom:0;left:0;right:0;padding:14px 15px">'
+    +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:32px;font-weight:300;color:#E8E4DC;line-height:1.1;margin-bottom:9px">L\'Hiver<br>Noir</div>'
+    +'<button style="padding:6px 14px;background:transparent;border:1px solid rgba(232,228,220,.3);color:#E8E4DC;font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-family:\'Jost\',sans-serif;cursor:pointer">VIEW COLLECTION</button>'
+    +'</div></div>'
+    +'<div style="padding:12px 15px 0">'
+    +'<div style="display:flex;gap:5px;overflow-x:auto;margin:0 -15px;padding:0 15px 10px;scrollbar-width:none">'
+    +pcard(I.p1,'Structured Coat','$490','M-14')
+    +pcard(I.p2,'Silk Wrap Dress','$280','M-14')
+    +pcard(I.p4,'Linen Trench','$740','M-14')
+    +'</div>'
+    +'<div style="position:relative;height:94px;overflow:hidden;margin-bottom:12px;cursor:pointer" onclick="go(\'M-08\')">'
+    +img(I.h3,94,'width:100%;position:absolute;inset:0')
+    +'<div style="position:absolute;inset:0;background:rgba(9,9,11,.6)"></div>'
+    +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 16px">'
+    +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:17px;color:#E8E4DC;margin-bottom:3px">The Poetry of Silhouette</div>'
+    +'<div style="font-size:8px;color:#C9A55C;letter-spacing:.1em;text-transform:uppercase">READ ESSAY →</div>'
+    +'</div></div>'
+    +'<div style="display:flex;gap:5px;overflow-x:auto;margin:0 -15px;padding:0 15px 12px;scrollbar-width:none">'
+    +pcard(I.p3,'Ribbed Knit Cardigan','$280','M-14')
+    +pcard(I.p7,'Archive Coat','$1,200','M-14')
+    +pcard(I.p8,'Oblique Boots','$360','M-14')
+    +'</div>'
+    +(hasD
+      ? '<div style="position:relative;overflow:hidden;margin-bottom:12px;cursor:pointer" onclick="go(\'M-06-'+tier+'\')">'
+        +img(I.d1,185,'width:100%;position:absolute;inset:0')
+        +'<div style="position:absolute;top:8px;right:8px">'+bdg(tier==='p'?'PLATINUM ACCESS':'GOLD ACCESS',a)+'</div>'
+        +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,11,.96) 0%,transparent 50%)"></div>'
+        +'<div style="position:absolute;bottom:0;left:0;right:0;padding:12px 15px">'
+        +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:22px;color:#E8E4DC;margin-bottom:3px">The Chrome Capsule</div>'
+        +'<div style="font-size:9px;color:#5A5856;line-height:1.5;margin-bottom:8px">Limited run · 50 serialised pieces · Lyon atelier</div>'
+        +'<div style="display:flex;gap:14px;margin-bottom:8px">'
+        +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC">04</div><div style="font-size:7px;color:#3A3835;letter-spacing:.12em;font-family:\'JetBrains Mono\',monospace">HRS</div></div>'
+        +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC">22</div><div style="font-size:7px;color:#3A3835;letter-spacing:.12em;font-family:\'JetBrains Mono\',monospace">MIN</div></div>'
+        +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC">58</div><div style="font-size:7px;color:#3A3835;letter-spacing:.12em;font-family:\'JetBrains Mono\',monospace">SEC</div></div>'
+        +'</div>'+gbtn('SECURE PRE-ACCESS','go(\'M-15\')')+'</div></div>'
+      : '<div style="position:relative;overflow:hidden;margin-bottom:12px">'
+        +'<div style="filter:blur(3px);opacity:.25">'+img(I.d1,80,'width:100%')+'</div>'
+        +'<div style="position:absolute;inset:0;background:rgba(9,9,11,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 20px">'
+        +'<div style="font-size:8px;color:#C9A55C;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:4px">EXCLUSIVE DROPS</div>'
+        +'<div style="font-size:9px;color:#4A4844">Upgrade to Gold to unlock early access drops</div>'
+        +'</div></div>')
+    +(hasColl
+      ? '<div style="margin-bottom:12px">'
+        +'<div style="position:relative;height:100px;overflow:hidden;cursor:pointer" onclick="go(\'M-07-p\')">'
+        +img(I.d2,100,'width:100%;position:absolute;inset:0')
+        +'<div style="position:absolute;top:7px;right:7px">'+bdg('PLATINUM','#8BAED4')+'</div>'
+        +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,11,.85),transparent 50%)"></div>'
+        +'<div style="position:absolute;bottom:0;left:0;right:0;padding:10px 12px">'
+        +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:18px;color:#E8E4DC">Minuit à Paris</div>'
+        +'</div></div></div>'
+      : '')
+    +'<div style="font-size:8px;color:#5A5856;letter-spacing:.12em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">Trending in Your Size <span style="color:#3A3835">EU 42</span></div>'
+    +'<div style="display:flex;gap:5px;overflow-x:auto;margin:0 -15px;padding:0 15px 12px;scrollbar-width:none">'
+    +pcard(I.p4,'Linen Trench','$740','M-14')
+    +pcard(I.p6,'Wide Leg Trousers','$560','M-14')
+    +'</div></div>'
+    +bnav('home')+'</div>';
+  T=savedT;
+  return result;
+}
+S['M-05-s']={n:'Home — Standard',tab:'Home',tier:'Standard',
+  info:['Standard tier home feed','Exclusive Drops shows upgrade prompt (blurred)','Private Collections hidden entirely','Trending, Editorial, Suggested shown'],
+  acts:['Tap product → M-14 (product page)','Tap hero banner → M-13 (collections)','Tap editorial → M-08 (Feed)'],leads:'Product page / Collections / Feed',
+  r:function(){return mkHome('s');}
+};
+S['M-05-g']={n:'Home — Gold',tab:'Home',tier:'Gold',
+  info:['Gold tier home — Exclusive Drops visible with live countdown','Gold ACCESS badge on drop card','24hr pre-book window CTA active','Private Collections still hidden (Platinum only)'],
+  acts:['Tap Drop card → M-06-g (Gold drop detail)','SECURE PRE-ACCESS → M-15 (pre-book)','All Standard actions available'],leads:'Drop detail (M-06-g) / Product page / Feed',
+  r:function(){return mkHome('g');}
+};
+S['M-05-p']={n:'Home — Platinum',tab:'Home',tier:'Platinum',
+  info:['Platinum tier home — all sections visible','Exclusive Drops with 72hr priority badge and first-access window','Private Collections section unlocked and tappable','Platinum badge strip shown at top'],
+  acts:['Tap Private Collection → M-07-p','Tap Drop → M-06-p (Platinum drop detail)','All Gold + Standard actions'],leads:'Drop detail / Private Collection / Product page',
+  r:function(){return mkHome('p');}
+};
+
+/* ─ DROP TIER VARIANTS ─ */
+function mkDrop(tier){
+  var a=tier==='p'?'#8BAED4':tier==='g'?'#C9A55C':'#B4AFA8';
+  var win_=tier==='p'?'72hr first access':'24hr early access';
+  var canAccess=(tier==='g'||tier==='p');
+  return '<div style="height:100%;overflow-y:auto;padding-bottom:52px">'
+    +'<div style="position:relative;height:260px">'
+    +img(I.d1,260,'width:100%;position:absolute;inset:0')
+    +'<div style="position:absolute;top:11px;left:13px;cursor:pointer" onclick="go(\'M-05-'+tier+'\')">'
+    +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,228,220,.7)" stroke-width="1.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></div>'
+    +(canAccess?'<div style="position:absolute;top:11px;right:13px">'+bdg(tier==='p'?'PLATINUM ACCESS':'GOLD ACCESS',a)+'</div>':'')
+    +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,11,1) 0%,transparent 50%)"></div></div>'
+    +'<div style="padding:13px 16px">'
+    +'<div style="font-size:8px;color:'+a+';letter-spacing:.16em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px">EXCLUSIVE DROP · LIMITED EDITION</div>'
+    +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:32px;font-weight:300;color:#E8E4DC;line-height:1.15;margin-bottom:8px">The Chrome Capsule</div>'
+    +'<div style="font-size:10px;color:#5A5856;line-height:1.7;margin-bottom:14px">A limited run of 50 serialised pieces. Hand assembled in a Lyon atelier. Each piece carries a unique serialised edition mark.</div>'
+    +'<div style="display:flex;gap:20px;margin-bottom:16px">'
+    +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:36px;color:#E8E4DC">04</div><div style="font-size:7px;color:#3A3835;letter-spacing:.14em;font-family:\'JetBrains Mono\',monospace">HOURS</div></div>'
+    +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:36px;color:#E8E4DC">22</div><div style="font-size:7px;color:#3A3835;letter-spacing:.14em;font-family:\'JetBrains Mono\',monospace">MINUTES</div></div>'
+    +'<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:36px;color:#E8E4DC">58</div><div style="font-size:7px;color:#3A3835;letter-spacing:.14em;font-family:\'JetBrains Mono\',monospace">SECONDS</div></div>'
+    +'</div>'
+    +(canAccess
+      ? gbtn('SECURE PRE-ACCESS','go(\'M-15\')')
+        +'<div style="text-align:center;margin-top:7px;font-size:8px;color:#3A3835;letter-spacing:.06em">'+win_+'</div>'
+      : gsbtn('UPGRADE TO ACCESS DROPS',''))
+    +'<div style="margin-top:14px;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none">'
+    +pcard(I.p1,'Capsule Coat No.01','$3,200','M-14')
+    +pcard(I.p2,'Capsule Dress No.02','$2,800','M-14')
+    +'</div>'
+    +'</div>'+bnav('home')+'</div>';
+}
+S['M-06-s']={n:'Drop detail — Standard',tab:'Home',tier:'Standard',
+  info:['Drop visible but access is gated','Countdown shown','UPGRADE TO ACCESS DROPS ghost button','Product preview below — locked for purchase'],
+  acts:['Upgrade button (no navigation — upgrade prompt)','Back → Home (M-05-s)'],leads:'Home feed (M-05-s)',
+  r:function(){return mkDrop('s');}
+};
+S['M-06-g']={n:'Drop detail — Gold',tab:'Home',tier:'Gold',
+  info:['Full Gold access to drop','GOLD ACCESS badge top-right','24hr early access window badge below CTA','SECURE PRE-ACCESS button active','Product items fully tappable'],
+  acts:['SECURE PRE-ACCESS → M-15 (pre-book confirmation)','Tap product item → M-14 (product page)','Back → M-05-g'],leads:'Pre-book (M-15) / Product page (M-14)',
+  r:function(){return mkDrop('g');}
+};
+S['M-06-p']={n:'Drop detail — Platinum',tab:'Home',tier:'Platinum',
+  info:['Platinum first-in-queue drop access','PLATINUM ACCESS badge top-right','72hr first access window badge shown','Priority placement in fulfilment queue'],
+  acts:['SECURE PRE-ACCESS → M-15','Tap product → M-14','Back → M-05-p'],leads:'Pre-book (M-15) / Product page (M-14)',
+  r:function(){return mkDrop('p');}
+};
+
+/* ─ PRIVATE COLLECTION TIER VARIANTS ─ */
+function mkColl(tier){
+  var a=tier==='p'?'#8BAED4':tier==='g'?'#C9A55C':'#B4AFA8';
+  var isP=(tier==='p'),isG=(tier==='g');
+  return '<div style="height:100%;overflow-y:auto;padding-bottom:52px">'
+    +'<div style="position:relative;height:240px">'
+    +img(I.d2,240,'width:100%;position:absolute;inset:0')
+    +'<div style="position:absolute;top:11px;left:13px;cursor:pointer" onclick="go(\'M-05-'+tier+'\')">'
+    +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,228,220,.7)" stroke-width="1.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></div>'
+    +'<div style="position:absolute;top:11px;right:13px">'+bdg('PRIVATE COLLECTION','#8BAED4')+'</div>'
+    +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(9,9,11,1) 0%,transparent 48%)"></div></div>'
+    +'<div style="padding:12px 16px">'
+    +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:28px;color:#E8E4DC;line-height:1.2;margin-bottom:7px">Minuit à Paris</div>'
+    +'<div style="font-size:10px;color:#5A5856;line-height:1.7;margin-bottom:13px">A private evening collaboration. Twelve pieces. Forty-eight hours only.</div>'
+    +(isP
+      ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px">'
+        +pcard(I.h5,'Onyx Midi','$2,400','M-14')
+        +pcard(I.p2,'Archive Wrap','$1,850','M-14')
+        +pcard(I.p5,'Velvet Cuff','$480','M-14')
+        +pcard(I.p7,'Sheer Panel','$960','M-14')
+        +'</div>'+gsbtn('MAKE AN ENQUIRY','')
+      : isG
+        ? '<div style="opacity:.35;pointer-events:none;margin-bottom:12px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+          +pcard(I.h5,'Onyx Midi','$2,400','M-14')
+          +pcard(I.p2,'Archive Wrap','$1,850','M-14')
+          +'</div></div>'
+          +'<div style="background:rgba(139,174,212,.06);border:1px solid rgba(139,174,212,.15);padding:12px;margin-bottom:10px">'
+          +'<div style="font-size:8px;color:#8BAED4;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:4px">PLATINUM ACCESS REQUIRED</div>'
+          +'<div style="font-size:10px;color:#5A5856;line-height:1.6">Gold members may browse. Upgrade to Platinum to purchase.</div></div>'
+          +gbtn('REQUEST FULL ACCESS','go(\'M-05-g\')')
+        : '<div style="text-align:center;padding:28px 0">'
+          +img(I.d2,80,'width:80px;height:80px;opacity:.2;margin:0 auto 12px')
+          +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:14px;color:#3A3835;font-style:italic;margin-bottom:12px">This collection is private</div>'
+          +'<div style="font-size:10px;color:#5A5856;line-height:1.7;margin-bottom:16px">Access requires Gold or Platinum membership.</div>'
+          +gbtn('REQUEST ACCESS','go(\'M-05-s\')')+'</div>')
+    +'</div>'+bnav('home')+'</div>';
+}
+S['M-07-s']={n:'Private Collection — Standard',tab:'Home',tier:'Standard',
+  info:['Collection locked for Standard tier','Editorial hero image shown','Access request form with upgrade CTA','Standard cannot browse products'],
+  acts:['REQUEST ACCESS button → back to Home','Upgrade tier to unlock'],leads:'Home feed (M-05-s)',
+  r:function(){return mkColl('s');}
+};
+S['M-07-g']={n:'Private Collection — Gold',tab:'Home',tier:'Gold',
+  info:['Browse-only for Gold — products visible but dimmed','PLATINUM ACCESS REQUIRED notice','Product images shown at reduced opacity','REQUEST FULL ACCESS CTA'],
+  acts:['View products in browse-only mode (no purchase)','REQUEST FULL ACCESS → back to Home'],leads:'Home feed (M-05-g)',
+  r:function(){return mkColl('g');}
+};
+S['M-07-p']={n:'Private Collection — Platinum',tab:'Home',tier:'Platinum',
+  info:['Full Platinum access — all 4 products purchaseable','2×2 product grid fully interactive','MAKE AN ENQUIRY CTA for bespoke requests','Tap any product → full product page'],
+  acts:['Tap product → M-14 (product page)','MAKE AN ENQUIRY → no navigation (enquiry flow)'],leads:'Product page (M-14)',
+  r:function(){return mkColl('p');}
+};
+
+/* ─ PRODUCT PAGE TIER VARIANTS ─ */
+function mkProduct(tier){
+  var a=tier==='p'?'#8BAED4':tier==='g'?'#C9A55C':'#B4AFA8';
+  var isP=(tier==='p'),isG=(tier==='g');
+  return '<div style="height:100%;overflow-y:auto;padding-bottom:16px">'
+    +'<div style="position:relative;height:215px">'
+    +img(I.p1,215,'width:100%;position:absolute;inset:0')
+    +'<div style="position:absolute;top:11px;left:13px;cursor:pointer" onclick="go(\'M-11\')">'
+    +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,228,220,.7)" stroke-width="1.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></div>'
+    +(isP?'<div style="position:absolute;top:11px;right:13px">'+bdg('HOLD AVAILABLE','#8BAED4')+'</div>':'')
+    +(isG?'<div style="position:absolute;top:11px;right:13px">'+bdg('PRIORITY ACCESS','#C9A55C')+'</div>':'')
+    +'<div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:3px">'
+    +'<div style="width:16px;height:1.5px;background:'+a+'"></div>'
+    +'<div style="width:5px;height:1.5px;background:rgba(255,255,255,.18)"></div>'
+    +'<div style="width:5px;height:1.5px;background:rgba(255,255,255,.18)"></div>'
+    +'</div></div>'
+    +'<div style="padding:11px 15px 0">'
+    +'<div style="font-size:8px;color:'+a+';letter-spacing:.14em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">ATELIER</div>'
+    +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:#E8E4DC;margin-bottom:5px;line-height:1.2">Sculpted Obsidian Overcoat</div>'
+    +'<div style="display:flex;align-items:baseline;gap:7px;margin-bottom:9px">'
+    +'<span style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:'+a+'">$3,450</span>'
+    +(isP?bdg('48HR HOLD','#8BAED4'):isG?bdg('PRIORITY ACCESS','#C9A55C'):'')
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'
+    +'<div style="font-size:8px;color:#3A3835;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace">SELECT SIZE</div>'
+    +'<div style="font-size:8px;color:'+a+';cursor:pointer">SIZE GUIDE</div></div>'
+    +'<div style="display:flex;gap:3px;margin-bottom:7px">'
+    +['IT 44','IT 46','IT 48','IT 50','IT 52'].map(function(sz,i){return '<div style="padding:5px 7px;border:1px solid '+(i===1?a:'rgba(255,255,255,.07)')+';font-size:8px;color:'+(i===1?a:'#3A3835')+';cursor:pointer;font-family:\'JetBrains Mono\',monospace">'+sz+'</div>';}).join('')
+    +'</div>'
+    +'<div style="font-size:8px;color:#5DCAA5;letter-spacing:.05em;font-family:\'JetBrains Mono\',monospace;margin-bottom:3px">● LOW STOCK — 1 ITEM LEFT</div>'
+    +'<div style="font-size:9px;color:#5A5856;margin-bottom:9px">Complimentary Express Shipping by Oct 24–26</div>'
+    +'<div style="border-top:1px solid rgba(255,255,255,.04);padding-top:9px;margin-bottom:9px">'
+    +'<div style="font-size:10px;color:#5A5856;line-height:1.65">A definitive statement in modern tailoring. Double-breasted, engineered from heavy bouclé wool and cashmere blend from Biella.</div></div>'
+    +'<div style="font-size:8px;color:#3A3835;letter-spacing:.1em;text-transform:uppercase;font-family:\'JetBrains Mono\',monospace;margin-bottom:7px">THE CURATION</div>'
+    +'<div style="display:flex;gap:5px;overflow-x:auto;margin:0 -15px;padding:0 15px 11px;scrollbar-width:none">'
+    +pcard(I.p4,'Late Atelier Shirt','$1,640','M-14')
+    +pcard(I.p6,'Evening Trousers','$960','M-14')
+    +'</div>'
+    +'<div style="display:flex;gap:5px;align-items:center;margin-bottom:7px">'
+    +'<div style="width:30px;height:30px;background:#111114;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="go(\'M-18\')">'
+    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6A6664" stroke-width="1.4" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>'
+    +'<div style="width:30px;height:30px;background:#111114;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;cursor:pointer">'
+    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6A6664" stroke-width="1.4" stroke-linecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg></div>'
+    +(isP?'<div style="flex:1;padding:7px;background:rgba(139,174,212,.07);border:1px solid rgba(139,174,212,.18);text-align:center;cursor:pointer"><span style="font-size:8px;color:#8BAED4;letter-spacing:.08em;font-weight:600;font-family:\'JetBrains Mono\',monospace">HOLD FOR 48H</span></div>':'')
+    +'</div>'
+    +'<div style="display:flex;gap:5px;margin-bottom:7px">'
+    +gbtn('ADD TO CART','go(\'M-16\')')
+    +'<button onclick="go(\'M-21\')" style="flex:1;padding:11px;background:'+a+'14;border:none;color:'+a+';font-family:\'Jost\',sans-serif;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">BUY NOW</button>'
+    +'</div>'
+    +'<div style="display:flex;gap:12px;justify-content:center;padding:3px 0">'
+    +'<div style="font-size:8px;color:#3A3835;cursor:pointer" onclick="go(\'M-12\')">⊕ FIND SIMILAR</div>'
+    +'<div style="font-size:8px;color:#3A3835;cursor:pointer">→ SUGGEST</div>'
+    +'</div></div></div>';
+}
+S['M-14-s']={n:'Product page — Standard',tab:'Discover',tier:'Standard',
+  info:['Standard access — no priority or hold badges','Add to Cart and Buy Now available','Find Similar, Wishlist, Share accessible','No Hold for 48H button'],
+  acts:['Select size','ADD TO CART → M-16 (Activity/Cart)','BUY NOW → M-21 (Checkout - Address)','FIND SIMILAR → M-12','Heart icon → M-18 (Wishlist)'],leads:'Cart (M-16) / Checkout (M-21) / Find Similar (M-12)',
+  r:function(){return mkProduct('s');}
+};
+S['M-14-g']={n:'Product page — Gold',tab:'Discover',tier:'Gold',
+  info:['PRIORITY ACCESS badge top-right','Gold colour accents on price and size selector','Earlier access to stock over Standard','Same layout — Gold visual treatment applied'],
+  acts:['ADD TO CART → M-16','BUY NOW → M-21','FIND SIMILAR → M-12','Heart → M-18'],leads:'Cart (M-16) / Checkout (M-21)',
+  r:function(){return mkProduct('g');}
+};
+S['M-14-p']={n:'Product page — Platinum',tab:'Discover',tier:'Platinum',
+  info:['HOLD AVAILABLE badge top-right','HOLD FOR 48H button in action row','When held — item removed from general inventory for 48hrs','Highest fulfilment priority + dedicated concierge access'],
+  acts:['HOLD FOR 48H → item locked (no navigation)','ADD TO CART → M-16','BUY NOW → M-21','FIND SIMILAR → M-12'],leads:'Cart / Checkout / Hold confirmation',
+  r:function(){return mkProduct('p');}
+};
+
+/* ═══════════════════════════════════════
+   DATA MAP — all 31 mobile screens shown for each tier
+═══════════════════════════════════════ */
+var STANDARD_SCREENS={
+  'Authentication':[{id:'M-01'},{id:'M-02'},{id:'M-03'},{id:'M-04'}],
+  'Home tab':[{id:'M-05'},{id:'M-06'},{id:'M-07'},{id:'M-08'},{id:'M-09'}],
+  'Discover':[{id:'M-10'},{id:'M-11'},{id:'M-12'},{id:'M-13'}],
+  'Product':[{id:'M-14'},{id:'M-15'}],
+  'Activity':[{id:'M-16'},{id:'M-17'},{id:'M-18'},{id:'M-19'},{id:'M-20'}],
+  'Checkout':[{id:'M-21'},{id:'M-22'},{id:'M-23'},{id:'M-24'}],
+  'Profile':[{id:'M-25'},{id:'M-26'},{id:'M-27'},{id:'M-28'},{id:'M-29'},{id:'M-30'},{id:'M-31'}]
+};
+var GOLD_SCREENS={
+  'Authentication':[{id:'M-01'},{id:'M-02'},{id:'M-03'},{id:'M-04'}],
+  '★ Home (Gold only)':[{id:'M-05-g'},{id:'M-06-g'},{id:'M-07-g'}],
+  'Home tab (shared)':[{id:'M-08'},{id:'M-09'}],
+  '★ Discover (Gold)':[{id:'M-10'},{id:'M-11'},{id:'M-12'},{id:'M-13'}],
+  '★ Product (Gold)':[{id:'M-14-g'},{id:'M-15'}],
+  'Activity':[{id:'M-16'},{id:'M-17'},{id:'M-18'},{id:'M-19'},{id:'M-20'}],
+  'Checkout':[{id:'M-21'},{id:'M-22'},{id:'M-23'},{id:'M-24'}],
+  'Profile':[{id:'M-25'},{id:'M-26'},{id:'M-27'},{id:'M-28'},{id:'M-29'},{id:'M-30'},{id:'M-31'}]
+};
+var PLATINUM_SCREENS={
+  'Authentication':[{id:'M-01'},{id:'M-02'},{id:'M-03'},{id:'M-04'}],
+  '★ Home (Platinum only)':[{id:'M-05-p'},{id:'M-06-p'},{id:'M-07-p'}],
+  'Home tab (shared)':[{id:'M-08'},{id:'M-09'}],
+  '★ Discover (Platinum)':[{id:'M-10'},{id:'M-11'},{id:'M-12'},{id:'M-13'}],
+  '★ Product (Platinum)':[{id:'M-14-p'},{id:'M-15'}],
+  'Activity':[{id:'M-16'},{id:'M-17'},{id:'M-18'},{id:'M-19'},{id:'M-20'}],
+  'Checkout':[{id:'M-21'},{id:'M-22'},{id:'M-23'},{id:'M-24'}],
+  'Profile':[{id:'M-25'},{id:'M-26'},{id:'M-27'},{id:'M-28'},{id:'M-29'},{id:'M-30'},{id:'M-31'}]
+};
+var DATA={
+  mobile:{
+    s:STANDARD_SCREENS,
+    g:GOLD_SCREENS,
+    p:PLATINUM_SCREENS
+  },
+  web:{x:{'Pre-Registration':[{id:'W-01'},{id:'W-02'},{id:'W-03'},{id:'W-04'},{id:'W-05'},{id:'W-06'},{id:'W-07'}]}},
+  admin:{x:{'Admin Panel':[{id:'A-01'},{id:'A-02'},{id:'A-03'},{id:'A-04'},{id:'A-05'},{id:'A-06'},{id:'A-07'},{id:'A-08'}]}}
+};
+
+/* ═══════════════════════════════════════
+   RENDER ENGINE
+═══════════════════════════════════════ */
+function getSecs(){
+  if(J==='mobile') return T==='g'?DATA.mobile.g:T==='p'?DATA.mobile.p:DATA.mobile.s;
+  return J==='web'?DATA.web.x:DATA.admin.x;
+}
+function selCls(){return J==='admin'?'sbt acad':J==='web'?'sbt acw':'sbt ac';}
+
+function renderSB(){
+  var secs=getSecs(),h='';
+  /* Tier indicator strip in sidebar when on Gold/Platinum */
+  if(J==='mobile'&&T!=='s'){
+    var tc2=T==='p'?'#8BAED4':'#C9A55C';
+    h+='<div style="padding:6px 14px;background:'+tc2+'08;border-bottom:1px solid '+tc2+'14"><span style="font-size:8px;color:'+tc2+';letter-spacing:.1em;font-family:\'JetBrains Mono\',monospace;font-weight:600">'+(T==='p'?'PLATINUM':'GOLD')+' VIEW — all 31 screens with tier differences</span></div>';
+  }
+  for(var s in secs){
+    h+='<div class="sh">'+s+'</div>';
+    secs[s].forEach(function(item){
+      var sc=S[item.id]; if(!sc) return;
+      var sel=CID===item.id;
+      h+='<button class="'+(sel?selCls():'sbt')+'" data-id="'+item.id+'" onclick="selectScreen(this.getAttribute(\'data-id\'))">'
+        +'<span class="sn">'+item.id+'</span>'
+        +'<div style="width:3px;height:3px;border-radius:50%;flex-shrink:0;background:'+ac()+'"></div>'
+        +sc.n+'</button>';
+    });
+  }
+  document.getElementById('sl').innerHTML=h;
+}
+
+function renderDetail(id,sc){
+  var a=ac();
+  var h='<div class="dnum" style="color:'+a+'">'+id+'</div>'
+    +'<div class="dtit">'+sc.n+'</div>';
+  /* Tier badge in detail panel */
+  var tabText=sc.tab||J.toUpperCase();
+  if(J==='mobile'&&T!=='s') tabText+=' · '+(T==='p'?'Platinum':'Gold');
+  h+='<div class="dtag" style="background:'+a+'12;border:1px solid '+a+'22;color:'+a+'">'+tabText+'</div>'
+    +'<div class="drule" style="background:'+a+'35"></div>';
+  if(J==='mobile'&&T!=='s'){
+    var tc3=T==='p'?'#8BAED4':'#C9A55C';
+    h+='<div class="tnote" style="background:'+tc3+'0A;border:1px solid '+tc3+'18"><div style="width:3px;height:3px;border-radius:50%;background:'+tc3+';flex-shrink:0"></div>'
+      +'<span style="font-size:9px;color:'+tc3+'">'+(T==='p'?'Platinum: all features unlocked — Hold 48hr, 72hr drops, full collections, concierge':'Gold: drops unlocked, priority access, 24hr window, partial collection view')+'</span></div>';
+  }
+  if(sc.info&&sc.info.length){
+    h+='<div class="dsec"><div class="dstit" style="color:'+a+'">Contains</div>';
+    sc.info.forEach(function(c){h+='<div class="dit"><div class="dbul" style="background:'+a+'"></div><span>'+c+'</span></div>';});
+    h+='</div>';
+  }
+  if(sc.acts&&sc.acts.length){
+    h+='<div class="dsec"><div class="dstit" style="color:'+a+'">User actions</div>';
+    sc.acts.forEach(function(c){h+='<div class="dit"><div class="dbul" style="background:'+a+'55"></div><span>'+c+'</span></div>';});
+    h+='</div>';
+  }
+  if(sc.leads){
+    h+='<div class="dleads"><span class="dll">Leads to</span><span class="dlv">→ '+sc.leads+'</span></div>';
+  }
+  document.getElementById('dc').innerHTML=h;
+}
+
+function selectScreen(id){
+  var sc=S[id]; if(!sc) return; CID=id;
+  renderSB();
+  var isWeb=sc.web===true;
+  document.getElementById('es').style.display='none';
+  var ph=document.getElementById('phone-col');
+  var wc=document.getElementById('web-col');
+  var dcEl=document.getElementById('dc');
+  if(isWeb){
+    ph.style.display='none';
+    wc.style.display='flex';
+    if(sc.url) document.getElementById('wfurl').textContent=sc.url;
+    document.getElementById('wfbody').innerHTML=sc.r();
+    dcEl.style.display='block';
+    renderDetail(id,sc);
+  } else {
+    wc.style.display='none';
+    ph.style.display='flex';
+    document.getElementById('dscr').innerHTML=sc.r();
+    document.getElementById('snl').textContent=sc.n+(J==='mobile'&&T!=='s'?' ('+(T==='p'?'Platinum':'Gold')+')':'');
+    dcEl.style.display='block';
+    renderDetail(id,sc);
+  }
+}
+
+function setJ(j){
+  J=j; T='s'; CID=null;
+  document.querySelectorAll('.np').forEach(function(b){b.className='np';});
+  var m={'mobile':'na','web':'nw','admin':'nad'};
+  document.getElementById('np-'+j).classList.add(m[j]);
+  document.getElementById('tstrip').style.display=j==='mobile'?'flex':'none';
+  document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('ta','tp');});
+  if(j==='mobile') document.getElementById('tb-s').classList.add('ta');
+  document.getElementById('plbl').textContent=j==='mobile'?'Mobile App':j==='web'?'Pre-Reg Web':'Admin Panel';
+  document.getElementById('es').style.display='flex';
+  document.getElementById('phone-col').style.display='none';
+  document.getElementById('web-col').style.display='none';
+  document.getElementById('dc').style.display='none';
+  renderSB();
+}
+
+function setT(t){
+  T=t; CID=null;
+  document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('ta','tp');});
+  if(t==='p') document.getElementById('tb-p').classList.add('tp');
+  else document.getElementById('tb-'+t).classList.add('ta');
+  /* Refresh current screen if one is selected */
+  if(CID&&S[CID]&&!S[CID].web){
+    selectScreen(CID);
+  } else {
+    document.getElementById('es').style.display='flex';
+    document.getElementById('phone-col').style.display='none';
+    document.getElementById('dc').style.display='none';
+    renderSB();
+  }
+}
+
+/* Init */
+renderSB();
+</script>
+
+<!-- IMAGE LOAD TEST: remove after verification -->
+<div id="imgtest" style="position:fixed;top:4px;right:4px;z-index:9999;background:#111;padding:4px;border-radius:4px;font-size:9px;color:#666;font-family:monospace">
+<img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=40&h=40&fit=crop&q=60" 
+     width="40" height="40" 
+     style="display:block;object-fit:cover"
+     onload="document.getElementById('imgtest').style.borderColor='#2a2'"
+     onerror="document.getElementById('imgtest').style.borderColor='#a22';document.getElementById('imgtest').title='Images blocked'"
+     referrerpolicy="no-referrer">
+<div style="text-align:center;margin-top:2px;font-size:8px">img test</div>
+</div>
+
+</body>
+</html>

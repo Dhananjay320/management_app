@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Avadeti Team — Screen Navigator — Complete UX Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F0F2F7;--s1:#FFFFFF;--s2:#F8FAFC;--s3:#EEF2F7;--s4:#E2E8F0;
+  --bd:rgba(0,0,0,.08);--t1:#1E293B;--t2:#475569;--t3:#94A3B8;--t4:#CBD5E1;
+  --pri:#6366F1;--pri-l:#818CF8;--pri-bg:rgba(99,102,241,.08);
+  --grn:#10B981;--grn-bg:rgba(16,185,129,.08);
+  --amb:#F59E0B;--amb-bg:rgba(245,158,11,.08);
+  --red:#EF4444;--red-bg:rgba(239,68,68,.08);
+  --pur:#8B5CF6;--pur-bg:rgba(139,92,246,.08);
+  --cyn:#06B6D4;--cyn-bg:rgba(6,182,212,.08);
+  --org:#F97316;--org-bg:rgba(249,115,22,.08);
+  --pnk:#EC4899;--pnk-bg:rgba(236,72,153,.08);
+  --F:'Inter',sans-serif;--M:'JetBrains Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 6px rgba(0,0,0,.06),0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.08),0 4px 6px rgba(0,0,0,.04);
+  --radius:12px;--radius-sm:8px;--radius-xs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--t1);font-family:var(--F);font-size:13px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s4);border-radius:4px}
+
+/* ─── APP SHELL ─── */
+.app{display:flex;flex-direction:column;height:100vh}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--s1);box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--pri),var(--pur));border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px}
+.logo-text{font-size:16px;font-weight:700;color:var(--t1)}
+.logo-text span{color:var(--pri)}
+.sep{width:1px;height:16px;background:var(--bd);margin:0 8px}
+.ltag{font-size:8px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;font-family:var(--M)}
+.mode-strip{display:flex;gap:3px;background:var(--s3);padding:3px;border-radius:var(--radius-sm)}
+.mode-btn{padding:5px 14px;border:none;border-radius:var(--radius-xs);background:transparent;color:var(--t3);font-family:var(--F);font-size:10px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .2s}
+.mode-btn:hover{color:var(--t2)}
+.mode-btn.active{background:var(--s1);color:var(--pri);box-shadow:var(--shadow)}
+.mode-btn.admin-active{background:var(--s1);color:var(--org);box-shadow:var(--shadow)}
+
+/* ─── BODY ─── */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* ─── SIDEBAR ─── */
+.sb{width:256px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--bd);background:var(--s1);overflow:hidden}
+.sb-search{padding:10px 12px;border-bottom:1px solid var(--bd)}
+.sb-search input{width:100%;padding:7px 10px 7px 32px;border:1px solid var(--s4);border-radius:var(--radius-xs);background:var(--s2);font-size:11px;font-family:var(--F);color:var(--t1);outline:none;transition:border-color .2s;background-image:url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:9px center}
+.sb-search input:focus{border-color:var(--pri);background-color:#fff}
+.sb-search input::placeholder{color:var(--t4)}
+.sl{flex:1;overflow-y:auto;padding:6px 0 16px}
+.sh{font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t4);padding:14px 14px 5px;font-family:var(--M)}
+.sbt{display:flex;align-items:center;gap:8px;width:100%;padding:7px 14px;background:transparent;border:none;border-left:3px solid transparent;color:var(--t2);font-family:var(--F);font-size:11.5px;font-weight:500;cursor:pointer;text-align:left;transition:all .15s}
+.sbt:hover{background:var(--pri-bg);color:var(--pri)}
+.sbt.ac{background:var(--pri-bg);color:var(--pri);border-left-color:var(--pri);font-weight:600}
+.sbt .sn{font-size:8px;color:var(--t4);min-width:28px;font-family:var(--M);flex-shrink:0}
+.sbt .si{width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);flex-shrink:0;font-size:11px}
+.screen-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:16px;padding:0 4px;border-radius:10px;background:var(--s3);color:var(--t3);font-size:9px;font-weight:600;margin-left:auto;font-family:var(--M)}
+
+/* ─── PREVIEW ─── */
+.pv{flex:1;display:flex;overflow:hidden;background:var(--bg);padding:16px;gap:16px}
+.es{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--s1);border-radius:var(--radius);border:1px solid var(--bd)}
+.es-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--pri-bg),var(--pur-bg));border-radius:16px;display:flex;align-items:center;justify-content:center}
+
+/* Desktop Frame */
+.desk-wrap{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.desk-frame{flex:1;display:flex;flex-direction:column;background:var(--s1);border-radius:var(--radius);border:1px solid var(--bd);box-shadow:var(--shadow-lg);overflow:hidden}
+.desk-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--bd);background:var(--s2);flex-shrink:0}
+.desk-dots{display:flex;gap:5px}
+.desk-dot{width:10px;height:10px;border-radius:50%}
+.desk-url{flex:1;background:var(--s1);border:1px solid var(--bd);border-radius:var(--radius-xs);padding:4px 10px;font-size:10px;color:var(--t3);font-family:var(--M)}
+.desk-body{flex:1;overflow-y:auto;background:#fff}
+.desk-label{text-align:center;padding:8px 0 0;font-size:10px;color:var(--t3);font-weight:500}
+
+/* ─── DOCS PANEL ─── */
+.dc{width:280px;flex-shrink:0;overflow-y:auto;padding:20px;background:var(--s1);border-radius:var(--radius);border:1px solid var(--bd);box-shadow:var(--shadow)}
+.dnum{font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px;font-family:var(--M);color:var(--pri)}
+.dtit{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:4px;line-height:1.3}
+.dtag{display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:var(--radius-xs);margin-bottom:14px;font-family:var(--M)}
+.dsec{margin-bottom:14px}
+.dstit{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding-bottom:6px;border-bottom:1px solid var(--bd);margin-bottom:7px;font-family:var(--M);color:var(--t3)}
+.dit{display:flex;align-items:flex-start;gap:7px;padding:4px 0;font-size:11px;color:var(--t2);line-height:1.6}
+.dbul{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.dleads{background:var(--s2);border:1px solid var(--bd);border-radius:var(--radius-xs);padding:9px 12px;display:flex;align-items:center;gap:8px;margin-top:4px}
+.dll{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t4);white-space:nowrap;font-family:var(--M)}
+.dlv{font-size:11px;color:var(--pri);font-weight:500;cursor:pointer}
+.dlv:hover{text-decoration:underline}
+
+/* ─── SCREEN CONTENT STYLES ─── */
+.scr{font-family:var(--F);overflow-y:auto;height:100%}
+
+/* App sidebar mock */
+.app-sb{width:56px;background:#1E293B;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:2px;flex-shrink:0}
+.app-sb-logo{width:36px;height:36px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;margin-bottom:12px}
+.app-sb-item{width:40px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;position:relative}
+.app-sb-item:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)}
+.app-sb-item.active{background:rgba(99,102,241,.2);color:#818CF8}
+.app-sb-badge{position:absolute;top:4px;right:4px;width:8px;height:8px;background:#EF4444;border-radius:50%;border:2px solid #1E293B}
+
+/* Top bar mock */
+.app-top{height:48px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:#fff;flex-shrink:0}
+.app-top-left{display:flex;align-items:center;gap:10px}
+.app-top-title{font-size:14px;font-weight:700;color:#1E293B}
+.app-top-sub{font-size:11px;color:#94A3B8}
+.app-top-right{display:flex;align-items:center;gap:8px}
+.app-top-btn{padding:5px 12px;border-radius:6px;border:1px solid #E2E8F0;background:#fff;font-size:10px;font-weight:600;color:#475569;cursor:pointer}
+.app-top-btn.primary{background:#6366F1;border-color:#6366F1;color:#fff}
+.app-top-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#EC4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700}
+
+/* Shared inner components */
+.card{background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:600;letter-spacing:.02em}
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:10px;flex-shrink:0}
+.input-mock{width:100%;padding:8px 12px;border:1px solid #E2E8F0;border-radius:8px;background:#F8FAFC;font-size:11px;color:#94A3B8}
+.btn-pri{padding:8px 16px;background:#6366F1;border:none;border-radius:8px;color:#fff;font-size:11px;font-weight:600;cursor:pointer}
+.btn-sec{padding:8px 16px;background:#fff;border:1px solid #E2E8F0;border-radius:8px;color:#475569;font-size:11px;font-weight:600;cursor:pointer}
+.progress-bar{height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px}
+.tab-bar{display:flex;gap:2px;padding:4px;background:#F0F2F7;border-radius:8px;margin-bottom:12px}
+.tab-item{padding:6px 14px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;color:#94A3B8;transition:all .15s}
+.tab-item.active{background:#fff;color:#6366F1;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="hdr">
+  <div style="display:flex;align-items:center">
+    <div class="logo">
+      <div class="logo-icon">A</div>
+      <div class="logo-text">Avadeti <span>Team</span></div>
+    </div>
+    <div class="sep"></div>
+    <span class="ltag" id="screen-counter">Screen Navigator · 0 screens</span>
+  </div>
+  <div class="mode-strip">
+    <button class="mode-btn active" id="mode-emp" onclick="setMode('emp')">👤 Employee</button>
+    <button class="mode-btn" id="mode-admin" onclick="setMode('admin')">🛡️ Admin</button>
+  </div>
+</header>
+<div class="body">
+  <aside class="sb">
+    <div class="sb-search"><input type="text" placeholder="Search screens..." id="sb-search" oninput="filterScreens(this.value)"></div>
+    <div class="sl" id="sl"></div>
+  </aside>
+  <div class="pv" id="pv">
+    <div class="es" id="es">
+      <div class="es-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
+      <div style="text-align:center">
+        <p style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:4px">Select a screen to preview</p>
+        <p style="font-size:11px;color:var(--t3)">Browse sections in the sidebar or search by name</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   AVADETI TEAM — COMPLETE SCREEN NAVIGATOR
+   Joyful light theme · Desktop-first · Employee + Admin modes
+══════════════════════════════════════════════════════════ */
+
+var MODE='emp', CID=null;
+
+/* ─── COLORS ─── */
+var C={
+  pri:'#6366F1',priL:'#818CF8',priBg:'rgba(99,102,241,.08)',
+  grn:'#10B981',grnBg:'rgba(16,185,129,.08)',
+  amb:'#F59E0B',ambBg:'rgba(245,158,11,.08)',
+  red:'#EF4444',redBg:'rgba(239,68,68,.08)',
+  pur:'#8B5CF6',purBg:'rgba(139,92,246,.08)',
+  cyn:'#06B6D4',cynBg:'rgba(6,182,212,.08)',
+  org:'#F97316',orgBg:'rgba(249,115,22,.08)',
+  pnk:'#EC4899',pnkBg:'rgba(236,72,153,.08)',
+  t1:'#1E293B',t2:'#475569',t3:'#94A3B8',t4:'#CBD5E1',
+  bg:'#F0F2F7',white:'#FFFFFF',card:'#F8FAFC',border:'#E2E8F0'
+};
+
+/* ─── ICONS (SVG paths) ─── */
+function icon(name,size,color){
+  size=size||16;color=color||C.t3;
+  var paths={
+    calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
+    chat:'<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
+    task:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>',
+    users:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>',
+    clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    mail:'<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/>',
+    folder:'<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>',
+    meeting:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>',
+    sticky:'<path d="M15.5 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8.5L15.5 3z"/><path d="M14 3v6h6"/>',
+    bell:'<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>',
+    search:'<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>',
+    dollar:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+    spark:'<path d="M12 2L9 12l-7 3 7 3 3 10 3-10 7-3-7-3z"/>',
+    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>',
+    activity:'<path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9 15l3 3 3-3"/>',
+    feed:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    home:'<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/>',
+    lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>',
+    chart:'<path d="M18 20V10M12 20V4M6 20v-6"/>',
+    check:'<path d="M20 6L9 17l-5-5"/>',
+    pin:'<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/>',
+    file:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+    video:'<path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+    star:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>'
+  };
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+(paths[name]||'')+'</svg>';
+}
+
+/* ─── HELPERS ─── */
+function go(id){selectScreen(id)}
+
+function bdg(t,bg,fg){
+  bg=bg||C.priBg;fg=fg||C.pri;
+  return '<span style="display:inline-flex;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:600;letter-spacing:.02em;background:'+bg+';color:'+fg+'">'+t+'</span>';
+}
+
+function avatar(initials,bg,size){
+  size=size||28;bg=bg||'linear-gradient(135deg,#6366F1,#EC4899)';
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+bg+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:'+(size*0.38)+'px;flex-shrink:0">'+initials+'</div>';
+}
+
+function appSidebar(active){
+  var items=[
+    {k:'calendar',i:'calendar',l:'Calendar',c:'C-01'},
+    {k:'attendance',i:'clock',l:'Attend',c:'AT-01'},
+    {k:'messages',i:'chat',l:'Messages',c:'M-01'},
+    {k:'tasks',i:'task',l:'Tasks',c:'T-01'},
+    {k:'workspace',i:'folder',l:'Workspace',c:'W-01'},
+    {k:'meetings',i:'meeting',l:'Meetings',c:'MT-01'},
+    {k:'email',i:'mail',l:'Email',c:'E-01'},
+    {k:'sticky',i:'sticky',l:'Notes',c:'SN-01'},
+    {k:'activity',i:'activity',l:'Activity',c:'DA-01'},
+    {k:'feed',i:'feed',l:'Feed',c:'TF-01'},
+    {k:'salary',i:'dollar',l:'Salary',c:'SA-01'},
+    {k:'notifs',i:'bell',l:'Alerts',c:'N-01'}
+  ];
+  var h='<div class="app-sb"><div class="app-sb-logo">A</div>';
+  items.forEach(function(it){
+    var isA=it.k===active;
+    h+='<div class="app-sb-item'+(isA?' active':'')+'" onclick="go(\''+it.c+'\')" title="'+it.l+'">'
+      +icon(it.i,18,isA?'#818CF8':'rgba(255,255,255,.4)')
+      +(it.k==='notifs'?'<div class="app-sb-badge"></div>':'')
+      +'</div>';
+  });
+  return h+'</div>';
+}
+
+function topBar(title,subtitle,buttons){
+  buttons=buttons||'';
+  var h='<div class="app-top"><div class="app-top-left">'
+    +'<div class="app-top-title">'+title+'</div>'
+    +(subtitle?'<div class="app-top-sub">'+subtitle+'</div>':'')
+    +'</div><div class="app-top-right">'
+    +buttons
+    +avatar('RK')
+    +'</div></div>';
+  return h;
+}
+
+function deskLayout(sidebar,topbar,content){
+  return '<div style="display:flex;height:100%;font-family:Inter,sans-serif">'
+    +sidebar
+    +'<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">'
+    +topbar
+    +'<div style="flex:1;overflow-y:auto;background:#F8FAFC;padding:16px">'+content+'</div>'
+    +'</div></div>';
+}
+
+function taskCard(title,assignee,priority,status,progress,deadline){
+  var pc={top:'#EF4444',high:'#F97316',medium:'#F59E0B',low:'#10B981'};
+  var sc={ns:'#94A3B8',ip:'#6366F1',oh:'#F59E0B',done:'#10B981',cancel:'#EF4444',reopen:'#F97316'};
+  var sl={ns:'Not Started',ip:'In Progress',oh:'On Hold',done:'Done',cancel:'Cancelled',reopen:'Reopened'};
+  var col=pc[priority]||C.pri;
+  var scol=sc[status]||C.t3;
+  return '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:12px;border-left:3px solid '+col+';margin-bottom:8px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">'
+    +'<div style="font-size:12px;font-weight:600;color:#1E293B">'+title+'</div>'
+    +bdg(sl[status]||status,scol+'14',scol)
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+    +avatar(assignee,null,22)
+    +'<span style="font-size:10px;color:#94A3B8">'+deadline+'</span>'
+    +'</div>'
+    +'<div class="progress-bar"><div class="progress-fill" style="width:'+progress+'%;background:'+col+'"></div></div>'
+    +'<div style="text-align:right;font-size:9px;color:#94A3B8;margin-top:2px">'+progress+'%</div>'
+    +'</div>';
+}
+
+function msgSidebar(active){
+  var channels=[
+    {id:'M-02',type:'channel',n:'# general',unread:3,online:true},
+    {id:'M-02',type:'channel',n:'# announcements',unread:1},
+    {id:'M-02',type:'channel',n:'# tech-team',unread:8},
+    {id:'M-02',type:'channel',n:'# design-team',unread:0},
+    {id:'M-02',type:'channel',n:'# team-feed',unread:0}
+  ];
+  var dms=[
+    {id:'M-04',type:'dm',n:'Priya Sharma',ini:'PS',bg:'linear-gradient(135deg,#10B981,#06B6D4)',status:'online',unread:2},
+    {id:'M-04',type:'dm',n:'Arjun Patel',ini:'AP',bg:'linear-gradient(135deg,#F59E0B,#F97316)',status:'meeting',unread:0},
+    {id:'M-04',type:'dm',n:'Meera Nair',ini:'MN',bg:'linear-gradient(135deg,#8B5CF6,#EC4899)',status:'online',unread:1},
+    {id:'M-04',type:'dm',n:'Vikram Kapoor',ini:'VK',bg:'linear-gradient(135deg,#EF4444,#F97316)',status:'offline',unread:0},
+    {id:'M-04',type:'dm',n:'Anika Reddy',ini:'AR',bg:'linear-gradient(135deg,#06B6D4,#10B981)',status:'wfh',unread:0}
+  ];
+  var groups=[
+    {id:'M-04',type:'group',n:'Frontend Team',members:4,unread:0},
+    {id:'M-04',type:'group',n:'Lunch Squad 🍕',members:6,unread:3}
+  ];
+  var rooms=[
+    {id:'M-07',type:'room',n:'Project Alpha',members:5,unread:0},
+    {id:'M-07',type:'room',n:'HR Confidential',members:3,unread:1}
+  ];
+  var statusDot={online:'#10B981',meeting:'#F59E0B',offline:'#CBD5E1',wfh:'#6366F1',leave:'#EF4444'};
+
+  var h='<div style="width:220px;background:#fff;border-right:1px solid #E2E8F0;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden">';
+  /* Search */
+  h+='<div style="padding:10px;border-bottom:1px solid #E2E8F0">'
+    +'<div style="padding:6px 10px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;font-size:10px;color:#94A3B8;display:flex;align-items:center;gap:6px">'+icon('search',12,C.t4)+' Search conversations</div></div>';
+  /* Scrollable list */
+  h+='<div style="flex:1;overflow-y:auto;padding:6px 0">';
+
+  /* Channels */
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px 4px"><div style="font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#CBD5E1;font-family:\'JetBrains Mono\',monospace">Channels</div><div style="font-size:14px;color:#CBD5E1;cursor:pointer;line-height:1">+</div></div>';
+  channels.forEach(function(ch){
+    var isAct=(active===ch.n);
+    h+='<div onclick="go(\''+ch.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:5px 12px;cursor:pointer;background:'+(isAct?'rgba(99,102,241,.06)':'transparent')+';border-left:2px solid '+(isAct?'#6366F1':'transparent')+'">'
+      +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:'+(isAct?'#6366F1':(ch.unread?'#1E293B':'#94A3B8'))+';font-weight:'+(ch.unread||isAct?'600':'400')+'">'+ch.n+'</span></div>'
+      +(ch.unread?'<div style="min-width:16px;height:16px;padding:0 4px;background:#6366F1;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700">'+ch.unread+'</div>':'')
+      +'</div>';
+  });
+
+  /* Direct Messages */
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 12px 4px"><div style="font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#CBD5E1;font-family:\'JetBrains Mono\',monospace">Direct Messages</div><div style="font-size:14px;color:#CBD5E1;cursor:pointer;line-height:1">+</div></div>';
+  dms.forEach(function(dm){
+    var isAct=(active===dm.n);
+    h+='<div onclick="go(\''+dm.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:5px 12px;cursor:pointer;background:'+(isAct?'rgba(99,102,241,.06)':'transparent')+';border-left:2px solid '+(isAct?'#6366F1':'transparent')+'">'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +'<div style="position:relative;flex-shrink:0">'+avatar(dm.ini,dm.bg,22)+'<div style="position:absolute;bottom:-1px;right:-1px;width:8px;height:8px;background:'+(statusDot[dm.status]||'#CBD5E1')+';border-radius:50%;border:1.5px solid #fff"></div></div>'
+      +'<span style="font-size:11px;color:'+(isAct?'#6366F1':(dm.unread?'#1E293B':'#64748B'))+';font-weight:'+(dm.unread||isAct?'600':'400')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px">'+dm.n+'</span></div>'
+      +(dm.unread?'<div style="min-width:16px;height:16px;padding:0 4px;background:#6366F1;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700">'+dm.unread+'</div>':'')
+      +'</div>';
+  });
+
+  /* Groups */
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 12px 4px"><div style="font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#CBD5E1;font-family:\'JetBrains Mono\',monospace">Groups</div><div style="font-size:14px;color:#CBD5E1;cursor:pointer;line-height:1">+</div></div>';
+  groups.forEach(function(g){
+    var isAct=(active===g.n);
+    h+='<div onclick="go(\''+g.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:5px 12px;cursor:pointer;background:'+(isAct?'rgba(99,102,241,.06)':'transparent')+'">'
+      +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px">👥</span><span style="font-size:11px;color:'+(g.unread?'#1E293B':'#64748B')+';font-weight:'+(g.unread?'600':'400')+'">'+g.n+'</span></div>'
+      +(g.unread?'<div style="min-width:16px;height:16px;padding:0 4px;background:#6366F1;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700">'+g.unread+'</div>':'')
+      +'</div>';
+  });
+
+  /* Rooms */
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 12px 4px"><div style="font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#CBD5E1;font-family:\'JetBrains Mono\',monospace">Rooms</div><div style="font-size:14px;color:#CBD5E1;cursor:pointer;line-height:1">+</div></div>';
+  rooms.forEach(function(rm){
+    var isAct=(active===rm.n);
+    h+='<div onclick="go(\''+rm.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:5px 12px;cursor:pointer;background:'+(isAct?'rgba(99,102,241,.06)':'transparent')+'">'
+      +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px">🔒</span><span style="font-size:11px;color:'+(rm.unread?'#1E293B':'#64748B')+';font-weight:'+(rm.unread?'600':'400')+'">'+rm.n+'</span></div>'
+      +(rm.unread?'<div style="min-width:16px;height:16px;padding:0 4px;background:#6366F1;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700">'+rm.unread+'</div>':'')
+      +'</div>';
+  });
+
+  h+='</div></div>';
+  return h;
+}
+
+function msgLayout(appSb,msgSb,topbar,content){
+  return '<div style="display:flex;height:100%;font-family:Inter,sans-serif">'
+    +appSb+msgSb
+    +'<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">'
+    +topbar
+    +'<div style="flex:1;overflow-y:auto;background:#F8FAFC">'+content+'</div>'
+    +'</div></div>';
+}
+
+function msgBubble(name,initials,text,time,bg){
+  bg=bg||'linear-gradient(135deg,#6366F1,#8B5CF6)';
+  return '<div style="display:flex;gap:8px;margin-bottom:12px">'
+    +avatar(initials,bg,30)
+    +'<div style="flex:1"><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px">'
+    +'<span style="font-size:11px;font-weight:600;color:#1E293B">'+name+'</span>'
+    +'<span style="font-size:9px;color:#CBD5E1">'+time+'</span></div>'
+    +'<div style="font-size:11px;color:#475569;line-height:1.6">'+text+'</div>'
+    +'</div></div>';
+}
+
+function calEvent(time,title,color,type){
+  return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #F0F2F7">'
+    +'<div style="font-size:10px;color:#94A3B8;width:48px;flex-shrink:0;font-family:\'JetBrains Mono\',monospace">'+time+'</div>'
+    +'<div style="width:3px;background:'+color+';border-radius:2px;flex-shrink:0"></div>'
+    +'<div style="flex:1"><div style="font-size:11px;font-weight:600;color:#1E293B">'+title+'</div>'
+    +'<div style="font-size:9px;color:#94A3B8">'+type+'</div></div></div>';
+}
+
+function statCard(label,value,color,iconName){
+  return '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px;flex:1;min-width:120px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">'
+    +'<div style="font-size:9px;font-weight:600;color:#94A3B8;letter-spacing:.04em;text-transform:uppercase">'+label+'</div>'
+    +'<div style="width:28px;height:28px;background:'+color+'12;border-radius:8px;display:flex;align-items:center;justify-content:center">'+icon(iconName||'chart',14,color)+'</div>'
+    +'</div>'
+    +'<div style="font-size:22px;font-weight:700;color:#1E293B">'+value+'</div>'
+    +'</div>';
+}
+
+function sectionHeader(title,action){
+  return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<div style="font-size:13px;font-weight:700;color:#1E293B">'+title+'</div>'
+    +(action||'')+'</div>';
+}
+
+/* ═══════════════════════════════════════
+   SCREEN DEFINITIONS
+═══════════════════════════════════════ */
+var S={};
+
+/* ──────────── AUTH ──────────── */
+
+S['A-01']={n:'Login Screen',t:'Auth',mode:'all',
+  info:['Company branded login screen with Avadeti Team logo','Email + password fields with validation','Login with OTP option below','Forgot Password link','Joyful gradient background with subtle pattern'],
+  acts:['Enter credentials → Login → C-01 Calendar','Click Login with OTP → A-02','Click Forgot Password → A-04'],leads:'Calendar Home (C-01)',
+  r:function(){
+    return '<div style="min-height:100%;background:linear-gradient(135deg,#667EEA 0%,#764BA2 50%,#F093FB 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:20px;padding:40px;width:380px;box-shadow:0 25px 50px rgba(0,0,0,.15)">'
+      +'<div style="text-align:center;margin-bottom:28px">'
+      +'<div style="width:56px;height:56px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;margin:0 auto 12px">A</div>'
+      +'<div style="font-size:22px;font-weight:800;color:#1E293B">Welcome Back!</div>'
+      +'<div style="font-size:12px;color:#94A3B8;margin-top:4px">Sign in to Avadeti Team</div>'
+      +'</div>'
+      +'<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Email Address</div><div class="input-mock">ravi@avadeti.com</div></div>'
+      +'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Password</div><div class="input-mock">••••••••</div></div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'
+      +'<label style="display:flex;align-items:center;gap:5px;font-size:10px;color:#94A3B8"><div style="width:14px;height:14px;border:1.5px solid #E2E8F0;border-radius:3px"></div>Remember me</label>'
+      +'<span onclick="go(\'A-04\')" style="font-size:10px;color:#6366F1;font-weight:600;cursor:pointer">Forgot Password?</span>'
+      +'</div>'
+      +'<div onclick="go(\'C-01\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,.3)">Sign In</div>'
+      +'<div style="text-align:center;margin-top:16px">'
+      +'<span onclick="go(\'A-02\')" style="font-size:11px;color:#6366F1;font-weight:600;cursor:pointer">Login with OTP →</span>'
+      +'</div>'
+      +'<div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #F0F2F7">'
+      +'<div style="font-size:10px;color:#CBD5E1">Avadeti Team v1.0 · Your company, one platform</div>'
+      +'</div></div></div>';
+  }
+};
+
+S['A-02']={n:'OTP Request',t:'Auth',mode:'all',
+  info:['User enters email to request OTP','OTP sent to admin chain (manager, HR, Main Admin) — NOT to user email','Message: "OTP has been sent to your administrator. Please contact them."','No hint about who receives it'],
+  acts:['Enter email → Request OTP → A-03','Back → A-01'],leads:'OTP Entry (A-03)',
+  r:function(){
+    return '<div style="min-height:100%;background:linear-gradient(135deg,#667EEA 0%,#764BA2 50%,#F093FB 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:20px;padding:40px;width:380px;box-shadow:0 25px 50px rgba(0,0,0,.15)">'
+      +'<div onclick="go(\'A-01\')" style="display:flex;align-items:center;gap:4px;font-size:11px;color:#94A3B8;cursor:pointer;margin-bottom:20px">← Back to Login</div>'
+      +'<div style="text-align:center;margin-bottom:28px">'
+      +'<div style="width:48px;height:48px;background:rgba(99,102,241,.08);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'+icon('lock',22,C.pri)+'</div>'
+      +'<div style="font-size:20px;font-weight:700;color:#1E293B">Login with OTP</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">Enter your email to request a one-time password</div>'
+      +'</div>'
+      +'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Email Address</div><div class="input-mock">ravi@avadeti.com</div></div>'
+      +'<div onclick="go(\'A-03\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,.3)">Request OTP</div>'
+      +'</div></div>';
+  }
+};
+
+S['A-03']={n:'OTP Entry',t:'Auth',mode:'all',
+  info:['6-digit OTP entry with individual boxes','Message: "OTP has been sent to your administrator. Please contact them."','10 min validity, max 3 attempts','No hint about who has the OTP'],
+  acts:['Enter OTP → Verify → C-01','Resend OTP (resets timer)','Back → A-02'],leads:'Calendar Home (C-01)',
+  r:function(){
+    return '<div style="min-height:100%;background:linear-gradient(135deg,#667EEA 0%,#764BA2 50%,#F093FB 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:20px;padding:40px;width:380px;box-shadow:0 25px 50px rgba(0,0,0,.15)">'
+      +'<div onclick="go(\'A-02\')" style="display:flex;align-items:center;gap:4px;font-size:11px;color:#94A3B8;cursor:pointer;margin-bottom:20px">← Back</div>'
+      +'<div style="text-align:center;margin-bottom:24px">'
+      +'<div style="width:48px;height:48px;background:rgba(16,185,129,.08);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'+icon('shield',22,C.grn)+'</div>'
+      +'<div style="font-size:20px;font-weight:700;color:#1E293B">Enter OTP</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-top:6px;line-height:1.6">OTP has been sent to your administrator.<br>Please contact them.</div>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:center;gap:8px;margin-bottom:20px">'
+      +[4,8,2,9,1,7].map(function(d){return '<div style="width:42px;height:48px;background:#F8FAFC;border:2px solid #6366F1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#1E293B">'+d+'</div>';}).join('')
+      +'</div>'
+      +'<div style="text-align:center;margin-bottom:16px;font-size:10px;color:#94A3B8">Valid for <span style="color:#EF4444;font-weight:600">9:42</span> · Attempt 1 of 3</div>'
+      +'<div onclick="go(\'C-01\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer">Verify OTP</div>'
+      +'<div style="text-align:center;margin-top:12px;font-size:11px;color:#94A3B8">Didn\'t get it? <span style="color:#6366F1;font-weight:600;cursor:pointer">Resend OTP</span></div>'
+      +'</div></div>';
+  }
+};
+
+S['A-04']={n:'Forgot Password',t:'Auth',mode:'all',
+  info:['Same OTP flow as login — OTP goes to admin chain','Email entry → OTP sent to admins → user enters OTP → set new password'],
+  acts:['Enter email → Request OTP → A-03','Back → A-01'],leads:'OTP Entry (A-03)',
+  r:function(){
+    return '<div style="min-height:100%;background:linear-gradient(135deg,#667EEA 0%,#764BA2 50%,#F093FB 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:20px;padding:40px;width:380px;box-shadow:0 25px 50px rgba(0,0,0,.15)">'
+      +'<div onclick="go(\'A-01\')" style="display:flex;align-items:center;gap:4px;font-size:11px;color:#94A3B8;cursor:pointer;margin-bottom:20px">← Back to Login</div>'
+      +'<div style="text-align:center;margin-bottom:28px">'
+      +'<div style="font-size:20px;font-weight:700;color:#1E293B">Forgot Password?</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">No worries! Enter your email and we\'ll send an OTP to your admin.</div>'
+      +'</div>'
+      +'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Email Address</div><div class="input-mock">ravi@avadeti.com</div></div>'
+      +'<div onclick="go(\'A-03\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer">Reset Password</div>'
+      +'</div></div>';
+  }
+};
+
+S['A-05']={n:'First Login — Temp Password',t:'Auth',mode:'all',
+  info:['Employee logs in with temp password given by admin','App forces password change immediately','Min 8 chars, 1 number, 1 special character','After new password set — temp password disappears from all admin views'],
+  acts:['Set new password → A-06 Success → O-01 Onboarding'],leads:'Onboarding (O-01)',
+  r:function(){
+    return '<div style="min-height:100%;background:linear-gradient(135deg,#667EEA 0%,#764BA2 50%,#F093FB 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:20px;padding:40px;width:380px;box-shadow:0 25px 50px rgba(0,0,0,.15)">'
+      +'<div style="text-align:center;margin-bottom:24px">'
+      +'<div style="width:48px;height:48px;background:rgba(245,158,11,.08);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">'+icon('shield',22,C.amb)+'</div>'
+      +'<div style="font-size:20px;font-weight:700;color:#1E293B">Set Your Password</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">Welcome! Please create a new password to secure your account.</div>'
+      +'</div>'
+      +'<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:8px;padding:10px 12px;margin-bottom:20px;display:flex;align-items:center;gap:8px">'
+      +'<div style="font-size:10px;color:#F59E0B">⚠️</div>'
+      +'<div style="font-size:10px;color:#92400E">You\'re using a temporary password. Please set a new one to continue.</div></div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">New Password</div><div class="input-mock">••••••••••</div></div>'
+      +'<div style="margin-bottom:6px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Confirm Password</div><div class="input-mock">••••••••••</div></div>'
+      +'<div style="margin-bottom:20px;font-size:9px;color:#94A3B8;line-height:1.6">'+['✅ At least 8 characters','✅ At least one number','✅ At least one special character'].join('<br>')+'</div>'
+      +'<div onclick="go(\'O-01\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#10B981,#06B6D4);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,.3)">Set Password & Continue</div>'
+      +'</div></div>';
+  }
+};
+
+/* ──────────── ONBOARDING ──────────── */
+
+S['O-01']={n:'App Introduction',t:'Onboarding',mode:'all',
+  info:['Multi-slide intro: Company logo, platform intro, key features, get started','Skip option available — jumps to O-06','Progress dots at top','Cheerful illustrations per slide'],
+  acts:['Next → through slides','Skip → O-06 Getting Started','Final slide → O-02'],leads:'Company Card (O-02)',
+  r:function(){
+    return '<div style="min-height:100%;background:linear-gradient(180deg,#F0F2F7 0%,#E8ECFF 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:24px;padding:48px 40px;width:480px;box-shadow:0 25px 50px rgba(0,0,0,.08);text-align:center">'
+      +'<div style="display:flex;justify-content:center;gap:6px;margin-bottom:32px">'
+      +'<div style="width:24px;height:4px;background:#6366F1;border-radius:2px"></div>'
+      +'<div style="width:8px;height:4px;background:#E2E8F0;border-radius:2px"></div>'
+      +'<div style="width:8px;height:4px;background:#E2E8F0;border-radius:2px"></div>'
+      +'<div style="width:8px;height:4px;background:#E2E8F0;border-radius:2px"></div>'
+      +'</div>'
+      +'<div style="width:120px;height:120px;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.1));border-radius:30px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px">'
+      +'<div style="font-size:48px">🚀</div></div>'
+      +'<div style="font-size:26px;font-weight:800;color:#1E293B;margin-bottom:8px">Welcome to Avadeti Team</div>'
+      +'<div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:32px">Your complete company management platform.<br>Chat, tasks, meetings, attendance, and more — all in one place.</div>'
+      +'<div onclick="go(\'O-02\')" style="padding:12px 32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:inline-block;box-shadow:0 4px 12px rgba(99,102,241,.3)">Get Started →</div>'
+      +'<div onclick="go(\'O-06\')" style="margin-top:16px;font-size:11px;color:#94A3B8;cursor:pointer">Skip intro</div>'
+      +'</div></div>';
+  }
+};
+
+S['O-02']={n:'Company Card',t:'Onboarding',mode:'all',
+  info:['Company info managed by admin: contact details, about company, social links','Accessible anytime from profile/settings later','Shows company logo, address, phone, email, website'],
+  acts:['Continue → O-03'],leads:'Welcome Screen (O-03)',
+  r:function(){
+    return '<div style="min-height:100%;background:linear-gradient(180deg,#F0F2F7 0%,#E8ECFF 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:24px;padding:40px;width:440px;box-shadow:0 25px 50px rgba(0,0,0,.08)">'
+      +'<div style="text-align:center;margin-bottom:24px">'
+      +'<div style="width:72px;height:72px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:28px;margin:0 auto 12px">A</div>'
+      +'<div style="font-size:22px;font-weight:800;color:#1E293B">Avadeti Media</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">Digital Innovation Company</div></div>'
+      +'<div style="background:#F8FAFC;border-radius:12px;padding:16px;margin-bottom:16px">'
+      +[['📍','123 Business Park, Hyderabad, India'],['📞','+91 98765 43210'],['✉️','hello@avadeti.com'],['🌐','www.avadeti.com']].map(function(r){
+        return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:11px;color:#475569"><span>'+r[0]+'</span>'+r[1]+'</div>';
+      }).join('')
+      +'</div>'
+      +'<div style="font-size:11px;color:#64748B;line-height:1.7;margin-bottom:20px;text-align:center">We build innovative digital products that transform how businesses operate. Welcome to the team!</div>'
+      +'<div style="display:flex;justify-content:center;gap:10px;margin-bottom:20px">'
+      +['LinkedIn','Twitter','Instagram'].map(function(s){return '<div style="padding:4px 12px;background:#F0F2F7;border-radius:6px;font-size:9px;font-weight:600;color:#6366F1">'+s+'</div>';}).join('')
+      +'</div>'
+      +'<div onclick="go(\'O-03\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer">Continue</div>'
+      +'</div></div>';
+  }
+};
+
+S['O-03']={n:'Personal Welcome',t:'Onboarding',mode:'all',
+  info:['Personalized: employee name, role, team, manager name','Company welcome message from admin','Cheerful and warm tone'],
+  acts:['Continue → O-04'],leads:'Default Settings (O-04)',
+  r:function(){
+    return '<div style="min-height:100%;background:linear-gradient(180deg,#F0F2F7 0%,#E8ECFF 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:24px;padding:48px 40px;width:440px;box-shadow:0 25px 50px rgba(0,0,0,.08);text-align:center">'
+      +'<div style="font-size:48px;margin-bottom:16px">👋</div>'
+      +'<div style="font-size:26px;font-weight:800;color:#1E293B;margin-bottom:6px">Hello, Ravi!</div>'
+      +'<div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:24px">We\'re excited to have you on board.</div>'
+      +'<div style="background:#F8FAFC;border-radius:12px;padding:16px;margin-bottom:24px;text-align:left">'
+      +[['Role','Frontend Developer'],['Team','Tech Team'],['Office','Hyderabad HQ'],['Manager','Priya Sharma']].map(function(r){
+        return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F0F2F7"><span style="font-size:11px;color:#94A3B8">'+r[0]+'</span><span style="font-size:11px;font-weight:600;color:#1E293B">'+r[1]+'</span></div>';
+      }).join('')
+      +'</div>'
+      +'<div style="background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(236,72,153,.06));border-radius:10px;padding:14px;margin-bottom:24px;font-size:11px;color:#475569;line-height:1.6;font-style:italic">"Welcome to Avadeti Media! We believe in building great things together. Let\'s make an impact." — Team Avadeti</div>'
+      +'<div onclick="go(\'O-04\')" style="padding:12px 32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:inline-block">Let\'s Set Up →</div>'
+      +'</div></div>';
+  }
+};
+
+S['O-04']={n:'Default Settings',t:'Onboarding',mode:'all',
+  info:['Interactive settings with suggested defaults pre-selected','Skip = suggested defaults auto-applied','Settings: calendar view, meeting reminder, wrap-up notifications, DND, auto status'],
+  acts:['Customize → adjust any setting','Save → O-05','Skip → O-05 with defaults'],leads:'Profile Setup (O-05)',
+  r:function(){
+    var settings=[
+      ['Calendar Default View','Weekly','📅'],
+      ['Meeting Reminder','10 min before','🔔'],
+      ['Wrap-up Reminder','Every 30 min after 5 PM','⏰'],
+      ['Auto Wrap-up','8:00 PM','🌙'],
+      ['Notification Sound','On','🔊'],
+      ['Auto DND in Meetings','On','🤫'],
+      ['Auto Status Updates','On','💬']
+    ];
+    return '<div style="min-height:100%;background:linear-gradient(180deg,#F0F2F7 0%,#E8ECFF 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:24px;padding:36px;width:460px;box-shadow:0 25px 50px rgba(0,0,0,.08)">'
+      +'<div style="text-align:center;margin-bottom:20px">'
+      +'<div style="font-size:22px;font-weight:800;color:#1E293B">Your Preferences</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">We\'ve suggested the best defaults. Adjust anything you like.</div></div>'
+      +settings.map(function(s){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F0F2F7">'
+          +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px">'+s[2]+'</span><span style="font-size:11px;font-weight:600;color:#1E293B">'+s[0]+'</span></div>'
+          +'<div style="padding:4px 10px;background:#F0F2F7;border-radius:6px;font-size:10px;font-weight:600;color:#6366F1">'+s[1]+'</div></div>';
+      }).join('')
+      +'<div style="display:flex;gap:10px;margin-top:20px">'
+      +'<div onclick="go(\'O-05\')" style="flex:1;padding:11px;background:#F0F2F7;border:none;border-radius:10px;color:#475569;font-size:12px;font-weight:600;text-align:center;cursor:pointer">Skip (use defaults)</div>'
+      +'<div onclick="go(\'O-05\')" style="flex:1;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer">Save & Continue</div>'
+      +'</div></div></div>';
+  }
+};
+
+S['O-05']={n:'Profile Setup',t:'Onboarding',mode:'all',
+  info:['Upload photo, confirm phone, set status message','Choose notification sounds','Photo upload with preview circle'],
+  acts:['Complete → O-06'],leads:'Getting Started Checklist (O-06)',
+  r:function(){
+    return '<div style="min-height:100%;background:linear-gradient(180deg,#F0F2F7 0%,#E8ECFF 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:24px;padding:40px;width:440px;box-shadow:0 25px 50px rgba(0,0,0,.08);text-align:center">'
+      +'<div style="font-size:22px;font-weight:800;color:#1E293B;margin-bottom:4px">Set Up Your Profile</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-bottom:24px">Let your team know who you are</div>'
+      +'<div style="width:96px;height:96px;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(236,72,153,.1));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;border:3px dashed #E2E8F0">'
+      +'<div style="font-size:28px">📷</div></div>'
+      +'<div style="font-size:10px;color:#6366F1;font-weight:600;margin-bottom:24px;cursor:pointer">Upload Photo</div>'
+      +'<div style="text-align:left">'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Phone Number</div><div class="input-mock">+91 98765 43210</div></div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Status Message</div><div class="input-mock">Ready to build great things! 🚀</div></div>'
+      +'</div>'
+      +'<div onclick="go(\'O-06\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer;margin-top:8px">Complete Setup</div>'
+      +'</div></div>';
+  }
+};
+
+S['O-06']={n:'Getting Started Checklist',t:'Onboarding',mode:'all',
+  info:['Simple checklist: complete profile, check calendar, say hi on Team Feed, check tasks, explore Spaces','Progress bar at top','Each item clickable — navigates to relevant section','Dismissible — appears as widget on calendar until all done'],
+  acts:['Click any item → navigate to that section','Dismiss → C-01 Calendar Home'],leads:'Calendar Home (C-01)',
+  r:function(){
+    var items=[
+      ['✅','Complete your profile','Done!','#10B981'],
+      ['📅','Check your calendar','See what\'s coming up','#6366F1'],
+      ['👋','Say hi on Team Feed','Introduce yourself','#EC4899'],
+      ['✏️','Check your first tasks','See what\'s assigned','#F59E0B'],
+      ['💬','Explore Messaging','Join your team channels','#06B6D4']
+    ];
+    return '<div style="min-height:100%;background:linear-gradient(180deg,#F0F2F7 0%,#E8ECFF 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
+      +'<div style="background:#fff;border-radius:24px;padding:40px;width:440px;box-shadow:0 25px 50px rgba(0,0,0,.08)">'
+      +'<div style="text-align:center;margin-bottom:20px">'
+      +'<div style="font-size:22px;font-weight:800;color:#1E293B">Getting Started 🎯</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">Complete these steps to get the most out of Avadeti Team</div></div>'
+      +'<div class="progress-bar" style="margin-bottom:6px"><div class="progress-fill" style="width:20%;background:linear-gradient(90deg,#6366F1,#8B5CF6)"></div></div>'
+      +'<div style="font-size:9px;color:#94A3B8;text-align:right;margin-bottom:20px">1 of 5 complete</div>'
+      +items.map(function(it,i){
+        var done=i===0;
+        return '<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;margin-bottom:6px;background:'+(done?'rgba(16,185,129,.04)':'#F8FAFC')+';border:1px solid '+(done?'rgba(16,185,129,.15)':'#E2E8F0')+';cursor:pointer">'
+          +'<div style="font-size:16px">'+it[0]+'</div>'
+          +'<div style="flex:1"><div style="font-size:12px;font-weight:600;color:'+(done?'#10B981':'#1E293B')+'">'+it[1]+'</div>'
+          +'<div style="font-size:10px;color:#94A3B8">'+it[2]+'</div></div>'
+          +(done?'<div style="color:#10B981">✓</div>':'<div style="color:#CBD5E1">→</div>')
+          +'</div>';
+      }).join('')
+      +'<div onclick="go(\'C-01\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer;margin-top:16px">Go to My Calendar →</div>'
+      +'</div></div>';
+  }
+};
+
+/* ──────────── CALENDAR ──────────── */
+
+S['C-01']={n:'Calendar — Weekly View (Home)',t:'Calendar',mode:'all',
+  info:['Default home screen — 7 days side by side','Color coded: Red=leave, Orange=half day, Purple=holiday, Blue=tasks, Yellow=activity','Task cards show priority color indicators','Drag and drop task reordering within priority groups','Entry/wrap-up times shown','Launch tooltip shows on first load after login'],
+  acts:['Click any task → T-03','Click meeting → MT-11','Switch to Monthly → C-02','Switch to Daily → C-03','Mark Entry → AT-01'],leads:'Various screens',
+  r:function(){
+    var days=['Mon 14','Tue 15','Wed 16','Thu 17','Fri 18','Sat 19','Sun 20'];
+    var today=2;
+    return deskLayout(
+      appSidebar('calendar'),
+      topBar('Calendar','April 2026','<div class="app-top-btn primary" onclick="go(\'AT-01\')">Mark Entry</div>'),
+      '<div class="tab-bar"><div class="tab-item active">Weekly</div><div class="tab-item" onclick="go(\'C-02\')">Monthly</div><div class="tab-item" onclick="go(\'C-03\')">Daily</div></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">'
+      +days.map(function(d,i){
+        var isToday=i===today;
+        var content='';
+        if(i===0) content='<div style="background:rgba(99,102,241,.06);border-left:2px solid #6366F1;border-radius:4px;padding:6px;margin-bottom:4px"><div style="font-size:9px;font-weight:600;color:#6366F1">Design Review</div><div style="font-size:8px;color:#94A3B8">10:00 AM</div></div>';
+        if(i===today) content='<div style="background:rgba(239,68,68,.06);border-left:2px solid #EF4444;border-radius:4px;padding:6px;margin-bottom:4px"><div style="font-size:9px;font-weight:600;color:#EF4444">API Integration</div><div style="font-size:8px;color:#94A3B8">Top Priority</div></div>'
+          +'<div style="background:rgba(16,185,129,.06);border-left:2px solid #10B981;border-radius:4px;padding:6px;margin-bottom:4px"><div style="font-size:9px;font-weight:600;color:#10B981">Code Review</div><div style="font-size:8px;color:#94A3B8">Low Priority</div></div>'
+          +'<div style="background:rgba(139,92,246,.06);border-left:2px solid #8B5CF6;border-radius:4px;padding:6px;margin-bottom:4px"><div style="font-size:9px;font-weight:600;color:#8B5CF6">Sprint Planning</div><div style="font-size:8px;color:#94A3B8">2:00 PM · Meeting</div></div>';
+        if(i===3) content='<div style="background:rgba(245,158,11,.06);border-left:2px solid #F59E0B;border-radius:4px;padding:6px;margin-bottom:4px"><div style="font-size:9px;font-weight:600;color:#F59E0B">Team Wellness</div><div style="font-size:8px;color:#94A3B8">Activity · 4 PM</div></div>';
+        if(i===4) content='<div style="background:rgba(249,115,22,.06);border-left:2px solid #F97316;border-radius:4px;padding:6px;margin-bottom:4px"><div style="font-size:9px;font-weight:600;color:#F97316">Half Day</div><div style="font-size:8px;color:#94A3B8">Afternoon off</div></div>';
+        if(i===5) content='';
+        if(i===6) content='<div style="background:rgba(139,92,246,.06);border-left:2px solid #8B5CF6;border-radius:4px;padding:6px"><div style="font-size:9px;font-weight:600;color:#8B5CF6">Holiday</div><div style="font-size:8px;color:#94A3B8">Ram Navami</div></div>';
+        return '<div style="background:#fff;border-radius:10px;border:1px solid '+(isToday?'#6366F1':'#E2E8F0')+';padding:8px;min-height:200px">'
+          +'<div style="text-align:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #F0F2F7">'
+          +'<div style="font-size:9px;color:'+(isToday?'#6366F1':'#94A3B8')+';font-weight:600">'+d.split(' ')[0]+'</div>'
+          +'<div style="font-size:16px;font-weight:700;color:'+(isToday?'#6366F1':'#1E293B')+'">'+d.split(' ')[1]+'</div>'
+          +(isToday?'<div style="width:4px;height:4px;background:#6366F1;border-radius:50%;margin:2px auto"></div>':'')
+          +'</div>'+content+'</div>';
+      }).join('')
+      +'</div>'
+    );
+  }
+};
+
+S['C-02']={n:'Calendar — Monthly View',t:'Calendar',mode:'all',
+  info:['Full month grid','Each date shows ONE event — highest priority (Red leave > Orange half > Purple holiday > Blue task > Yellow activity)','"+X more" if additional items','Click date → jumps to daily view'],
+  acts:['Click any date → C-03 Daily','Switch views','Create event'],leads:'Daily View (C-03)',
+  r:function(){
+    var dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    var dots={3:'#8B5CF6',7:'#6366F1',10:'#EF4444',14:'#6366F1',16:'#6366F1',18:'#F97316',20:'#F59E0B',23:'#6366F1',25:'#8B5CF6',28:'#6366F1'};
+    var labels={3:'Holiday',7:'Sprint Review',10:'Leave',14:'API Task',16:'Today',18:'Half Day',20:'Wellness',23:'Deploy',25:'Team Meet',28:'Deadline'};
+    return deskLayout(
+      appSidebar('calendar'),
+      topBar('Calendar','April 2026'),
+      '<div class="tab-bar"><div class="tab-item" onclick="go(\'C-01\')">Weekly</div><div class="tab-item active">Monthly</div><div class="tab-item" onclick="go(\'C-03\')">Daily</div></div>'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px">'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:0;margin-bottom:4px">'
+      +dayNames.map(function(d){return '<div style="text-align:center;font-size:10px;font-weight:600;color:#94A3B8;padding:8px">'+d+'</div>';}).join('')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:0">'
+      +Array.from({length:2},function(){return '<div style="padding:8px;min-height:64px;border:1px solid #F0F2F7"></div>';}).join('')
+      +Array.from({length:30},function(_,i){
+        var d=i+1,col=dots[d],lbl=labels[d],isToday=d===16;
+        return '<div onclick="go(\'C-03\')" style="padding:6px;min-height:64px;border:1px solid #F0F2F7;cursor:pointer;background:'+(isToday?'rgba(99,102,241,.04)':'transparent')+'">'
+          +'<div style="font-size:11px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'#6366F1':'#1E293B')+';margin-bottom:4px">'+d+'</div>'
+          +(col?'<div style="background:'+col+'10;border-left:2px solid '+col+';border-radius:2px;padding:2px 4px;font-size:8px;color:'+col+';font-weight:600">'+lbl+'</div>':'')
+          +'</div>';
+      }).join('')
+      +'</div></div>'
+    );
+  }
+};
+
+S['C-03']={n:'Calendar — Daily View',t:'Calendar',mode:'all',
+  info:['One full day in detail','Complete time blocks from 8 AM to 8 PM','Entry/wrap-up times shown at top','All tasks in priority groups','Drag and drop within priority group'],
+  acts:['Click task → T-03','Click meeting → MT-11','Switch views'],leads:'Task/Meeting Detail',
+  r:function(){
+    var events=[
+      {time:'9:00',title:'Mark Entry',type:'Attendance',col:'#10B981',dur:1},
+      {time:'9:30',title:'Daily Standup',type:'Meeting · Tech Team',col:'#8B5CF6',dur:1},
+      {time:'10:00',title:'API Integration',type:'Task · Top Priority',col:'#EF4444',dur:3},
+      {time:'12:00',title:'Lunch Break',type:'',col:'#CBD5E1',dur:2},
+      {time:'14:00',title:'Sprint Planning',type:'Meeting · All Teams',col:'#8B5CF6',dur:2},
+      {time:'15:00',title:'Code Review',type:'Task · Low Priority',col:'#10B981',dur:2},
+      {time:'16:00',title:'Team Wellness',type:'Activity · Yoga',col:'#F59E0B',dur:1},
+      {time:'17:30',title:'Wrap Up',type:'Attendance',col:'#10B981',dur:1}
+    ];
+    return deskLayout(
+      appSidebar('calendar'),
+      topBar('Wednesday, April 16','Today'),
+      '<div class="tab-bar"><div class="tab-item" onclick="go(\'C-01\')">Weekly</div><div class="tab-item" onclick="go(\'C-02\')">Monthly</div><div class="tab-item active">Daily</div></div>'
+      +'<div style="display:flex;gap:16px">'
+      +'<div style="flex:1">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px">'
+      +'<div style="display:flex;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #F0F2F7">'
+      +'<div style="display:flex;align-items:center;gap:6px">'+icon('check',14,C.grn)+'<span style="font-size:10px;color:#10B981;font-weight:600">Entry: 9:03 AM</span></div>'
+      +'<div style="display:flex;align-items:center;gap:6px">'+icon('clock',14,C.t3)+'<span style="font-size:10px;color:#94A3B8">Wrap Up: Pending</span></div>'
+      +'</div>'
+      +events.map(function(e){
+        return '<div style="display:flex;gap:12px;margin-bottom:8px;padding:8px 0;border-bottom:1px solid #F8FAFC">'
+          +'<div style="width:48px;flex-shrink:0;font-size:10px;font-weight:600;color:#94A3B8;padding-top:2px;font-family:\'JetBrains Mono\',monospace">'+e.time+'</div>'
+          +'<div style="width:3px;background:'+e.col+';border-radius:2px;flex-shrink:0"></div>'
+          +'<div style="flex:1;background:'+e.col+'08;border-radius:8px;padding:8px 10px">'
+          +'<div style="font-size:11px;font-weight:600;color:#1E293B">'+e.title+'</div>'
+          +(e.type?'<div style="font-size:9px;color:#94A3B8">'+e.type+'</div>':'')
+          +'</div></div>';
+      }).join('')
+      +'</div></div>'
+      +'<div style="width:240px;flex-shrink:0">'
+      +sectionHeader('Today\'s Summary')
+      +statCard('Tasks','3',C.pri,'task')
+      +'<div style="height:8px"></div>'
+      +statCard('Meetings','2',C.pur,'meeting')
+      +'<div style="height:8px"></div>'
+      +statCard('Hours','7.5h',C.grn,'clock')
+      +'</div></div>'
+    );
+  }
+};
+
+/* ──────────── ATTENDANCE ──────────── */
+
+S['AT-01']={n:'Mark Entry',t:'Attendance',mode:'all',
+  info:['Employee taps Mark Entry','Dual layer check: WiFi subnet first, GPS 100m fallback','Office check for Full Office and Hybrid office-days','Remote employees — no check needed','Shows current time prominently'],
+  acts:['Mark Entry → AT-03 Success or AT-02 Blocked','View history → AT-08'],leads:'Entry Success/Blocked',
+  r:function(){
+    return deskLayout(
+      appSidebar('attendance'),
+      topBar('Attendance','Mark your entry for today'),
+      '<div style="max-width:480px;margin:0 auto">'
+      +'<div style="background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:32px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.04)">'
+      +'<div style="font-size:48px;font-weight:800;color:#1E293B;margin-bottom:4px;font-family:\'JetBrains Mono\',monospace">09:03</div>'
+      +'<div style="font-size:12px;color:#94A3B8;margin-bottom:24px">Wednesday, April 16, 2026</div>'
+      +'<div style="display:flex;justify-content:center;gap:8px;margin-bottom:24px">'
+      +bdg('Full Office','rgba(99,102,241,.08)','#6366F1')
+      +bdg('Hyderabad HQ','rgba(16,185,129,.08)','#10B981')
+      +'</div>'
+      +'<div style="width:120px;height:120px;background:linear-gradient(135deg,#10B981,#06B6D4);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;cursor:pointer;box-shadow:0 8px 24px rgba(16,185,129,.3)">'
+      +'<div style="text-align:center;color:#fff"><div style="font-size:24px">👆</div><div style="font-size:10px;font-weight:700;margin-top:4px">MARK<br>ENTRY</div></div></div>'
+      +'<div style="font-size:11px;color:#94A3B8;line-height:1.6">Checking location...<br>'+icon('check',12,C.grn)+' Connected to office WiFi</div>'
+      +'</div>'
+      +'<div style="margin-top:20px;display:flex;gap:12px">'
+      +statCard('This Week','4/5 days',C.grn,'check')
+      +statCard('This Month','12/16 days',C.pri,'calendar')
+      +'</div>'
+      +'<div onclick="go(\'AT-08\')" style="text-align:center;margin-top:16px;font-size:11px;color:#6366F1;font-weight:600;cursor:pointer">View Attendance History →</div>'
+      +'</div>'
+    );
+  }
+};
+
+S['AT-02']={n:'Entry Blocked',t:'Attendance',mode:'all',
+  info:['Shown when employee is NOT at office','Simple message — NO distance shown to user','Message: "You are not in the office. Please connect to office WiFi or be physically present."','Distance IS stored internally for admin reference — never shown'],
+  acts:['Try Again → recheck location','Back → C-01'],leads:'Calendar Home',
+  r:function(){
+    return deskLayout(
+      appSidebar('attendance'),
+      topBar('Attendance','Entry blocked'),
+      '<div style="max-width:480px;margin:0 auto">'
+      +'<div style="background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:32px;text-align:center">'
+      +'<div style="width:80px;height:80px;background:rgba(239,68,68,.08);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><div style="font-size:36px">🚫</div></div>'
+      +'<div style="font-size:18px;font-weight:700;color:#1E293B;margin-bottom:8px">Cannot Mark Entry</div>'
+      +'<div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:24px">You are not in the office. Please connect to office WiFi or be physically present in the office to mark entry.</div>'
+      +'<div style="display:flex;gap:10px;justify-content:center">'
+      +'<div class="btn-sec" onclick="go(\'C-01\')">Go Back</div>'
+      +'<div class="btn-pri" onclick="go(\'AT-01\')">Try Again</div>'
+      +'</div></div></div>'
+    );
+  }
+};
+
+S['AT-03']={n:'Entry Success',t:'Attendance',mode:'all',
+  info:['Confirmation screen with check animation','Shows entry time','Verification method logged internally (WiFi or GPS)','Auto-redirects to calendar after 2 seconds'],
+  acts:['Auto-redirect → C-01','Manual tap → C-01'],leads:'Calendar Home',
+  r:function(){
+    return deskLayout(
+      appSidebar('attendance'),
+      topBar('Attendance','Entry marked!'),
+      '<div style="max-width:480px;margin:0 auto">'
+      +'<div style="background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:32px;text-align:center">'
+      +'<div style="width:80px;height:80px;background:rgba(16,185,129,.08);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><div style="font-size:36px">✅</div></div>'
+      +'<div style="font-size:22px;font-weight:700;color:#10B981;margin-bottom:4px">Entry Marked!</div>'
+      +'<div style="font-size:32px;font-weight:800;color:#1E293B;margin-bottom:4px;font-family:\'JetBrains Mono\',monospace">09:03 AM</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-bottom:20px">Wednesday, April 16, 2026</div>'
+      +'<div style="background:#F8FAFC;border-radius:10px;padding:12px;display:inline-flex;gap:16px">'
+      +'<div><div style="font-size:9px;color:#94A3B8">Status</div><div style="font-size:11px;font-weight:600;color:#10B981">On Time</div></div>'
+      +'<div style="width:1px;background:#E2E8F0"></div>'
+      +'<div><div style="font-size:9px;color:#94A3B8">Office</div><div style="font-size:11px;font-weight:600;color:#1E293B">Hyderabad HQ</div></div>'
+      +'</div>'
+      +'<div onclick="go(\'C-01\')" style="margin-top:20px;font-size:11px;color:#6366F1;font-weight:600;cursor:pointer">Go to Calendar →</div>'
+      +'</div></div>'
+    );
+  }
+};
+
+S['AT-04']={n:'Wrap Up',t:'Attendance',mode:'all',
+  info:['Available after 5 PM only','Shows working hours summary','Button disabled before 5 PM','After 5 PM — reminders every 30 min','At 8 PM — auto wrap-up with cancel option'],
+  acts:['Wrap Up → confirmation','Cancel auto → choose 30 min / 1 hr / manual'],leads:'Calendar Home',
+  r:function(){
+    return deskLayout(
+      appSidebar('attendance'),
+      topBar('Wrap Up','End your work day'),
+      '<div style="max-width:480px;margin:0 auto">'
+      +'<div style="background:#fff;border-radius:16px;border:1px solid #E2E8F0;padding:32px;text-align:center">'
+      +'<div style="font-size:48px;font-weight:800;color:#1E293B;margin-bottom:4px;font-family:\'JetBrains Mono\',monospace">17:32</div>'
+      +'<div style="font-size:12px;color:#94A3B8;margin-bottom:16px">Ready to wrap up?</div>'
+      +'<div style="background:#F8FAFC;border-radius:10px;padding:16px;margin-bottom:24px;display:flex;justify-content:center;gap:24px">'
+      +'<div><div style="font-size:9px;color:#94A3B8">Entry</div><div style="font-size:13px;font-weight:700;color:#10B981">9:03 AM</div></div>'
+      +'<div><div style="font-size:9px;color:#94A3B8">Hours</div><div style="font-size:13px;font-weight:700;color:#6366F1">8h 29m</div></div>'
+      +'<div><div style="font-size:9px;color:#94A3B8">Tasks Done</div><div style="font-size:13px;font-weight:700;color:#F59E0B">5/7</div></div>'
+      +'</div>'
+      +'<div style="width:120px;height:120px;background:linear-gradient(135deg,#8B5CF6,#EC4899);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;cursor:pointer;box-shadow:0 8px 24px rgba(139,92,246,.3)">'
+      +'<div style="text-align:center;color:#fff"><div style="font-size:24px">🌙</div><div style="font-size:10px;font-weight:700;margin-top:4px">WRAP<br>UP</div></div></div>'
+      +'<div style="font-size:10px;color:#94A3B8">Auto wrap-up at 8:00 PM</div>'
+      +'</div></div>'
+    );
+  }
+};
+
+S['AT-05']={n:'Leave Request',t:'Attendance',mode:'all',
+  info:['Employee submits leave request: date, type, reason','Goes to assigned manager for approval','Approved → calendar + salary deduction applied','Shows leave balance'],
+  acts:['Submit → pending approval','Back → AT-08'],leads:'Attendance History',
+  r:function(){
+    return deskLayout(
+      appSidebar('attendance'),
+      topBar('Request Leave','Submit a new leave request'),
+      '<div style="max-width:520px">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px">'
+      +sectionHeader('Leave Request Form')
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Start Date</div><div class="input-mock">Apr 22, 2026</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">End Date</div><div class="input-mock">Apr 22, 2026</div></div>'
+      +'</div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Leave Type</div>'
+      +'<div style="display:flex;gap:6px">'
+      +['Casual Leave','Sick Leave','Personal'].map(function(t,i){return '<div style="padding:6px 12px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;'+(i===0?'background:rgba(99,102,241,.08);color:#6366F1;border:1px solid rgba(99,102,241,.2)':'background:#F8FAFC;color:#94A3B8;border:1px solid #E2E8F0')+'">'+t+'</div>';}).join('')
+      +'</div></div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Reason</div><div class="input-mock" style="height:60px">Family function — need one day off</div></div>'
+      +'<div style="display:flex;gap:10px;margin-bottom:16px">'
+      +'<div class="btn-sec">Cancel</div>'
+      +'<div class="btn-pri">Submit Request</div>'
+      +'</div></div>'
+      +'<div style="margin-top:16px;background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px">'
+      +sectionHeader('Leave Balance')
+      +'<div style="display:flex;gap:12px">'
+      +[['Casual','8/12',C.pri],['Sick','10/10',C.grn],['Personal','2/3',C.amb]].map(function(l){
+        return '<div style="flex:1;background:'+l[2]+'08;border-radius:8px;padding:10px;text-align:center">'
+          +'<div style="font-size:18px;font-weight:700;color:'+l[2]+'">'+l[1]+'</div>'
+          +'<div style="font-size:9px;color:#94A3B8">'+l[0]+'</div></div>';
+      }).join('')
+      +'</div></div></div>'
+    );
+  }
+};
+
+S['AT-08']={n:'Attendance History',t:'Attendance',mode:'all',
+  info:['Monthly attendance history for employee','Shows each day: entry time, wrap-up time, status','Color coded: green=present, red=absent, orange=half day, blue=leave','Filter by month'],
+  acts:['Click any day → details','Request Leave → AT-05','Request Half Day → similar flow'],leads:'Leave Request',
+  r:function(){
+    var rows=[
+      ['Mon 14','9:03 AM','5:32 PM','8h 29m','Present','#10B981'],
+      ['Tue 15','9:15 AM','6:01 PM','8h 46m','Present','#10B981'],
+      ['Wed 16','—','—','—','Today','#6366F1'],
+      ['Thu 17','—','—','—','Upcoming','#94A3B8'],
+      ['Fri 18','—','—','—','Half Day (PM)','#F97316']
+    ];
+    return deskLayout(
+      appSidebar('attendance'),
+      topBar('Attendance History','April 2026','<div class="app-top-btn primary" onclick="go(\'AT-05\')">Request Leave</div>'),
+      '<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden">'
+      +'<div style="display:grid;grid-template-columns:100px 90px 90px 80px 1fr;padding:10px 16px;background:#F8FAFC;border-bottom:1px solid #E2E8F0;font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em">'
+      +'<div>Day</div><div>Entry</div><div>Wrap Up</div><div>Hours</div><div>Status</div></div>'
+      +rows.map(function(r){
+        return '<div style="display:grid;grid-template-columns:100px 90px 90px 80px 1fr;padding:10px 16px;border-bottom:1px solid #F0F2F7;align-items:center">'
+          +'<div style="font-size:11px;font-weight:600;color:#1E293B">'+r[0]+'</div>'
+          +'<div style="font-size:11px;color:#475569;font-family:\'JetBrains Mono\',monospace">'+r[1]+'</div>'
+          +'<div style="font-size:11px;color:#475569;font-family:\'JetBrains Mono\',monospace">'+r[2]+'</div>'
+          +'<div style="font-size:11px;color:#475569">'+r[3]+'</div>'
+          +'<div>'+bdg(r[4],r[5]+'14',r[5])+'</div></div>';
+      }).join('')
+      +'</div>'
+    );
+  }
+};
+
+/* ──────────── MESSAGING ──────────── */
+
+S['M-01']={n:'Spaces Overview',t:'Messaging',mode:'all',
+  info:['All communication organized under Spaces','Conversation sidebar on left: Channels, DMs, Groups, Rooms','Four categories: Channels, Rooms, Messages (DMs/Groups), Threads','Shows unread counts and online status per conversation','User status indicators (online/offline/meeting/leave/wfh)'],
+  acts:['Click channel → M-02','Click DM → M-04','Click room → M-07','Create new → various'],leads:'Channel/DM/Room views',
+  r:function(){
+    return msgLayout(
+      appSidebar('messages'),
+      msgSidebar(''),
+      topBar('Messages','Select a conversation to start chatting','<div class="app-top-btn primary">+ New</div>'),
+      '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:40px">'
+      +'<div style="text-align:center">'
+      +'<div style="width:80px;height:80px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.08));border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><div style="font-size:36px">💬</div></div>'
+      +'<div style="font-size:18px;font-weight:700;color:#1E293B;margin-bottom:6px">Welcome to Messages</div>'
+      +'<div style="font-size:12px;color:#94A3B8;line-height:1.6;max-width:320px">Select a channel, DM, group, or room from the sidebar to start chatting with your team.</div>'
+      +'<div style="display:flex;gap:8px;justify-content:center;margin-top:20px">'
+      +'<div class="btn-sec" onclick="go(\'M-02\')">Open #general</div>'
+      +'<div class="btn-pri" onclick="go(\'M-04\')">Start a DM</div>'
+      +'</div></div></div>'
+    );
+  }
+};
+
+S['M-02']={n:'Channel View — #general',t:'Messaging',mode:'all',
+  info:['Full chat view with conversation sidebar on left','Emoji reactions, thread replies, pin messages','@mentions with notifications','File sharing with compression ratio shown','Right panel: pinned messages, files, sticky notes, members, linked tasks'],
+  acts:['Reply → thread','React → emoji picker','Pin → right panel','Create task from message → M-11','Attach sticky note → SN-01','Switch channels/DMs from sidebar'],leads:'Various',
+  r:function(){
+    return msgLayout(
+      appSidebar('messages'),
+      msgSidebar('# general'),
+      topBar('# general','128 members · 12 online','<div class="app-top-btn">'+icon('file',14,C.t2)+' Panel</div>'),
+      '<div style="display:flex;flex-direction:column;height:100%">'
+      +'<div style="flex:1;overflow-y:auto;padding:12px 16px">'
+      +msgBubble('Priya Sharma','PS','Good morning everyone! 👋 Quick update: the client meeting has been moved to 3 PM today.','9:15 AM','linear-gradient(135deg,#10B981,#06B6D4)')
+      +'<div style="padding-left:38px;margin-top:-6px;margin-bottom:12px;display:flex;gap:4px">'
+      +'<div style="padding:2px 6px;background:#F0F2F7;border-radius:12px;font-size:10px;cursor:pointer">👍 3</div>'
+      +'<div style="padding:2px 6px;background:#F0F2F7;border-radius:12px;font-size:10px;cursor:pointer">✅ 2</div>'
+      +'<div style="padding:2px 6px;background:#F0F2F7;border-radius:12px;font-size:10px;cursor:pointer;color:#94A3B8">💬 1 reply</div>'
+      +'</div>'
+      +msgBubble('Arjun Patel','AP','Thanks for the heads up! I\'ll update the deck before then. @Ravi can you share the latest API docs?','9:22 AM','linear-gradient(135deg,#F59E0B,#F97316)')
+      +msgBubble('Ravi Kumar','RK','Sure! Here\'s the updated API documentation 📎','9:28 AM','linear-gradient(135deg,#6366F1,#8B5CF6)')
+      +'<div style="padding-left:38px;margin-top:-6px;margin-bottom:12px">'
+      +'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;display:inline-flex;align-items:center;gap:8px">'
+      +icon('file',14,C.pri)+'<div><div style="font-size:10px;font-weight:600;color:#1E293B">api_docs_v3.pdf</div><div style="font-size:9px;color:#94A3B8">2.3 MB → 1.8 MB (22% saved)</div></div></div></div>'
+      +msgBubble('Meera Nair','MN','Sprint planning at 2 PM — don\'t forget to update your task status before the meeting! 🎯','10:05 AM','linear-gradient(135deg,#8B5CF6,#EC4899)')
+      +'</div>'
+      +'<div style="border-top:1px solid #E2E8F0;padding:12px;display:flex;gap:8px;align-items:center;background:#fff">'
+      +'<div style="display:flex;gap:4px">'
+      +['😊','📎','📋','📌'].map(function(e){return '<div style="width:28px;height:28px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px">'+e+'</div>';}).join('')
+      +'</div>'
+      +'<div style="flex:1;padding:8px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:11px;color:#94A3B8">Type a message...</div>'
+      +'<div class="btn-pri" style="padding:8px 16px">Send</div>'
+      +'</div></div>'
+    );
+  }
+};
+
+S['M-04']={n:'Direct Message',t:'Messaging',mode:'all',
+  info:['Private one-on-one conversation with sidebar','Same features as channels: reactions, threads, file sharing, task creation','User status shown in header and sidebar','Read receipts visible','Typing indicator when other person is typing'],
+  acts:['All chat features available','Create task from message','Switch to other DMs/channels from sidebar'],leads:'Various',
+  r:function(){
+    return msgLayout(
+      appSidebar('messages'),
+      msgSidebar('Priya Sharma'),
+      topBar('Priya Sharma','🟢 Online · Last active just now','<div class="app-top-btn">'+icon('file',14,C.t2)+' Panel</div>'),
+      '<div style="display:flex;flex-direction:column;height:100%">'
+      +'<div style="flex:1;overflow-y:auto;padding:12px 16px">'
+      +msgBubble('Priya Sharma','PS','Hey Ravi! Have you had a chance to look at the new design mockups?','2:15 PM','linear-gradient(135deg,#10B981,#06B6D4)')
+      +msgBubble('Ravi Kumar','RK','Yes! I went through them this morning. The dashboard layout looks great. I have a few suggestions for the mobile view though.','2:18 PM','linear-gradient(135deg,#6366F1,#8B5CF6)')
+      +msgBubble('Priya Sharma','PS','Sure, let\'s discuss in the sprint meeting today. Can you also create a task for the mobile responsive fixes?','2:20 PM','linear-gradient(135deg,#10B981,#06B6D4)')
+      +msgBubble('Ravi Kumar','RK','Done! Created the task and assigned it to myself. I\'ll share the timeline after looking at it more closely.','2:22 PM','linear-gradient(135deg,#6366F1,#8B5CF6)')
+      +'<div style="padding-left:38px;margin-top:-6px;display:flex;align-items:center;gap:4px"><span style="font-size:9px;color:#10B981">✓✓ Seen</span></div>'
+      +'<div style="padding:8px 0 0 38px;font-size:10px;color:#94A3B8;font-style:italic">Priya is typing...</div>'
+      +'</div>'
+      +'<div style="border-top:1px solid #E2E8F0;padding:12px;display:flex;gap:8px;align-items:center;background:#fff">'
+      +'<div style="display:flex;gap:4px">'
+      +['😊','📎','📋'].map(function(e){return '<div style="width:28px;height:28px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px">'+e+'</div>';}).join('')
+      +'</div>'
+      +'<div style="flex:1;padding:8px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:11px;color:#94A3B8">Type a message...</div>'
+      +'<div class="btn-pri" style="padding:8px 16px">Send</div>'
+      +'</div></div>'
+    );
+  }
+};
+
+S['M-07']={n:'Room — Private Space',t:'Messaging',mode:'all',
+  info:['Private invite-only space with conversation sidebar','Room creation is a tickable power','Creator invites specific people — accept/decline','Same chat features as channels and DMs'],
+  acts:['All chat features','Invite members','View room info','Switch conversations from sidebar'],leads:'Various',
+  r:function(){
+    return msgLayout(
+      appSidebar('messages'),
+      msgSidebar('Project Alpha'),
+      topBar('🔒 Project Alpha','Private Room · 5 members','<div class="app-top-btn">👥 Members</div>'),
+      '<div style="display:flex;flex-direction:column;height:100%">'
+      +'<div style="flex:1;overflow-y:auto;padding:12px 16px">'
+      +'<div style="text-align:center;padding:16px;margin-bottom:12px"><div style="font-size:10px;color:#94A3B8">Room created by Priya Sharma · Apr 10, 2026</div></div>'
+      +msgBubble('Priya Sharma','PS','Welcome everyone to Project Alpha! This room is for all confidential discussions about the new product launch. 🚀','Apr 10','linear-gradient(135deg,#10B981,#06B6D4)')
+      +msgBubble('Arjun Patel','AP','Excited to be part of this! I\'ve uploaded the initial market research to the workspace.','Apr 10','linear-gradient(135deg,#F59E0B,#F97316)')
+      +msgBubble('Ravi Kumar','RK','I\'ve started the technical feasibility assessment. Will share findings by Thursday.','Apr 11','linear-gradient(135deg,#6366F1,#8B5CF6)')
+      +'</div>'
+      +'<div style="border-top:1px solid #E2E8F0;padding:12px;display:flex;gap:8px;align-items:center;background:#fff">'
+      +'<div style="display:flex;gap:4px">'
+      +['😊','📎','📋'].map(function(e){return '<div style="width:28px;height:28px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px">'+e+'</div>';}).join('')
+      +'</div>'
+      +'<div style="flex:1;padding:8px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:11px;color:#94A3B8">Type a message...</div>'
+      +'<div class="btn-pri" style="padding:8px 16px">Send</div>'
+      +'</div></div>'
+    );
+  }
+};
+
+S['M-11']={n:'Create Task from Chat',t:'Messaging',mode:'all',
+  info:['User hits + Task button in chat','Structured task card drops into chat with conversation sidebar visible','Fields: Title, Assignee, Priority, Deadline, Description','Assignee gets notification after creation','Assignee chooses: Add to Calendar or Discuss (opens Task Thread)'],
+  acts:['Fill fields → Create Task','Assignee gets notified → adds to calendar or discusses'],leads:'Task Detail',
+  r:function(){
+    return msgLayout(
+      appSidebar('messages'),
+      msgSidebar('# general'),
+      topBar('# general','Creating task from message'),
+      '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:20px">'
+      +'<div style="max-width:420px;width:100%">'
+      +'<div style="background:#fff;border-radius:12px;border:2px solid #6366F1;padding:16px;box-shadow:0 4px 12px rgba(99,102,241,.1)">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">'
+      +icon('task',16,C.pri)
+      +'<div style="font-size:12px;font-weight:700;color:#6366F1">Create Task from Message</div></div>'
+      +'<div style="background:#F8FAFC;border-radius:8px;padding:10px;margin-bottom:14px;font-size:10px;color:#64748B;border-left:3px solid #E2E8F0">"Can you share the latest API docs?" — Arjun Patel</div>'
+      +'<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Task Title</div><div class="input-mock">Share updated API documentation</div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Assignee</div><div class="input-mock" style="display:flex;align-items:center;gap:6px">'+avatar('RK',null,18)+' Ravi Kumar</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Priority</div><div class="input-mock">🟡 Medium</div></div>'
+      +'</div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Deadline</div><div class="input-mock">Apr 17, 2026 · 5:00 PM</div></div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<div class="btn-sec" style="flex:1">Cancel</div>'
+      +'<div class="btn-pri" style="flex:1">Create Task</div>'
+      +'</div></div></div></div>'
+    );
+  }
+};
+
+/* ──────────── TASKS ──────────── */
+
+S['T-01']={n:'Task List',t:'Tasks',mode:'all',
+  info:['All tasks grouped by priority: Top, High, Medium, Low','Each card shows: title, assignee, deadline, status, progress','Filter by status, assignee, label, team','Sort by priority, deadline, recent','Drag and drop within priority groups'],
+  acts:['Click task → T-03','Create task → T-02','Filter/sort controls'],leads:'Task Detail / Create',
+  r:function(){
+    return deskLayout(
+      appSidebar('tasks'),
+      topBar('Tasks','12 active tasks','<div class="app-top-btn primary" onclick="go(\'T-02\')">+ New Task</div>'),
+      '<div class="tab-bar"><div class="tab-item active">All Tasks</div><div class="tab-item">My Tasks</div><div class="tab-item">Team Tasks</div></div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'
+      +['All Status','All Priority','All Assignees','All Labels'].map(function(f){return '<div style="padding:4px 10px;background:#fff;border:1px solid #E2E8F0;border-radius:6px;font-size:9px;font-weight:600;color:#94A3B8;cursor:pointer">'+f+' ▾</div>';}).join('')
+      +'</div>'
+      +sectionHeader('🔴 Top Priority','<span style="font-size:10px;color:#94A3B8">2 tasks</span>')
+      +taskCard('API Integration — Phase 2','RK','top','ip',45,'Apr 18')
+      +taskCard('Fix Critical Login Bug','AP','top','ip',70,'Apr 17')
+      +sectionHeader('🟠 High Priority','<span style="font-size:10px;color:#94A3B8">3 tasks</span>')
+      +taskCard('Dashboard UI Redesign','MN','high','ns',0,'Apr 22')
+      +taskCard('Update API Documentation','RK','high','ip',30,'Apr 20')
+      +taskCard('Client Presentation Deck','PS','high','oh',60,'Apr 19')
+      +sectionHeader('🟡 Medium Priority','<span style="font-size:10px;color:#94A3B8">2 tasks</span>')
+      +taskCard('Code Review — Auth Module','RK','medium','ns',0,'Apr 25')
+      +taskCard('Team Onboarding Guide','MN','medium','done',100,'Apr 15')
+    );
+  }
+};
+
+S['T-02']={n:'Create Task',t:'Tasks',mode:'all',
+  info:['Full task creation form','Required: title, assignee, priority, deadline','Optional: description, recurring, pre-task dependency, estimated time, watchers, labels, attachments, linked workspace, private/public toggle'],
+  acts:['Fill fields → Create','Set recurring → daily/weekly/monthly/custom','Add pre-task dependency','Toggle private/public'],leads:'Task List',
+  r:function(){
+    return deskLayout(
+      appSidebar('tasks'),
+      topBar('Create Task','New task'),
+      '<div style="max-width:560px">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px">'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Task Title *</div><div class="input-mock" style="font-size:13px;color:#1E293B;font-weight:600">Design homepage hero section</div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Assignee *</div><div class="input-mock" style="display:flex;align-items:center;gap:6px">'+avatar('MN','linear-gradient(135deg,#8B5CF6,#EC4899)',18)+' Meera Nair</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Team</div><div class="input-mock">Tech Team</div></div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Priority *</div>'
+      +'<div style="display:flex;gap:4px">'
+      +[['🔴','Top'],['🟠','High'],['🟡','Med'],['🟢','Low']].map(function(p,i){return '<div style="padding:5px 8px;border-radius:6px;font-size:9px;font-weight:600;cursor:pointer;'+(i===1?'background:rgba(249,115,22,.08);color:#F97316;border:1px solid rgba(249,115,22,.2)':'background:#F8FAFC;color:#94A3B8;border:1px solid #E2E8F0')+'">'+p[0]+' '+p[1]+'</div>';}).join('')
+      +'</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Deadline *</div><div class="input-mock">Apr 25, 2026 · 5:00 PM</div></div>'
+      +'</div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Description</div><div class="input-mock" style="height:60px;color:#1E293B">Create a stunning hero section for the new homepage with animated gradient background and CTA buttons.</div></div>'
+      +'<div style="padding:12px;background:#F8FAFC;border-radius:8px;margin-bottom:14px;cursor:pointer">'
+      +'<div style="font-size:10px;font-weight:600;color:#6366F1">+ More Options</div>'
+      +'<div style="font-size:9px;color:#94A3B8;margin-top:2px">Recurring, dependencies, labels, attachments, linked workspace...</div></div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:#94A3B8">Private</span><div style="width:32px;height:18px;background:#E2E8F0;border-radius:9px;position:relative"><div style="width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;box-shadow:0 1px 2px rgba(0,0,0,.1)"></div></div></div>'
+      +'<div style="display:flex;gap:8px"><div class="btn-sec">Cancel</div><div class="btn-pri">Create Task</div></div>'
+      +'</div></div></div>'
+    );
+  }
+};
+
+S['T-03']={n:'Task Detail',t:'Tasks',mode:'all',
+  info:['Full task view with all fields','Always visible: title, assignee, team, priority, deadline, status, progress, current note','Expandable: description, recurring, dependencies, labels, attachments, linked workspace/chat','Activity log: who changed what and when','Task thread for discussion'],
+  acts:['Edit any field','Change status','Update progress','View thread','Add subtask → T-05'],leads:'Various',
+  r:function(){
+    return deskLayout(
+      appSidebar('tasks'),
+      topBar('Task Detail','API Integration — Phase 2'),
+      '<div style="display:flex;gap:16px">'
+      +'<div style="flex:1">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px;margin-bottom:12px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">'
+      +'<div><div style="font-size:18px;font-weight:700;color:#1E293B;margin-bottom:4px">API Integration — Phase 2</div>'
+      +'<div style="display:flex;gap:6px">'+bdg('🔴 Top Priority','#EF444414','#EF4444')+bdg('In Progress','#6366F114','#6366F1')+bdg('Tech Team','#10B98114','#10B981')+'</div></div>'
+      +'<div class="btn-sec" style="font-size:10px">Edit</div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">'
+      +'<div style="background:#F8FAFC;border-radius:8px;padding:10px"><div style="font-size:9px;color:#94A3B8;margin-bottom:2px">Assignee</div><div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#1E293B">'+avatar('RK',null,20)+' Ravi Kumar</div></div>'
+      +'<div style="background:#F8FAFC;border-radius:8px;padding:10px"><div style="font-size:9px;color:#94A3B8;margin-bottom:2px">Deadline</div><div style="font-size:11px;font-weight:600;color:#EF4444">Apr 18, 2026</div></div>'
+      +'<div style="background:#F8FAFC;border-radius:8px;padding:10px"><div style="font-size:9px;color:#94A3B8;margin-bottom:2px">Progress</div><div class="progress-bar" style="margin-top:4px"><div class="progress-fill" style="width:45%;background:#EF4444"></div></div><div style="font-size:9px;color:#94A3B8;text-align:right;margin-top:2px">45%</div></div>'
+      +'</div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:6px">Current Status Note</div>'
+      +'<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:8px;padding:10px;font-size:11px;color:#92400E">Waiting for updated API endpoint specs from backend team</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:6px">Description</div>'
+      +'<div style="font-size:11px;color:#64748B;line-height:1.7">Integrate the new REST API endpoints for user management module. This includes authentication, profile updates, and permission management. All endpoints should follow /api/v1/ prefix convention.</div></div>'
+      +'</div>'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px">'
+      +sectionHeader('Activity Log')
+      +[['Ravi Kumar updated progress to 45%','2 hours ago'],['Ravi Kumar added status note','3 hours ago'],['Priya Sharma created this task','Apr 14']].map(function(a){
+        return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #F0F2F7;font-size:10px"><div style="color:#64748B;flex:1">'+a[0]+'</div><div style="color:#CBD5E1">'+a[1]+'</div></div>';
+      }).join('')
+      +'</div></div>'
+      +'<div style="width:240px;flex-shrink:0">'
+      +sectionHeader('Subtasks')
+      +[['Set up API client','done'],['Implement auth endpoints','ip'],['Test integration','ns']].map(function(s){
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #F0F2F7">'
+          +'<div style="width:16px;height:16px;border-radius:4px;border:1.5px solid '+(s[1]==='done'?'#10B981':'#E2E8F0')+';display:flex;align-items:center;justify-content:center;background:'+(s[1]==='done'?'#10B981':'transparent')+';color:#fff;font-size:9px">'+(s[1]==='done'?'✓':'')+'</div>'
+          +'<div style="font-size:10px;color:'+(s[1]==='done'?'#94A3B8':'#1E293B')+';'+(s[1]==='done'?'text-decoration:line-through':'')+'">'+s[0]+'</div></div>';
+      }).join('')
+      +'<div style="margin-top:16px">'+sectionHeader('Labels')
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap">'
+      +['Backend','API','Sprint 4'].map(function(l){return bdg(l);}).join('')
+      +'</div></div></div>'
+      +'</div>'
+    );
+  }
+};
+
+S['T-09']={n:'To-Do List',t:'Tasks',mode:'all',
+  info:['Personal checklist — private, never shared','Fields: title (required), deadline (optional), priority (optional), notes (optional)','Tap checkbox — moves to bottom with strikethrough','Any to-do can be promoted to full task','Shows on personal calendar','Can be recurring'],
+  acts:['Check item → strikethrough','Convert to task → T-02','Add new to-do','Set recurring'],leads:'Create Task',
+  r:function(){
+    var items=[
+      {t:'Review PR #142 — auth module',done:true,pri:'high'},
+      {t:'Update standup notes for tomorrow',done:false,pri:'medium'},
+      {t:'Research WebSocket libraries',done:false,pri:'low'},
+      {t:'Book meeting room for Friday',done:false,pri:'medium'},
+      {t:'Send weekly report to Priya',done:true,pri:'high'}
+    ];
+    return deskLayout(
+      appSidebar('tasks'),
+      topBar('To-Do','Personal checklist'),
+      '<div style="max-width:520px">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px;margin-bottom:12px">'
+      +'<div style="display:flex;gap:8px;margin-bottom:14px">'
+      +'<div style="flex:1;padding:8px 12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;font-size:11px;color:#94A3B8">Add a new to-do...</div>'
+      +'<div class="btn-pri" style="padding:8px 14px">Add</div>'
+      +'</div>'
+      +items.map(function(it){
+        var pc={high:'#F97316',medium:'#F59E0B',low:'#10B981'};
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F0F2F7">'
+          +'<div style="width:18px;height:18px;border-radius:4px;border:1.5px solid '+(it.done?'#10B981':'#E2E8F0')+';display:flex;align-items:center;justify-content:center;background:'+(it.done?'#10B981':'transparent')+';color:#fff;font-size:10px;cursor:pointer;flex-shrink:0">'+(it.done?'✓':'')+'</div>'
+          +'<div style="flex:1;font-size:11px;color:'+(it.done?'#CBD5E1':'#1E293B')+';'+(it.done?'text-decoration:line-through':'')+'">'+it.t+'</div>'
+          +'<div style="width:6px;height:6px;background:'+pc[it.pri]+';border-radius:50%"></div>'
+          +'</div>';
+      }).join('')
+      +'</div></div>'
+    );
+  }
+};
+
+/* ──────────── WORKSPACE ──────────── */
+
+S['W-01']={n:'Workspace List',t:'Workspace',mode:'all',
+  info:['All workspaces: Personal, Team, Cross-team','Each shows: name, type, member count, last updated','Contents: documents, tables, links, files, notes, whiteboard, embedded tasks'],
+  acts:['Click workspace → W-02 Document Editor','Create new workspace','Invite cross-team members → W-09'],leads:'Document Editor',
+  r:function(){
+    var workspaces=[
+      {n:'Product Launch 2026',type:'Team',members:8,icon:'🚀',col:'#6366F1',docs:5,files:12},
+      {n:'My Notes',type:'Personal',members:1,icon:'📝',col:'#8B5CF6',docs:3,files:2},
+      {n:'Client Project — Alpha',type:'Cross-team',members:12,icon:'🎯',col:'#10B981',docs:8,files:24},
+      {n:'Design System',type:'Team',members:4,icon:'🎨',col:'#EC4899',docs:6,files:8}
+    ];
+    return deskLayout(
+      appSidebar('workspace'),
+      topBar('Workspace','4 workspaces','<div class="app-top-btn primary">+ New Workspace</div>'),
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+      +workspaces.map(function(w){
+        return '<div onclick="go(\'W-02\')" style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px;cursor:pointer;transition:box-shadow .15s">'
+          +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+          +'<div style="width:40px;height:40px;background:'+w.col+'10;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">'+w.icon+'</div>'
+          +'<div><div style="font-size:13px;font-weight:700;color:#1E293B">'+w.n+'</div>'
+          +'<div style="display:flex;gap:4px;margin-top:2px">'+bdg(w.type,w.col+'14',w.col)+'</div></div></div>'
+          +'<div style="display:flex;gap:16px;font-size:10px;color:#94A3B8">'
+          +'<span>'+icon('users',12,C.t3)+' '+w.members+'</span>'
+          +'<span>'+icon('file',12,C.t3)+' '+w.docs+' docs</span>'
+          +'<span>'+icon('folder',12,C.t3)+' '+w.files+' files</span>'
+          +'</div></div>';
+      }).join('')
+      +'</div>'
+    );
+  }
+};
+
+S['W-02']={n:'Document Editor (TipTap)',t:'Workspace',mode:'all',
+  info:['Full Notion-style block editor using TipTap','Supports: headings, paragraphs, lists, tables, images, code blocks, toggles, callouts, checklists','Classification: Personal, Company, or Client','Client docs can be shared externally with admin approval','Plain text auto-extracted for deep search'],
+  acts:['Edit document','Change classification','Share externally (Client only)','Export as PDF'],leads:'Various',
+  r:function(){
+    return deskLayout(
+      appSidebar('workspace'),
+      topBar('Product Launch 2026','Documents','<div style="display:flex;gap:6px"><div class="app-top-btn">Export PDF</div><div class="app-top-btn primary">Share</div></div>'),
+      '<div style="max-width:680px;margin:0 auto">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:32px;min-height:500px">'
+      +'<div style="display:flex;gap:4px;margin-bottom:16px">'+bdg('Company','#6366F114','#6366F1')+bdg('Last edited 2h ago','#F0F2F7','#94A3B8')+'</div>'
+      +'<div style="display:flex;gap:4px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #F0F2F7">'
+      +['B','I','U','S','H1','H2','•','1.','☑','<>','📷','📎'].map(function(b){return '<div style="width:28px;height:26px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#475569;cursor:pointer">'+b+'</div>';}).join('')
+      +'</div>'
+      +'<div style="font-size:28px;font-weight:800;color:#1E293B;margin-bottom:6px">Product Launch Plan 2026</div>'
+      +'<div style="font-size:12px;color:#94A3B8;margin-bottom:20px">Last updated by Priya Sharma · April 15, 2026</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#1E293B;margin-bottom:8px">📋 Overview</div>'
+      +'<div style="font-size:12px;color:#475569;line-height:1.8;margin-bottom:16px">This document outlines our complete product launch strategy for Q2 2026. We aim to deliver a seamless experience across all platforms with zero downtime.</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#1E293B;margin-bottom:8px">🎯 Key Milestones</div>'
+      +'<div style="margin-bottom:16px">'
+      +[['Alpha Release — Internal Testing','Apr 20'],['Beta Launch — Limited Users','May 1'],['Public Launch','May 15']].map(function(m){
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><div style="width:16px;height:16px;border:1.5px solid #E2E8F0;border-radius:4px"></div><div style="flex:1;font-size:11px;color:#1E293B">'+m[0]+'</div><div style="font-size:10px;color:#94A3B8">'+m[1]+'</div></div>';
+      }).join('')
+      +'</div>'
+      +'<div style="background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.15);border-radius:8px;padding:12px;margin-bottom:16px">'
+      +'<div style="font-size:10px;font-weight:700;color:#6366F1;margin-bottom:4px">💡 Note</div>'
+      +'<div style="font-size:11px;color:#475569;line-height:1.6">All team leads should submit their module status by April 18th.</div></div>'
+      +'</div></div>'
+    );
+  }
+};
+
+/* ──────────── MEETINGS ──────────── */
+
+S['MT-01']={n:'Meetings — Upcoming',t:'Meetings',mode:'all',
+  info:['List of upcoming meetings','Each shows: title, time, attendees, type (online/offline), Google Meet link','Tabs: Upcoming and Past','Anyone can create a meeting — no special power needed','Meetings synced to Google Calendar'],
+  acts:['Click meeting → MT-11','Create meeting → MT-02','Switch to Past → MT-10'],leads:'Meeting Detail / Create',
+  r:function(){
+    var meetings=[
+      {t:'Sprint Planning',time:'Today, 2:00 PM',type:'Online',attendees:8,meet:true,col:'#6366F1'},
+      {t:'Design Review',time:'Tomorrow, 10:00 AM',type:'Offline',attendees:4,meet:false,col:'#8B5CF6'},
+      {t:'Client Demo',time:'Apr 20, 3:00 PM',type:'Online',attendees:6,meet:true,col:'#10B981'}
+    ];
+    return deskLayout(
+      appSidebar('meetings'),
+      topBar('Meetings','3 upcoming','<div class="app-top-btn primary" onclick="go(\'MT-02\')">+ New Meeting</div>'),
+      '<div class="tab-bar"><div class="tab-item active">Upcoming</div><div class="tab-item" onclick="go(\'MT-10\')">Past</div></div>'
+      +meetings.map(function(m){
+        return '<div onclick="go(\'MT-11\')" style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:10px;cursor:pointer;border-left:3px solid '+m.col+'">'
+          +'<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">'
+          +'<div><div style="font-size:14px;font-weight:700;color:#1E293B">'+m.t+'</div>'
+          +'<div style="font-size:11px;color:#94A3B8;margin-top:2px">'+m.time+'</div></div>'
+          +'<div style="display:flex;gap:4px">'+bdg(m.type,m.col+'14',m.col)+(m.meet?bdg('Meet Link','#10B98114','#10B981'):'')+'</div></div>'
+          +'<div style="display:flex;align-items:center;gap:6px">'
+          +'<div style="display:flex;margin-right:4px">'
+          +['PS','AP','RK'].map(function(i,idx){return '<div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#EC4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700;border:2px solid #fff;margin-left:'+(idx?'-6px':'0')+'px">'+i+'</div>';}).join('')
+          +'</div>'
+          +'<span style="font-size:10px;color:#94A3B8">+'+m.attendees+' attendees</span>'
+          +'</div></div>';
+      }).join('')
+    );
+  }
+};
+
+S['MT-02']={n:'Create Meeting',t:'Meetings',mode:'all',
+  info:['Required: title, agenda, type (online/offline), date/time, attendees','Optional: duration, location, attachments, recurring','Online → auto-generates Google Meet link','Synced to all attendees\' Google Calendars','10-second undo window after creation'],
+  acts:['Fill fields → Create','Online type → auto Meet link','Set recurring'],leads:'Meeting Detail',
+  r:function(){
+    return deskLayout(
+      appSidebar('meetings'),
+      topBar('Create Meeting','New meeting'),
+      '<div style="max-width:560px">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px">'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Meeting Title *</div><div class="input-mock" style="color:#1E293B;font-weight:600">Weekly Sprint Review</div></div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Agenda *</div><div class="input-mock" style="height:48px;color:#1E293B">Review sprint progress, discuss blockers, plan next week deliverables</div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Type *</div><div style="display:flex;gap:6px">'
+      +'<div style="padding:6px 14px;background:rgba(99,102,241,.08);color:#6366F1;border:1px solid rgba(99,102,241,.2);border-radius:6px;font-size:10px;font-weight:600;cursor:pointer">🖥 Online</div>'
+      +'<div style="padding:6px 14px;background:#F8FAFC;color:#94A3B8;border:1px solid #E2E8F0;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer">🏢 Offline</div>'
+      +'</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Date & Time *</div><div class="input-mock">Apr 18, 2026 · 2:00 PM</div></div>'
+      +'</div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Attendees *</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px">'
+      +['Priya Sharma','Arjun Patel','Meera Nair','Ravi Kumar'].map(function(n){return '<div style="display:flex;align-items:center;gap:4px;padding:3px 8px;background:#fff;border:1px solid #E2E8F0;border-radius:6px;font-size:10px;font-weight:500;color:#1E293B">'+n+' ✕</div>';}).join('')
+      +'</div></div>'
+      +'<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:8px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:8px">'
+      +'<span style="font-size:12px">📹</span>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#10B981">Google Meet link will be auto-generated</div>'
+      +'<div style="font-size:9px;color:#94A3B8">All attendees will receive calendar invites with the meeting link</div></div></div>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+      +'<div class="btn-sec">Cancel</div>'
+      +'<div class="btn-pri">Create Meeting</div>'
+      +'</div></div></div>'
+    );
+  }
+};
+
+/* ──────────── EMAIL ──────────── */
+
+S['E-01']={n:'Email Inbox',t:'Email',mode:'all',
+  info:['Unified inbox showing all accounts','Left: account list + categories + folders','Middle: email list — sender, subject, preview, timestamp','Right: full email view','Shared inboxes show "Replied by [Name]"','Personal categories for organizing'],
+  acts:['Click email → read','Compose → E-03','Filter by category','Switch accounts'],leads:'Email Detail / Compose',
+  r:function(){
+    var emails=[
+      {from:'Sarah Chen',subj:'Re: Q2 Marketing Budget',preview:'Hi Ravi, thanks for sending the updated figures...',time:'11:23 AM',unread:true,cat:'Client'},
+      {from:'Priya Sharma',subj:'Sprint Review Notes',preview:'Here are the notes from today\'s sprint review meeting...',time:'10:05 AM',unread:true,cat:'Internal'},
+      {from:'GitHub',subj:'[avadeti/team-app] PR #142 merged',preview:'Your pull request has been successfully merged into main...',time:'9:30 AM',unread:false,cat:'Updates'},
+      {from:'help@company.com',subj:'Support Ticket #891',preview:'Customer reported an issue with login on mobile browser...',time:'Yesterday',unread:false,cat:'Support',shared:true}
+    ];
+    return deskLayout(
+      appSidebar('email'),
+      topBar('Email','4 unread','<div class="app-top-btn primary" onclick="go(\'E-03\')">✏️ Compose</div>'),
+      '<div style="display:flex;gap:0;background:#fff;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;height:calc(100vh - 180px)">'
+      +'<div style="width:180px;border-right:1px solid #E2E8F0;padding:12px;overflow-y:auto">'
+      +'<div style="font-size:9px;font-weight:700;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Accounts</div>'
+      +[['📬 All Inbox','4'],['✉️ ravi@avadeti.com','2'],['📥 help@company.com','2']].map(function(a,i){
+        return '<div style="display:flex;justify-content:space-between;padding:6px 8px;border-radius:6px;font-size:10px;cursor:pointer;margin-bottom:2px;'+(i===0?'background:rgba(99,102,241,.06);color:#6366F1;font-weight:600':'color:#475569')+'"><span>'+a[0]+'</span><span style="color:#94A3B8">'+a[1]+'</span></div>';
+      }).join('')
+      +'<div style="font-size:9px;font-weight:700;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 8px">Folders</div>'
+      +['Sent','Drafts','Trash'].map(function(f){return '<div style="padding:6px 8px;font-size:10px;color:#475569;cursor:pointer">'+f+'</div>';}).join('')
+      +'<div style="font-size:9px;font-weight:700;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 8px">Categories</div>'
+      +[['Client','#6366F1'],['Internal','#10B981'],['Updates','#F59E0B'],['Support','#8B5CF6']].map(function(c){return '<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:10px;color:#475569;cursor:pointer"><div style="width:6px;height:6px;border-radius:50%;background:'+c[1]+'"></div>'+c[0]+'</div>';}).join('')
+      +'</div>'
+      +'<div style="flex:1;border-right:1px solid #E2E8F0;overflow-y:auto">'
+      +emails.map(function(e){
+        return '<div style="padding:12px 14px;border-bottom:1px solid #F0F2F7;cursor:pointer;background:'+(e.unread?'rgba(99,102,241,.02)':'transparent')+'">'
+          +'<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
+          +'<div style="font-size:11px;font-weight:'+(e.unread?'700':'500')+';color:#1E293B">'+e.from+'</div>'
+          +'<div style="font-size:9px;color:#CBD5E1">'+e.time+'</div></div>'
+          +'<div style="font-size:11px;font-weight:'+(e.unread?'600':'400')+';color:#1E293B;margin-bottom:2px">'+e.subj+'</div>'
+          +'<div style="font-size:10px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+e.preview+'</div>'
+          +'<div style="display:flex;gap:4px;margin-top:4px">'+bdg(e.cat)+(e.shared?bdg('Replied by Priya','#10B98114','#10B981'):'')+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div></div>'
+    );
+  }
+};
+
+S['E-03']={n:'Compose Email',t:'Email',mode:'all',
+  info:['Full email composer with rich text','Account switcher for send-from','Spellcheck via browser built-in','Templates available','AI Draft feature — type one line, AI writes full email','Attachments with compression'],
+  acts:['Send email','Save as draft','Use template','AI Draft → AI-04'],leads:'Inbox',
+  r:function(){
+    return deskLayout(
+      appSidebar('email'),
+      topBar('Compose','New email'),
+      '<div style="max-width:600px">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px">'
+      +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">From</div><div class="input-mock">ravi@avadeti.com ▾</div></div>'
+      +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">To</div><div class="input-mock">sarah.chen@client.com</div></div>'
+      +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Subject</div><div class="input-mock" style="color:#1E293B;font-weight:600">Re: Q2 Marketing Budget — Updated Figures</div></div>'
+      +'<div style="margin-bottom:12px;padding:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;min-height:200px">'
+      +'<div style="font-size:12px;color:#1E293B;line-height:1.8">Hi Sarah,<br><br>Thank you for your feedback on the budget figures. I\'ve made the requested adjustments to the Q2 forecast.<br><br>The key changes are:<br>• Marketing spend increased by 15%<br>• Digital ads budget reallocated to social media<br>• Event budget moved to Q3<br><br>Please let me know if you\'d like to discuss any of these changes.<br><br>Best regards,<br>Ravi Kumar</div>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<div style="display:flex;gap:6px">'
+      +'<div class="btn-sec" style="font-size:10px">📎 Attach</div>'
+      +'<div class="btn-sec" style="font-size:10px">📋 Template</div>'
+      +'<div class="btn-sec" style="font-size:10px;color:#8B5CF6" onclick="go(\'AI-04\')">✨ AI Draft</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<div class="btn-sec">Save Draft</div>'
+      +'<div class="btn-pri">Send ✉️</div>'
+      +'</div></div></div></div>'
+    );
+  }
+};
+
+/* ──────────── STICKY NOTES ──────────── */
+
+S['SN-01']={n:'Sticky Notes Panel',t:'Sticky Notes',mode:'all',
+  info:['Slides in from right on every screen','Each note shown as tab — title or first line','Small by default — expand for full window','Choose color per note','One note can attach to multiple things: task, chat, meeting, person','Private by default — share with specific person via DM','Context badge shows count when notes attached to current context'],
+  acts:['Create new note','Attach to item','Expand to full window','Share note','Change color'],leads:'Various',
+  r:function(){
+    var notes=[
+      {t:'Sprint Planning Notes',col:'#FFE66D',text:'Remember to discuss API versioning strategy and microservices migration timeline'},
+      {t:'Client Feedback',col:'#A8E6CF',text:'Sarah wants the dashboard to load faster — check caching strategy'},
+      {t:'Ideas for Team Feed',col:'#FFB5B5',text:'Weekly coding challenge? Or book club?'},
+      {t:'Quick Reminder',col:'#B5D4FF',text:'Send weekly report to Priya by Friday 5 PM'}
+    ];
+    return deskLayout(
+      appSidebar('sticky'),
+      topBar('Sticky Notes','4 notes','<div class="app-top-btn primary">+ New Note</div>'),
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">'
+      +notes.map(function(n){
+        return '<div style="background:'+n.col+';border-radius:12px;padding:16px;min-height:160px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.06);position:relative">'
+          +'<div style="font-size:12px;font-weight:700;color:#1E293B;margin-bottom:8px">'+n.t+'</div>'
+          +'<div style="font-size:11px;color:#475569;line-height:1.6">'+n.text+'</div>'
+          +'<div style="position:absolute;bottom:10px;right:10px;display:flex;gap:4px">'
+          +'<div style="width:20px;height:20px;background:rgba(0,0,0,.06);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px">📌</div>'
+          +'<div style="width:20px;height:20px;background:rgba(0,0,0,.06);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px">↗</div>'
+          +'</div></div>';
+      }).join('')
+      +'<div style="background:#F8FAFC;border:2px dashed #E2E8F0;border-radius:12px;min-height:160px;display:flex;align-items:center;justify-content:center;cursor:pointer">'
+      +'<div style="text-align:center;color:#94A3B8"><div style="font-size:24px;margin-bottom:4px">+</div><div style="font-size:11px;font-weight:600">New Note</div></div></div>'
+      +'</div>'
+    );
+  }
+};
+
+/* ──────────── DAILY ACTIVITY ──────────── */
+
+S['DA-01']={n:'Activities List',t:'Daily Activity',mode:'all',
+  info:['Non-work enrichment activities','Types: Reading, Video, Fun, Wellness, Learning, Celebration, Brainstorm, Social','Anyone can create — no special power','RSVP: Join or Skip','Shows on calendar in Yellow'],
+  acts:['Create activity → DA-02','RSVP → Join/Skip','Click activity → detail'],leads:'Create Activity',
+  r:function(){
+    var acts=[
+      {t:'Weekly Book Club',type:'📚 Reading',time:'Today, 4:00 PM',joined:6,total:12,col:'#6366F1'},
+      {t:'Stretch & Breathe',type:'🧘 Wellness',time:'Tomorrow, 3:00 PM',joined:8,total:15,col:'#10B981'},
+      {t:'Friday Quiz Challenge',type:'🎮 Fun',time:'Apr 18, 5:00 PM',joined:14,total:20,col:'#F59E0B'},
+      {t:'Birthday — Arjun! 🎂',type:'🎉 Celebration',time:'Apr 20',joined:18,total:20,col:'#EC4899'}
+    ];
+    return deskLayout(
+      appSidebar('activity'),
+      topBar('Daily Activity','Team enrichment','<div class="app-top-btn primary">+ New Activity</div>'),
+      acts.map(function(a){
+        return '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">'
+          +'<div style="display:flex;align-items:center;gap:12px">'
+          +'<div style="width:44px;height:44px;background:'+a.col+'10;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">'+a.type.split(' ')[0]+'</div>'
+          +'<div><div style="font-size:13px;font-weight:700;color:#1E293B">'+a.t+'</div>'
+          +'<div style="font-size:10px;color:#94A3B8;margin-top:2px">'+a.type+' · '+a.time+'</div>'
+          +'<div style="font-size:10px;color:#94A3B8;margin-top:2px">'+a.joined+'/'+a.total+' joined</div></div></div>'
+          +'<div style="display:flex;gap:6px">'
+          +'<div style="padding:6px 14px;background:rgba(16,185,129,.08);color:#10B981;border:1px solid rgba(16,185,129,.2);border-radius:6px;font-size:10px;font-weight:600;cursor:pointer">Join</div>'
+          +'<div style="padding:6px 14px;background:#F8FAFC;color:#94A3B8;border:1px solid #E2E8F0;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer">Skip</div>'
+          +'</div></div>';
+      }).join('')
+    );
+  }
+};
+
+/* ──────────── TEAM FEED ──────────── */
+
+S['TF-01']={n:'Team Feed',t:'Team Feed',mode:'all',
+  info:['Social wall for casual, fun, and learning content','NOT for work announcements — those go in Channels/Announcements','Anyone can post: text, images, videos, links, files','Comments and emoji reactions','Pin for yourself only (personal bookmark)','Audience: company-wide or specific team'],
+  acts:['Create post','Comment & react','Pin/bookmark','View announcements banner'],leads:'Various',
+  r:function(){
+    return deskLayout(
+      appSidebar('feed'),
+      topBar('Team Feed','Company Culture Wall'),
+      '<div style="max-width:560px;margin:0 auto">'
+      +'<div style="background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(236,72,153,.06));border:1px solid rgba(99,102,241,.12);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">'
+      +'<div style="font-size:16px">📢</div>'
+      +'<div style="flex:1"><div style="font-size:11px;font-weight:700;color:#1E293B">Company Update: Office Renovation Starting May 1st</div>'
+      +'<div style="font-size:10px;color:#94A3B8">Posted by Admin · 2 hours ago</div></div></div>'
+
+      +'<div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+      +avatar('MN','linear-gradient(135deg,#8B5CF6,#EC4899)',32)
+      +'<div><div style="font-size:11px;font-weight:600;color:#1E293B">Meera Nair</div><div style="font-size:9px;color:#94A3B8">2 hours ago · Company</div></div></div>'
+      +'<div style="font-size:12px;color:#475569;line-height:1.7;margin-bottom:12px">Just finished an amazing course on System Design! 🎓 Here are my top 3 takeaways:<br><br>1. Always start with requirements gathering<br>2. Think about scale from day one<br>3. Keep it simple — complexity is the enemy<br><br>Highly recommend it to all devs! 💪</div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:10px">'
+      +'<div style="padding:3px 8px;background:#F0F2F7;border-radius:12px;font-size:10px;cursor:pointer">🔥 12</div>'
+      +'<div style="padding:3px 8px;background:#F0F2F7;border-radius:12px;font-size:10px;cursor:pointer">💯 8</div>'
+      +'<div style="padding:3px 8px;background:#F0F2F7;border-radius:12px;font-size:10px;cursor:pointer">👏 5</div>'
+      +'</div>'
+      +'<div style="padding-top:8px;border-top:1px solid #F0F2F7;font-size:10px;color:#94A3B8;display:flex;gap:16px">'
+      +'<span style="cursor:pointer">💬 3 comments</span><span style="cursor:pointer">📌 Bookmark</span></div>'
+      +'</div>'
+
+      +'<div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+      +avatar('AP','linear-gradient(135deg,#F59E0B,#F97316)',32)
+      +'<div><div style="font-size:11px;font-weight:600;color:#1E293B">Arjun Patel</div><div style="font-size:9px;color:#94A3B8">5 hours ago · Tech Team</div></div></div>'
+      +'<div style="font-size:12px;color:#475569;line-height:1.7;margin-bottom:12px">Found this amazing talk on clean architecture. Worth the 45 minutes! 🎥</div>'
+      +'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer">'
+      +'<div style="width:60px;height:40px;background:linear-gradient(135deg,#EF4444,#DC2626);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px">▶</div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#1E293B">Clean Architecture — YouTube</div><div style="font-size:9px;color:#94A3B8">45 min · Uncle Bob Martin</div></div></div>'
+      +'<div style="display:flex;gap:6px"><div style="padding:3px 8px;background:#F0F2F7;border-radius:12px;font-size:10px;cursor:pointer">👍 7</div></div>'
+      +'</div></div>'
+    );
+  }
+};
+
+/* ──────────── SALARY ──────────── */
+
+S['SA-01']={n:'Salary Summary',t:'Salary',mode:'all',
+  info:['Monthly salary breakdown for employee','Shows: base salary, deductions itemized, tax (TDS/PF/ESI), bonuses, final net amount','Download as PDF — functions as payslip','Raise dispute option','Filter by month'],
+  acts:['Download PDF payslip','Raise dispute → SA-02','View previous months'],leads:'Salary Dispute',
+  r:function(){
+    return deskLayout(
+      appSidebar('salary'),
+      topBar('Salary Summary','April 2026','<div class="app-top-btn">📄 Download PDF</div>'),
+      '<div style="max-width:560px">'
+      +'<div style="background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:16px;padding:24px;color:#fff;margin-bottom:16px">'
+      +'<div style="font-size:11px;opacity:.7;margin-bottom:4px">Net Salary — April 2026</div>'
+      +'<div style="font-size:36px;font-weight:800;margin-bottom:8px">₹52,450</div>'
+      +'<div style="display:flex;gap:16px;font-size:10px;opacity:.7">'
+      +'<span>Base: ₹60,000</span><span>Deductions: -₹7,550</span>'
+      +'</div></div>'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px;margin-bottom:12px">'
+      +sectionHeader('Earnings')
+      +[['Base Salary','₹60,000'],['Performance Bonus','₹2,000'],['Fixed Bonus','₹1,000']].map(function(r){
+        return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F0F2F7"><span style="font-size:11px;color:#475569">'+r[0]+'</span><span style="font-size:11px;font-weight:600;color:#10B981">+'+r[1]+'</span></div>';
+      }).join('')
+      +'<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700"><span style="font-size:11px;color:#1E293B">Total Earnings</span><span style="font-size:11px;color:#10B981">₹63,000</span></div>'
+      +'</div>'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px;margin-bottom:12px">'
+      +sectionHeader('Deductions')
+      +[['TDS','₹3,000'],['PF (12%)','₹2,400'],['ESI','₹650'],['Absent (1 day)','₹2,000'],['Half Day (1)','₹1,000']].map(function(r){
+        return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F0F2F7"><span style="font-size:11px;color:#475569">'+r[0]+'</span><span style="font-size:11px;font-weight:600;color:#EF4444">-'+r[1]+'</span></div>';
+      }).join('')
+      +'<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700"><span style="font-size:11px;color:#1E293B">Total Deductions</span><span style="font-size:11px;color:#EF4444">-₹9,050</span></div>'
+      +'</div>'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<div><div style="font-size:11px;color:#94A3B8">Something incorrect?</div></div>'
+      +'<div class="btn-sec" style="color:#EF4444;border-color:#EF4444" onclick="go(\'SA-02\')">Raise Dispute</div>'
+      +'</div></div></div>'
+    );
+  }
+};
+
+S['SA-02']={n:'Salary Dispute',t:'Salary',mode:'all',
+  info:['Employee raises dispute: which month, what is wrong, description','Goes to assigned manager AND HR','Status: Resolved, Rejected (with reason), or Escalated','Full dispute history maintained permanently'],
+  acts:['Submit dispute','View past disputes'],leads:'Salary Summary',
+  r:function(){
+    return deskLayout(
+      appSidebar('salary'),
+      topBar('Raise Dispute','Salary correction request'),
+      '<div style="max-width:520px">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px">'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Month</div><div class="input-mock">April 2026 ▾</div></div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">What is incorrect?</div>'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap">'
+      +['Absent Day Count','Half Day Count','Tax Calculation','Bonus Missing','Other'].map(function(o,i){return '<div style="padding:5px 10px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;'+(i===0?'background:rgba(239,68,68,.08);color:#EF4444;border:1px solid rgba(239,68,68,.2)':'background:#F8FAFC;color:#94A3B8;border:1px solid #E2E8F0')+'">'+o+'</div>';}).join('')
+      +'</div></div>'
+      +'<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Description</div><div class="input-mock" style="height:80px">I was marked absent on April 8th, but I was present and had marked entry at 9:15 AM. Please check attendance logs.</div></div>'
+      +'<div style="display:flex;gap:8px"><div class="btn-sec">Cancel</div><div class="btn-pri">Submit Dispute</div></div>'
+      +'</div></div>'
+    );
+  }
+};
+
+/* ──────────── NOTIFICATIONS ──────────── */
+
+S['N-01']={n:'Notification Center',t:'Notifications',mode:'all',
+  info:['Sidebar section — groups: Emergency, Tasks, Messages, Meetings, Approvals, Announcements','Mark read, mark all read, clear all','Unread count badge on sidebar icon','3 months retention then auto-deleted','Quick actions: Add to Calendar, View Task, Reply, Acknowledge'],
+  acts:['Click notification → navigate to source','Mark read/all read','Clear all','Quick actions on each'],leads:'Various',
+  r:function(){
+    var notifs=[
+      {type:'🔴',title:'Emergency Alert',desc:'Server maintenance tonight at 2 AM — all services will be unavailable for 30 minutes',time:'10 min ago',emergency:true},
+      {type:'✏️',title:'New task assigned',desc:'API Integration — Phase 2 assigned by Priya Sharma',time:'1 hour ago',unread:true},
+      {type:'💬',title:'Meera mentioned you',desc:'@Ravi can you check the PR when you get a chance?',time:'2 hours ago',unread:true},
+      {type:'📅',title:'Meeting in 10 minutes',desc:'Sprint Planning — 2:00 PM · Google Meet',time:'2:00 PM',unread:false},
+      {type:'✅',title:'Leave approved',desc:'Your leave for April 22 has been approved by Priya Sharma',time:'Yesterday',unread:false}
+    ];
+    return deskLayout(
+      appSidebar('notifs'),
+      topBar('Notifications','3 unread','<div style="display:flex;gap:6px"><div class="app-top-btn">Mark all read</div><div class="app-top-btn">Clear all</div></div>'),
+      '<div style="max-width:560px">'
+      +notifs.map(function(n){
+        return '<div style="background:'+(n.emergency?'rgba(239,68,68,.04)':'#fff')+';border:1px solid '+(n.emergency?'rgba(239,68,68,.2)':'#E2E8F0')+';border-radius:10px;padding:14px;margin-bottom:8px;display:flex;gap:10px;cursor:pointer">'
+          +'<div style="font-size:18px;flex-shrink:0">'+n.type+'</div>'
+          +'<div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:start">'
+          +'<div style="font-size:12px;font-weight:'+(n.unread||n.emergency?'700':'500')+';color:#1E293B">'+n.title+'</div>'
+          +'<div style="font-size:9px;color:#CBD5E1">'+n.time+'</div></div>'
+          +'<div style="font-size:10px;color:#64748B;margin-top:2px;line-height:1.5">'+n.desc+'</div>'
+          +(n.emergency?'<div style="margin-top:8px"><div class="btn-pri" style="padding:6px 12px;font-size:10px">Acknowledge</div></div>':'')
+          +'</div>'
+          +(n.unread?'<div style="width:6px;height:6px;background:#6366F1;border-radius:50%;flex-shrink:0;margin-top:4px"></div>':'')
+          +'</div>';
+      }).join('')
+      +'</div>'
+    );
+  }
+};
+
+/* ──────────── SEARCH ──────────── */
+
+S['SR-01']={n:'Search — Normal + Deep',t:'Search',mode:'all',
+  info:['Screen-wise search — each section has its own search bar','Normal: metadata only (titles, names, tags) — instant','Deep Search: content inside docs, MoM, task descriptions, emails — background job','Deep search: processes 20 docs/chunk, 10s delay, stops at 4 results','Progressive results via WebSocket','Max 2 concurrent deep search jobs'],
+  acts:['Type → instant normal results','Click Deep Search → background job','Cancel deep search','View results'],leads:'Various items',
+  r:function(){
+    return deskLayout(
+      appSidebar('tasks'),
+      topBar('Search','Find anything'),
+      '<div style="max-width:560px">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px;margin-bottom:16px">'
+      +'<div style="display:flex;gap:8px;margin-bottom:12px">'
+      +'<div style="flex:1;padding:10px 14px;background:#F8FAFC;border:2px solid #6366F1;border-radius:10px;font-size:12px;color:#1E293B;font-weight:500">API integration</div>'
+      +'<div class="btn-pri">Search</div>'
+      +'<div class="btn-sec" style="color:#8B5CF6;border-color:#8B5CF6">🔍 Deep Search</div>'
+      +'</div>'
+      +sectionHeader('Normal Results — 3 found','<span style="font-size:9px;color:#94A3B8">Instant</span>')
+      +[['📋 API Integration — Phase 2','Task · Top Priority · Ravi Kumar'],['📄 API Documentation v3','Workspace · Product Launch 2026'],['💬 "...share the latest API docs"','#general · Arjun Patel · 9:22 AM']].map(function(r){
+        return '<div style="padding:10px;border:1px solid #E2E8F0;border-radius:8px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:10px">'
+          +'<div style="flex:1"><div style="font-size:11px;font-weight:600;color:#1E293B">'+r[0]+'</div><div style="font-size:10px;color:#94A3B8">'+r[1]+'</div></div></div>';
+      }).join('')
+      +'</div>'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid rgba(139,92,246,.2);padding:16px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+      +'<div style="width:24px;height:24px;border:2px solid #8B5CF6;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div>'
+      +'<div><div style="font-size:11px;font-weight:600;color:#8B5CF6">Deep Search in progress...</div>'
+      +'<div style="font-size:9px;color:#94A3B8">Searching document content · 2/8 chunks processed · 1 result found</div></div>'
+      +'<div class="btn-sec" style="font-size:9px;margin-left:auto">Cancel</div></div>'
+      +'<div class="progress-bar"><div class="progress-fill" style="width:25%;background:#8B5CF6"></div></div>'
+      +'<div style="margin-top:12px;padding:10px;border:1px solid rgba(139,92,246,.15);border-radius:8px;background:rgba(139,92,246,.03)">'
+      +'<div style="font-size:11px;font-weight:600;color:#1E293B">📄 Sprint Planning MoM — Apr 14</div>'
+      +'<div style="font-size:10px;color:#64748B;margin-top:4px">...discussed the <mark style="background:rgba(139,92,246,.15);padding:0 2px;border-radius:2px">API integration</mark> timeline and agreed on Phase 2 starting April 16...</div></div>'
+      +'</div>'
+      +'<style>@keyframes spin{to{transform:rotate(360deg)}}</style>'
+      +'</div>'
+    );
+  }
+};
+
+/* ──────────── AI FEATURES ──────────── */
+
+S['AI-04']={n:'AI Email Draft',t:'AI Features',mode:'all',
+  info:['User types one sentence — AI writes complete professional email','User reviews and edits before sending','Powered by employee\'s own API key (Gemini/OpenAI/Claude)','Low priority — uses user key only, no company fallback'],
+  acts:['Type one-liner → AI generates draft','Edit draft','Send or regenerate'],leads:'Email Compose',
+  r:function(){
+    return deskLayout(
+      appSidebar('email'),
+      topBar('AI Email Draft','✨ Powered by AI'),
+      '<div style="max-width:560px">'
+      +'<div style="background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(236,72,153,.06));border:1px solid rgba(139,92,246,.15);border-radius:12px;padding:16px;margin-bottom:16px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+      +'<div style="font-size:18px">✨</div>'
+      +'<div><div style="font-size:12px;font-weight:700;color:#8B5CF6">AI Email Draft</div>'
+      +'<div style="font-size:10px;color:#94A3B8">Type what you want to say — AI writes the email</div></div></div>'
+      +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Your one-liner</div>'
+      +'<div style="padding:10px;background:#fff;border:1px solid #E2E8F0;border-radius:8px;font-size:12px;color:#1E293B">Thank Sarah for the budget feedback and tell her I\'ve made the changes she requested</div></div>'
+      +'<div class="btn-pri" style="width:100%;text-align:center">Generate Draft ✨</div>'
+      +'</div>'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:16px">'
+      +sectionHeader('Generated Draft',bdg('AI Generated','#8B5CF614','#8B5CF6'))
+      +'<div style="background:#F8FAFC;border-radius:8px;padding:14px;font-size:12px;color:#1E293B;line-height:1.8;margin-bottom:12px">'
+      +'Subject: Re: Q2 Marketing Budget — Updated Figures<br><br>'
+      +'Hi Sarah,<br><br>'
+      +'Thank you so much for taking the time to review the budget figures and sharing your detailed feedback. I really appreciate your insights.<br><br>'
+      +'I\'ve gone through all your suggestions and made the requested adjustments to the Q2 forecast. The updated document reflects the changes we discussed.<br><br>'
+      +'Please feel free to review the updated version at your convenience. I\'m happy to hop on a quick call if you\'d like to walk through any of the changes together.<br><br>'
+      +'Best regards,<br>'
+      +'Ravi Kumar</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<div class="btn-sec" style="flex:1;text-align:center">🔄 Regenerate</div>'
+      +'<div class="btn-sec" style="flex:1;text-align:center" onclick="go(\'E-03\')">✏️ Edit & Send</div>'
+      +'<div class="btn-pri" style="flex:1;text-align:center">Use This Draft</div>'
+      +'</div></div></div>'
+    );
+  }
+};
+
+S['AI-05']={n:'API Configuration',t:'AI Features',mode:'all',
+  info:['Settings → API Configuration','Enter activation code from developer','Code format: PROVIDER:ENCRYPTED_KEY:EXPIRY:CHECKSUM','Shows current status: provider, expiry, key masked','Key stored in Electron safeStorage — never visible in plain text'],
+  acts:['Enter activation code → validate → activate','View current status','Contact developer for new code'],leads:'Settings',
+  r:function(){
+    return deskLayout(
+      appSidebar('settings'),
+      topBar('Settings','API Configuration'),
+      '<div style="max-width:480px">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px;margin-bottom:16px">'
+      +sectionHeader('Current AI Status')
+      +'<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:10px;padding:14px;margin-bottom:12px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<span style="font-size:12px;font-weight:700;color:#10B981">✅ Active</span>'+bdg('Gemini','#10B98114','#10B981')+'</div>'
+      +[['Provider','Google Gemini'],['Expiry','January 2027'],['Key','•••••••••••••••']].map(function(r){
+        return '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px"><span style="color:#94A3B8">'+r[0]+'</span><span style="color:#1E293B;font-weight:500">'+r[1]+'</span></div>';
+      }).join('')
+      +'</div></div>'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px">'
+      +sectionHeader('Enter New Activation Code')
+      +'<div class="input-mock" style="margin-bottom:12px;font-family:\'JetBrains Mono\',monospace;font-size:10px">GEMINI:a8f3k2x9p....:2027-01:ABC123</div>'
+      +'<div class="btn-pri" style="width:100%;text-align:center">Activate</div>'
+      +'<div style="text-align:center;margin-top:12px;font-size:10px;color:#94A3B8">Need a code? Contact your administrator.</div>'
+      +'</div></div>'
+    );
+  }
+};
+
+/* ──────────── ADMIN SCREENS ──────────── */
+
+S['AD-01']={n:'Admin Mode Toggle',t:'Admin',mode:'admin',
+  info:['Any user with admin powers has toggle at top','Admin Mode OFF → standard employee interface','Admin Mode ON → admin widgets, sections, and controls visible','Toggle visible only to users with at least one admin power'],
+  acts:['Toggle on → admin widgets appear','Toggle off → back to employee view'],leads:'Admin Dashboard',
+  r:function(){
+    return deskLayout(
+      appSidebar('calendar'),
+      '<div class="app-top"><div class="app-top-left">'
+      +'<div class="app-top-title">Calendar</div><div class="app-top-sub">April 2026</div></div>'
+      +'<div class="app-top-right">'
+      +'<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);border-radius:8px">'
+      +'<span style="font-size:10px;font-weight:600;color:#F97316">Admin Mode</span>'
+      +'<div style="width:36px;height:20px;background:#F97316;border-radius:10px;position:relative;cursor:pointer"><div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;right:2px;box-shadow:0 1px 2px rgba(0,0,0,.1)"></div></div></div>'
+      +avatar('RK')
+      +'</div></div>',
+      '<div style="margin-bottom:16px;background:linear-gradient(135deg,rgba(249,115,22,.06),rgba(245,158,11,.06));border:1px solid rgba(249,115,22,.15);border-radius:12px;padding:14px;display:flex;align-items:center;gap:10px">'
+      +'<div style="font-size:18px">🛡️</div>'
+      +'<div><div style="font-size:12px;font-weight:700;color:#F97316">Admin Mode Active</div>'
+      +'<div style="font-size:10px;color:#94A3B8">You\'re viewing additional admin tools and analytics</div></div></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">'
+      +statCard('Team Attendance','92%',C.grn,'check')
+      +statCard('Pending Approvals','3',C.amb,'clock')
+      +statCard('Active Tasks','47',C.pri,'task')
+      +'</div>'
+      +sectionHeader('Quick Actions')
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
+      +[['👥 Manage Users','AD-02'],['📊 Analysis','AD-07'],['🔐 Security','AD-10'],['📅 Company Calendar','C-01']].map(function(a){
+        return '<div onclick="go(\''+a[1]+'\')" style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px;text-align:center;cursor:pointer"><div style="font-size:20px;margin-bottom:6px">'+a[0].split(' ')[0]+'</div><div style="font-size:10px;font-weight:600;color:#1E293B">'+a[0].substring(a[0].indexOf(' ')+1)+'</div></div>';
+      }).join('')
+      +'</div>'
+    );
+  }
+};
+
+S['AD-02']={n:'Create Employee',t:'Admin',mode:'admin',
+  info:['Admin creates new employee with full details','Sections: Identity, Team & Location, Hybrid Config, Compensation, Email & Access, Powers & Title, Management, Calendar','System generates temp password — visible to creating admin, Main Admin','Admin gives credentials to employee personally'],
+  acts:['Fill form → Create Employee','Assign title (auto-applies power template)','Set hybrid office days','Configure salary structure'],leads:'Employee List',
+  r:function(){
+    return deskLayout(
+      appSidebar('calendar'),
+      topBar('Create Employee','New team member','<span style="font-size:10px;color:#F97316;font-weight:600">🛡️ Admin Mode</span>'),
+      '<div style="max-width:600px">'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px">'
+      +sectionHeader('👤 Identity')
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Full Name *</div><div class="input-mock">Anika Reddy</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Email *</div><div class="input-mock">anika@avadeti.com</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Phone</div><div class="input-mock">+91 87654 32109</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Job Title</div><div class="input-mock">UI/UX Designer</div></div>'
+      +'</div>'
+      +sectionHeader('🏢 Team & Location')
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Team</div><div class="input-mock">Design Team ▾</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Office</div><div class="input-mock">Hyderabad HQ ▾</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Work Type</div><div class="input-mock">Hybrid ▾</div></div>'
+      +'</div>'
+      +'<div style="background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.12);border-radius:8px;padding:12px;margin-bottom:16px">'
+      +'<div style="font-size:10px;font-weight:600;color:#6366F1;margin-bottom:6px">Hybrid Office Days</div>'
+      +'<div style="display:flex;gap:4px">'
+      +['Mon','Tue','Wed','Thu','Fri'].map(function(d,i){return '<div style="padding:5px 10px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;'+(i<2?'background:rgba(99,102,241,.08);color:#6366F1;border:1px solid rgba(99,102,241,.2)':'background:#F8FAFC;color:#CBD5E1;border:1px solid #E2E8F0')+'">'+d+'</div>';}).join('')
+      +'</div></div>'
+      +sectionHeader('💰 Compensation')
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">'
+      +[['Base Salary','₹55,000'],['TDS','₹2,500'],['PF (12%)','₹2,200']].map(function(f){return '<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">'+f[0]+'</div><div class="input-mock">'+f[1]+'</div></div>';}).join('')
+      +'</div>'
+      +sectionHeader('🛡️ Powers & Title')
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Title</div><div class="input-mock">Employee (no admin powers) ▾</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Manager</div><div class="input-mock">Priya Sharma ▾</div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+      +'<div class="btn-sec">Cancel</div>'
+      +'<div class="btn-pri">Create Employee</div>'
+      +'</div></div></div>'
+    );
+  }
+};
+
+S['AD-07']={n:'Analysis — Team',t:'Admin',mode:'admin',
+  info:['Charts and reports for admins','Levels: Individual, Team, Company','Chart types: Line, Bar, Pie','Filters: Day, Week, Month, Year + team/individual filters','Data: attendance, task completion, meeting frequency, most active members'],
+  acts:['Filter by period','Switch between Individual/Team/Company','Export reports'],leads:'Various',
+  r:function(){
+    return deskLayout(
+      appSidebar('calendar'),
+      topBar('Analysis','Team Performance','<span style="font-size:10px;color:#F97316;font-weight:600">🛡️ Admin Mode</span>'),
+      '<div class="tab-bar"><div class="tab-item">Individual</div><div class="tab-item active">Team</div><div class="tab-item">Company</div></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">'
+      +statCard('Attendance Rate','94%',C.grn,'check')
+      +statCard('Tasks Completed','38',C.pri,'task')
+      +statCard('Active Members','12/15',C.cyn,'users')
+      +statCard('Meetings','8',C.pur,'meeting')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">'
+      +'<div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px">'
+      +sectionHeader('Attendance Trend — April')
+      +'<div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding-top:12px">'
+      +[85,92,88,95,90,94,92,88,96,93,91,94,89,92,95,88].map(function(v,i){
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;background:linear-gradient(to top,#6366F1,#818CF8);border-radius:3px 3px 0 0;height:'+v+'%"></div><div style="font-size:7px;color:#CBD5E1">'+(i+1)+'</div></div>';
+      }).join('')
+      +'</div></div>'
+      +'<div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:16px">'
+      +sectionHeader('Task Status')
+      +[['Completed','38','#10B981','76%'],['In Progress','8','#6366F1','16%'],['Not Started','4','#94A3B8','8%']].map(function(s){
+        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+          +'<div style="width:8px;height:8px;border-radius:50%;background:'+s[2]+'"></div>'
+          +'<div style="flex:1;font-size:10px;color:#475569">'+s[0]+'</div>'
+          +'<div style="font-size:10px;font-weight:700;color:#1E293B">'+s[1]+'</div>'
+          +'<div style="font-size:9px;color:#94A3B8">'+s[3]+'</div></div>';
+      }).join('')
+      +'</div></div>'
+    );
+  }
+};
+
+S['AD-10']={n:'Security Section',t:'Admin',mode:'admin',
+  info:['Three dots → Security section','Visible only to users with security/admin powers','Contains: Pending OTPs, Account Locks, Active Sessions, Password Resets','This is the ONLY place OTPs appear in the UI — never anywhere else','Force logout option for any user'],
+  acts:['View pending OTPs','Unlock accounts','Force logout users','View password reset history'],leads:'Various',
+  r:function(){
+    return deskLayout(
+      appSidebar('calendar'),
+      topBar('Security','Admin Security Center','<span style="font-size:10px;color:#F97316;font-weight:600">🛡️ Admin Mode</span>'),
+      '<div class="tab-bar"><div class="tab-item active">Pending OTPs</div><div class="tab-item">Account Locks</div><div class="tab-item">Active Sessions</div><div class="tab-item">Password Resets</div></div>'
+      +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden">'
+      +'<div style="padding:16px;border-bottom:1px solid #E2E8F0">'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +avatar('AR','linear-gradient(135deg,#F59E0B,#F97316)',36)
+      +'<div style="flex:1"><div style="font-size:12px;font-weight:600;color:#1E293B">Anika Reddy</div>'
+      +'<div style="font-size:10px;color:#94A3B8">Requested: 5 minutes ago · Expires in 9:42</div></div>'
+      +'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 16px;font-family:\'JetBrains Mono\',monospace;font-size:18px;font-weight:700;color:#1E293B;letter-spacing:.1em">482917</div>'
+      +'</div></div>'
+      +'<div style="padding:16px;border-bottom:1px solid #E2E8F0">'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +avatar('VK','linear-gradient(135deg,#10B981,#06B6D4)',36)
+      +'<div style="flex:1"><div style="font-size:12px;font-weight:600;color:#1E293B">Vikram Kapoor</div>'
+      +'<div style="font-size:10px;color:#94A3B8">Requested: 8 minutes ago · Expires in 1:58</div></div>'
+      +'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 16px;font-family:\'JetBrains Mono\',monospace;font-size:18px;font-weight:700;color:#1E293B;letter-spacing:.1em">731024</div>'
+      +'</div></div>'
+      +'<div style="padding:12px 16px;background:#F8FAFC;font-size:10px;color:#94A3B8;text-align:center">OTPs are only visible here. They are never shown in notifications or anywhere else in the app.</div>'
+      +'</div>'
+    );
+  }
+};
+
+/* ═══════════════════════════════════════
+   NAVIGATION ENGINE
+═══════════════════════════════════════ */
+
+function setMode(m){
+  MODE=m;
+  document.getElementById('mode-emp').className='mode-btn'+(m==='emp'?' active':'');
+  document.getElementById('mode-admin').className='mode-btn'+(m==='admin'?' admin-active':'');
+  buildSidebar();
+  if(CID && S[CID] && S[CID].mode==='admin' && m!=='admin') selectScreen(null);
+  else if(CID) selectScreen(CID);
+}
+
+function buildSidebar(){
+  var sl=document.getElementById('sl');
+  var tabs={};
+  var order=['Auth','Onboarding','Calendar','Attendance','Messaging','Tasks','Workspace','Meetings','Email','Sticky Notes','Daily Activity','Team Feed','Salary','Notifications','Search','AI Features','Admin'];
+  Object.keys(S).forEach(function(k){
+    var s=S[k];
+    if(s.mode==='admin' && MODE!=='admin') return;
+    if(!tabs[s.t]) tabs[s.t]=[];
+    tabs[s.t].push({id:k,name:s.n});
+  });
+  var h='';
+  order.forEach(function(tab){
+    if(!tabs[tab]) return;
+    var isAdmin=tab==='Admin';
+    h+='<div class="sh"'+(isAdmin?' style="color:#F97316"':'')+'>'+(isAdmin?'🛡️ ':'')+tab+'</div>';
+    tabs[tab].forEach(function(s){
+      h+='<button class="sbt'+(CID===s.id?' ac':'')+'" onclick="go(\''+s.id+'\')">'
+        +'<span class="sn">'+s.id+'</span>'
+        +'<span>'+s.name+'</span></button>';
+    });
+  });
+  sl.innerHTML=h;
+  var total=Object.keys(S).filter(function(k){return S[k].mode!=='admin'||MODE==='admin'}).length;
+  document.getElementById('screen-counter').textContent='Screen Navigator · '+total+' screens';
+}
+
+function selectScreen(id){
+  CID=id;
+  buildSidebar();
+  var pv=document.getElementById('pv');
+  if(!id||!S[id]){
+    pv.innerHTML='<div class="es" id="es"><div class="es-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><div style="text-align:center"><p style="font-size:15px;font-weight:600;color:#1E293B;margin-bottom:4px">Select a screen to preview</p><p style="font-size:11px;color:#94A3B8">Browse sections in the sidebar or search by name</p></div></div>';
+    return;
+  }
+  var s=S[id];
+  var h='<div class="desk-wrap"><div class="desk-frame"><div class="desk-bar">'
+    +'<div class="desk-dots"><div class="desk-dot" style="background:#FF5F57"></div><div class="desk-dot" style="background:#FEBC2E"></div><div class="desk-dot" style="background:#28C840"></div></div>'
+    +'<div class="desk-url">app.avadetiteam.com / '+s.t.toLowerCase().replace(/ /g,'-')+' / '+s.n.toLowerCase().replace(/ /g,'-')+'</div></div>'
+    +'<div class="desk-body">'+s.r()+'</div></div>'
+    +'<div class="desk-label">'+s.n+' — '+s.t+'</div></div>';
+
+  /* Doc panel */
+  var tc=s.t==='Admin'?C.org:C.pri;
+  h+='<div class="dc">'
+    +'<div class="dnum" style="color:'+tc+'">'+id+'</div>'
+    +'<div class="dtit">'+s.n+'</div>'
+    +'<div style="margin-bottom:14px"><div class="dtag" style="background:'+tc+'10;color:'+tc+'">'+s.t+'</div>'
+    +(s.mode==='admin'?' <div class="dtag" style="background:#F9731614;color:#F97316">Admin Only</div>':'')+'</div>';
+
+  if(s.info){
+    h+='<div class="dsec"><div class="dstit">Screen Details</div>';
+    s.info.forEach(function(i){h+='<div class="dit"><div class="dbul" style="background:'+tc+'"></div>'+i+'</div>';});
+    h+='</div>';
+  }
+  if(s.acts){
+    h+='<div class="dsec"><div class="dstit">User Actions</div>';
+    s.acts.forEach(function(a){h+='<div class="dit"><div class="dbul" style="background:'+C.grn+'"></div>'+a+'</div>';});
+    h+='</div>';
+  }
+  if(s.leads){
+    h+='<div class="dleads"><div class="dll">Leads to →</div><div class="dlv">'+s.leads+'</div></div>';
+  }
+  h+='</div>';
+  pv.innerHTML=h;
+}
+
+function filterScreens(q){
+  q=q.toLowerCase();
+  var btns=document.querySelectorAll('.sbt');
+  btns.forEach(function(b){
+    b.style.display=(!q||b.textContent.toLowerCase().indexOf(q)>=0)?'flex':'none';
+  });
+}
+
+/* Init */
+buildSidebar();
+</script>
+</body>
+</html>

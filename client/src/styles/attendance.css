@@ -1,0 +1,106 @@
+/* ═══ ATTENDANCE ═══ */
+.att-center { max-width: 520px; margin: 0 auto; }
+
+.att-clock-card {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #E2E8F0;
+  padding: 36px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.att-time {
+  font-size: 56px;
+  font-weight: 800;
+  color: #1E293B;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.att-date {
+  font-size: 13px;
+  color: #94A3B8;
+  margin-bottom: 20px;
+}
+
+.att-badges {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.att-mark-btn {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+}
+.att-mark-btn:hover { transform: scale(1.05); }
+.att-mark-btn:active { transform: scale(0.98); }
+.att-mark-btn.entry {
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  box-shadow: 0 8px 24px rgba(16,185,129,0.3);
+}
+.att-mark-btn.wrapup {
+  background: linear-gradient(135deg, #8B5CF6, #EC4899);
+  box-shadow: 0 8px 24px rgba(139,92,246,0.3);
+}
+.att-mark-btn.done {
+  background: linear-gradient(135deg, #CBD5E1, #94A3B8);
+  box-shadow: none;
+  cursor: default;
+}
+.att-mark-btn.done:hover { transform: none; }
+.att-mark-btn-icon { font-size: 28px; margin-bottom: 4px; }
+.att-mark-btn-text { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.att-status { font-size: 12px; color: #94A3B8; line-height: 1.6; }
+.att-status .check { color: #10B981; }
+
+.att-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Success/Blocked screens */
+.att-result {
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+}
+.att-result-icon {
+  width: 80px; height: 80px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; font-size: 36px;
+}
+.att-result-icon.success { background: rgba(16,185,129,0.08); }
+.att-result-icon.blocked { background: rgba(239,68,68,0.08); }
+
+/* History */
+.att-history-row {
+  display: grid;
+  grid-template-columns: 100px 90px 90px 80px 1fr;
+  padding: 10px 16px;
+  align-items: center;
+  font-size: 12px;
+}
+
+/* Leave form */
+.leave-type-chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
