@@ -11,6 +11,7 @@ import AttendancePage from './pages/Attendance';
 import MessagesPage from './pages/Messages';
 import TasksPage from './pages/Tasks';
 import WorkspacePage from './pages/WorkspacePage';
+import MeetingsPage from './pages/Meetings';
 import { SocketProvider } from './context/SocketContext';
 import Placeholder from './pages/Placeholder';
 import './App.css';
@@ -42,7 +43,7 @@ function App() {
             <Route path="messages" element={<MessagesPage />} />
             <Route path="tasks" element={<TasksPage />} />
             <Route path="workspace" element={<WorkspacePage />} />
-            <Route path="meetings" element={<Placeholder />} />
+            <Route path="meetings" element={<MeetingsPage />} />
             <Route path="email" element={<Placeholder />} />
             <Route path="sticky-notes" element={<Placeholder />} />
             <Route path="activity" element={<Placeholder />} />

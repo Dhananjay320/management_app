@@ -36,6 +36,7 @@ app.use('/api/v1/calendar', require('./routes/calendar'));
 app.use('/api/v1/messages', require('./routes/messages'));
 app.use('/api/v1/tasks', require('./routes/tasks'));
 app.use('/api/v1/workspace', require('./routes/workspace'));
+app.use('/api/v1/meetings', require('./routes/meetings'));
 
 // Health check
 app.get('/api/v1/health', (req, res) => {

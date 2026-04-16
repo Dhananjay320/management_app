@@ -209,6 +209,7 @@ Admin titles with power templates: HR, Team Lead, Manager, Department Head (or c
 | `/messages/*` | Channels, messages, reactions, pins, DM creation |
 | `/tasks/*` | Tasks CRUD, to-dos, labels, convert to-do → task |
 | `/workspace/*` | Workspaces, documents (TipTap), notes, links |
+| `/meetings/*` | Meetings CRUD, responses, MoM, mark present, end meeting |
 
 ## Socket.io Events
 
@@ -234,9 +235,9 @@ Admin titles with power templates: HR, Team Lead, Manager, Department Head (or c
 - **Phase 4**: Real-time messaging (channels, DMs, groups, rooms, reactions, typing indicators)
 - **Phase 5**: Tasks (priority groups, detail view, progress, status, subtasks, labels, to-do list)
 - **Phase 6**: Workspace (TipTap document editor, notes, links, workspace management)
+- **Phase 7**: Meetings (creation, Google Meet link, invite responses, MoM with TipTap, scratchpad, publish flow, attendee management, end meeting)
 
 ### Remaining Phases
-- **Phase 7**: Meetings (creation, Google Meet, MoM with TipTap, during-meeting features)
 - **Phase 8**: Email (SMTP/IMAP integration via Postfix/Dovecot)
 - **Phase 9**: Sticky Notes, Daily Activity, Team Feed
 - **Phase 10**: Salary & Payroll calculation
