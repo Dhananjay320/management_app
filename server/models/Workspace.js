@@ -1,5 +1,23 @@
 const mongoose = require('mongoose');
 
+// Cross-team invite sub-schema (spec Section 8.2)
+const workspaceInviteSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
+  dmChannel: { type: mongoose.Schema.Types.ObjectId, ref: 'Channel' } // DM where invite was sent
+}, { timestamps: true });
+
+// External sharing sub-schema (spec Section 8.5)
+const externalShareSchema = new mongoose.Schema({
+  documentId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkspaceDocument' },
+  externalEmail: { type: String, required: true },
+  status: { type: String, enum: ['pending_approval', 'approved', 'rejected', 'invited', 'accepted'], default: 'pending_approval' },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  shareToken: { type: String } // Unique token for external access
+}, { timestamps: true });
+
 const workspaceSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   description: { type: String, default: '' },
@@ -9,6 +27,13 @@ const workspaceSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
+
+  // Cross-team invites
+  pendingInvites: [workspaceInviteSchema],
+
+  // External sharing
+  externalShares: [externalShareSchema],
+
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 

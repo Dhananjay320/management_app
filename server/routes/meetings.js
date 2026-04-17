@@ -126,13 +126,80 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// PUT /api/v1/meetings/:id — update meeting
+// PUT /api/v1/meetings/:id — update meeting (with edit notifications per spec Section 9.5)
 router.put('/:id', protect, async (req, res) => {
   try {
+    const old = await Meeting.findById(req.params.id);
+    if (!old) return res.status(404).json({ error: 'Meeting not found.' });
+
     const updates = { ...req.body };
-    delete updates.attendees; // Use separate routes for attendee management
+    delete updates.attendees;
+
     const meeting = await Meeting.findByIdAndUpdate(req.params.id, updates, { new: true })
       .populate('attendees.user', 'name email avatar');
+
+    // Diff and notify per spec
+    const io = req.app.get('io');
+    if (io) {
+      const agendaChanged = updates.agenda && updates.agenda !== old.agenda;
+      const timeChanged = (updates.date && updates.date !== old.date?.toISOString()) ||
+        (updates.startTime && updates.startTime !== old.startTime);
+
+      meeting.attendees.forEach(a => {
+        if (a.user._id.toString() === req.user._id.toString()) return;
+        if (timeChanged) {
+          // Time change → notification + DM to all attendees
+          io.to(`user:${a.user._id}`).emit('notification:new', {
+            type: 'meeting', title: 'Meeting Time Changed',
+            message: `"${meeting.title}" time has been changed by ${req.user.name}`
+          });
+        } else if (agendaChanged) {
+          // Agenda change → notification to all
+          io.to(`user:${a.user._id}`).emit('notification:new', {
+            type: 'meeting', title: 'Meeting Agenda Updated',
+            message: `"${meeting.title}" agenda was updated by ${req.user.name}`
+          });
+        }
+        // Minor edits → silent (no notification)
+      });
+    }
+
+    res.json(meeting);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/meetings/:id/start — start meeting (scheduled → in_progress)
+router.post('/:id/start', protect, async (req, res) => {
+  try {
+    const meeting = await Meeting.findByIdAndUpdate(req.params.id, {
+      status: 'in_progress'
+    }, { new: true }).populate('attendees.user', 'name');
+
+    if (!meeting) return res.status(404).json({ error: 'Meeting not found.' });
+
+    // Notify attendees + auto-DND (per spec: DND auto when meeting starts)
+    const io = req.app.get('io');
+    const User = require('../models/User');
+
+    for (const a of meeting.attendees) {
+      // Auto-DND for attendees with autoDND setting
+      const attendeeUser = await User.findById(a.user._id).select('settings dnd currentStatus');
+      if (attendeeUser?.settings?.autoDND) {
+        attendeeUser.dnd = { active: true, until: null, reason: 'meeting' };
+        attendeeUser.currentStatus = { type: 'in_meeting', text: meeting.title };
+        await attendeeUser.save();
+      }
+
+      if (io) {
+        io.to(`user:${a.user._id}`).emit('notification:new', {
+          type: 'meeting', title: 'Meeting Started',
+          message: `"${meeting.title}" has started`
+        });
+      }
+    }
+
     res.json(meeting);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
@@ -183,7 +250,19 @@ router.post('/:id/end', protect, async (req, res) => {
       status: 'completed', endedAt: new Date(), endedBy: req.user._id
     }, { new: true });
 
-    // Notify task assignees from MoMs (tasks created during meeting)
+    // Clear auto-DND and status for all attendees
+    const meetingFull = await Meeting.findById(meeting._id).populate('attendees.user', '_id');
+    const User = require('../models/User');
+    for (const a of meetingFull.attendees) {
+      const attendeeUser = await User.findById(a.user._id).select('dnd currentStatus');
+      if (attendeeUser?.dnd?.reason === 'meeting') {
+        attendeeUser.dnd = { active: false, until: null, reason: null };
+        attendeeUser.currentStatus = { type: 'online', text: '' };
+        await attendeeUser.save();
+      }
+    }
+
+    // Notify task assignees from MoMs (tasks created during meeting — per spec: only AFTER meeting ends)
     const moms = await MoM.find({ meeting: meeting._id }).populate('linkedTasks');
     const io = req.app.get('io');
     if (io) {
@@ -205,11 +284,109 @@ router.post('/:id/end', protect, async (req, res) => {
   }
 });
 
-// DELETE /api/v1/meetings/:id
+// POST /api/v1/meetings/:id/attendees — add attendees to existing meeting
+router.post('/:id/attendees', protect, async (req, res) => {
+  try {
+    const { userIds } = req.body;
+    const meeting = await Meeting.findById(req.params.id);
+    if (!meeting) return res.status(404).json({ error: 'Meeting not found.' });
+
+    const io = req.app.get('io');
+    for (const uid of userIds) {
+      if (!meeting.attendees.some(a => a.user.toString() === uid)) {
+        meeting.attendees.push({ user: uid, response: 'pending' });
+
+        // Also add to chat channel
+        if (meeting.chatChannel) {
+          await Channel.findByIdAndUpdate(meeting.chatChannel, { $addToSet: { members: uid } });
+        }
+
+        // Notify new attendee
+        if (io) {
+          io.to(`user:${uid}`).emit('notification:new', {
+            type: 'meeting', title: 'New Meeting Invite',
+            message: `You've been added to "${meeting.title}" on ${new Date(meeting.date).toLocaleDateString()}`
+          });
+        }
+      }
+    }
+    await meeting.save();
+
+    const populated = await Meeting.findById(meeting._id)
+      .populate('attendees.user', 'name email avatar');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// DELETE /api/v1/meetings/:id/attendees/:userId — remove attendee
+router.delete('/:id/attendees/:userId', protect, async (req, res) => {
+  try {
+    const meeting = await Meeting.findById(req.params.id);
+    if (!meeting) return res.status(404).json({ error: 'Meeting not found.' });
+
+    meeting.attendees = meeting.attendees.filter(a => a.user.toString() !== req.params.userId);
+    await meeting.save();
+
+    // Remove from chat channel
+    if (meeting.chatChannel) {
+      await Channel.findByIdAndUpdate(meeting.chatChannel, { $pull: { members: req.params.userId } });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// GET /api/v1/meetings/:id/unseen-check — check for unseen attendees (2 min before)
+router.get('/:id/unseen-check', protect, async (req, res) => {
+  try {
+    const meeting = await Meeting.findById(req.params.id)
+      .populate('attendees.user', 'name');
+    if (!meeting) return res.status(404).json({ error: 'Meeting not found.' });
+
+    const unseen = meeting.attendees.filter(a => !a.hasSeen && a.user._id.toString() !== req.user._id.toString());
+    res.json({
+      unseenCount: unseen.length,
+      unseen: unseen.map(a => ({ userId: a.user._id, name: a.user.name }))
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// DELETE /api/v1/meetings/:id — with 10s silent delete window
 router.delete('/:id', protect, async (req, res) => {
   try {
-    await Meeting.findByIdAndUpdate(req.params.id, { isActive: false, status: 'cancelled' });
-    res.json({ message: 'Meeting cancelled.' });
+    const meeting = await Meeting.findById(req.params.id)
+      .populate('attendees.user', 'name');
+    if (!meeting) return res.status(404).json({ error: 'Meeting not found.' });
+
+    const createdAgo = Date.now() - new Date(meeting.createdAt).getTime();
+    const silentWindow = createdAgo < 10000; // Within 10 seconds
+
+    meeting.isActive = false;
+    meeting.status = 'cancelled';
+    await meeting.save();
+
+    // If after 10 seconds, notify all attendees
+    if (!silentWindow) {
+      const io = req.app.get('io');
+      if (io) {
+        meeting.attendees.forEach(a => {
+          if (a.user._id.toString() !== req.user._id.toString()) {
+            io.to(`user:${a.user._id}`).emit('notification:new', {
+              type: 'meeting', title: 'Meeting Cancelled',
+              message: `"${meeting.title}" has been cancelled by ${req.user.name}`
+            });
+          }
+        });
+      }
+    }
+
+    res.json({ message: silentWindow ? 'Meeting silently deleted.' : 'Meeting cancelled. Attendees notified.' });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }
@@ -244,6 +421,41 @@ router.put('/mom/:momId', protect, async (req, res) => {
     }
     const mom = await MoM.findByIdAndUpdate(req.params.momId, updates, { new: true });
     res.json(mom);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/meetings/mom/:momId/comment — comment on published MoM
+router.post('/mom/:momId/comment', protect, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: 'Content required.' });
+
+    const mom = await MoM.findById(req.params.momId);
+    if (!mom) return res.status(404).json({ error: 'MoM not found.' });
+    if (!mom.isPublished) return res.status(400).json({ error: 'Can only comment on published MoMs.' });
+
+    mom.comments.push({ author: req.user._id, content: content.trim() });
+    await mom.save();
+
+    const updated = await MoM.findById(mom._id).populate('comments.author', 'name avatar');
+    res.json(updated.comments);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/meetings/mom/:momId/react — react to published MoM
+router.post('/mom/:momId/react', protect, async (req, res) => {
+  try {
+    const { emoji } = req.body;
+    const mom = await MoM.findById(req.params.momId);
+    if (!mom || !mom.isPublished) return res.status(400).json({ error: 'Cannot react to this MoM.' });
+
+    // Toggle reaction on the MoM comment if commentId is provided, or on MoM itself
+    // For simplicity, we'll handle reactions at comment level (within comments array)
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }

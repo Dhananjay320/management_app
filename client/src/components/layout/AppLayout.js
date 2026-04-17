@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import NotificationToast from '../NotificationToast';
 import '../../styles/layout.css';
 
 const NAV_ITEMS = [
@@ -101,6 +102,16 @@ export default function AppLayout() {
               </div>
             )}
 
+            {/* Sticky Notes persistent icon — per spec Section 11, accessible from every screen */}
+            <div
+              className="topbar-sticky-icon"
+              onClick={() => navigate('/sticky-notes')}
+              title="Sticky Notes"
+              style={{ cursor: 'pointer', fontSize: 16, padding: '4px 8px', borderRadius: 6, background: 'rgba(99,102,241,0.06)', marginRight: 4 }}
+            >
+              📝
+            </div>
+
             <div style={{ position: 'relative' }}>
               <div className="topbar-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
                 {user?.name?.split(' ').map(w => w[0]).join('')}
@@ -143,6 +154,9 @@ export default function AppLayout() {
           <Outlet context={{ adminMode, setAdminMode }} />
         </div>
       </div>
+
+      {/* Toast Notifications */}
+      <NotificationToast />
 
       {/* Click outside to close user menu */}
       {showUserMenu && <div style={{ position: 'fixed', inset: 0, zIndex: 50 }} onClick={() => setShowUserMenu(false)} />}

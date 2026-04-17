@@ -9,6 +9,7 @@ const otpSchema = new mongoose.Schema({
   maxAttempts: { type: Number, default: 3 },
   expiresAt: { type: Date, required: true },
   isUsed: { type: Boolean, default: false },
+  usedAt: { type: Date },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -57,6 +58,7 @@ async function verifyOTP(userId, code) {
   }
 
   otp.isUsed = true;
+  otp.usedAt = new Date();
   await otp.save();
   return { valid: true };
 }

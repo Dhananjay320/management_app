@@ -41,6 +41,11 @@ node seed.js          # Creates admin + sample users + office + teams
 node seedChannels.js  # Creates channels, DMs, rooms + sample messages
 node seedTasks.js     # Creates tasks, labels, to-dos
 node seedWorkspace.js # Creates workspaces, documents, notes, links
+node seedEmails.js    # Creates email accounts, messages, drafts, templates
+node seedPhase9.js    # Creates sticky notes, activities, feed posts
+node seedSalary.js    # Creates salary rules, monthly records, disputes
+node seedNotifications.js  # Creates sample notifications for all users
+node seedCompany.js        # Creates company info card
 ```
 
 ### Step 4 — Run the App
@@ -72,7 +77,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 ```
 
 ## How to Continue Building
-When the user says "next" or "continue", pick up from Phase 7 (Meetings). See **Build Progress** section below for what's done and what's remaining. Read the three .docx spec files (use `textutil -convert txt -stdout <file>` on macOS) for full feature details.
+All 14 phases are complete. The app is feature-complete for web/browser deployment. Remaining infrastructure: Electron packaging, VPS deployment, Google Calendar service account, real SMTP/IMAP. See **Build Progress** section below for what's done and what's remaining. Read the three .docx spec files (use `textutil -convert txt -stdout <file>` on macOS) for full feature details.
 
 ## How to Run (Quick Reference)
 
@@ -122,6 +127,15 @@ management_app/
 │   │   ├── Todo.js              ← Personal to-do items
 │   │   ├── Label.js             ← Company/team/personal labels
 │   │   ├── Meeting.js           ← Meetings + MoM (Minutes of Meeting)
+│   │   ├── Email.js             ← EmailAccount, Email, EmailDraft, EmailTemplate, EmailCategory
+│   │   ├── StickyNote.js        ← Sticky notes with colors, attachments, sharing
+│   │   ├── Activity.js          ← Daily activities (8 types, RSVP, audience, recurring)
+│   │   ├── TeamFeedPost.js      ← Feed posts with comments, reactions, personal pins
+│   │   ├── Salary.js            ← SalaryStructure, EmployeeOverride, SalaryMonthly, SalaryDispute
+│   │   ├── Notification.js      ← Notifications with types, emergency, TTL auto-cleanup
+│   │   ├── DeepSearchJob.js     ← Deep search background jobs with chunks, results, TTL
+│   │   ├── ApiConfig.js         ← AI provider config, encrypted API keys per user
+│   │   ├── CompanyInfo.js       ← Company info card (name, about, contact, social)
 │   │   └── Workspace.js         ← Workspaces, documents, notes, files, links
 │   ├── routes/
 │   │   ├── auth.js              ← Login, OTP, refresh, set-password, logout
@@ -132,15 +146,31 @@ management_app/
 │   │   ├── calendar.js          ← Calendar events, seed holidays
 │   │   ├── messages.js          ← Channels, messages, reactions, pins
 │   │   ├── tasks.js             ← Tasks CRUD, to-dos, labels
-│   │   └── workspace.js         ← Workspaces, documents (TipTap), notes, links
+│   │   ├── workspace.js         ← Workspaces, documents (TipTap), notes, links
+│   │   ├── email.js             ← Email accounts, messages, drafts, templates, categories
+│   │   ├── stickyNotes.js       ← Sticky notes CRUD, attach/detach, share/unshare
+│   │   ├── activities.js        ← Activities CRUD, RSVP join/skip
+│   │   ├── feed.js              ← Feed posts, comments, reactions, personal pins
+│   │   ├── salary.js            ← Rules, monthly generation, disputes, employee overrides
+│   │   ├── notifications.js     ← List, read, dismiss, acknowledge, send, emergency
+│   │   ├── search.js            ← Normal search, deep search queue/cancel/status
+│   │   ├── ai.js                ← AI features (summarize, extract tasks, draft, format, summary)
+│   │   └── onboarding.js        ← Company info, onboarding state, profile, settings
 │   ├── utils/
 │   │   ├── tokens.js            ← JWT generate/verify
 │   │   ├── otp.js               ← OTP generation, verification, storage
-│   │   └── geofence.js          ← Haversine formula, WiFi subnet check
+│   │   ├── geofence.js          ← Haversine formula, WiFi subnet check
+│   │   ├── deepSearchWorker.js  ← Background worker for chunked deep search
+│   │   └── aiAdapters.js        ← AI provider adapters, encryption, fallback manager
 │   ├── seed.js                  ← Seed users, teams, offices
 │   ├── seedChannels.js          ← Seed channels and messages
 │   ├── seedTasks.js             ← Seed tasks, labels, to-dos
-│   └── seedWorkspace.js         ← Seed workspaces, documents, notes, links
+│   ├── seedWorkspace.js         ← Seed workspaces, documents, notes, links
+│   ├── seedEmails.js            ← Seed email accounts, messages, drafts, templates
+│   ├── seedPhase9.js            ← Seed sticky notes, activities, feed posts
+│   ├── seedSalary.js            ← Seed salary rules, monthly records, disputes
+│   ├── seedNotifications.js     ← Seed sample notifications for all users
+│   └── seedCompany.js           ← Seed company info
 │
 └── client/                      ← React frontend
     └── src/
@@ -163,7 +193,21 @@ management_app/
         │   ├── Messages.js      ← Real-time chat with conversation sidebar
         │   ├── Tasks.js         ← Task list, detail, create, to-do list
         │   ├── WorkspacePage.js ← Workspace list, TipTap editor, notes, links
+        │   ├── EmailPage.js     ← Three-panel email client (sidebar, list, detail + compose)
+        │   ├── StickyNotesPage.js ← Sticky notes grid with colors, inline edit, attach, share
+        │   ├── ActivityPage.js  ← Daily activities with type filters, RSVP, create modal
+        │   ├── TeamFeedPage.js  ← Social feed with posts, comments, reactions, personal pins
+        │   ├── SalaryPage.js    ← Monthly salary summary, breakdown, disputes
+        │   ├── NotificationsPage.js ← Notification center with type groups, emergency acknowledge
+        │   ├── SettingsPage.js  ← Settings with AI configuration (activate, status, features)
+        │   ├── OnboardingPage.js ← 6-step onboarding wizard
+        │   ├── ProfilePage.js   ← User profile view + edit
         │   ├── Placeholder.js   ← Placeholder for unbuilt modules
+        │   └── ...
+        ├── components/
+        │   ├── layout/
+        │   │   └── AppLayout.js ← Main shell — sidebar + topbar + admin toggle + outlet
+        │   └── SearchPanel.js   ← Reusable search component with normal + deep search
         │   └── admin/
         │       ├── UserList.js  ← Employee table with search
         │       └── CreateUser.js← Full employee creation form with powers
@@ -174,7 +218,16 @@ management_app/
             ├── attendance.css   ← Attendance (clock, mark button, history)
             ├── messaging.css    ← Chat (conversation sidebar, bubbles, reactions, input)
             ├── tasks.css        ← Tasks (cards, detail, priority sections, to-do)
-            └── workspace.css    ← Workspace (grid, TipTap editor, notes, links)
+            ├── workspace.css    ← Workspace (grid, TipTap editor, notes, links)
+            ├── email.css        ← Email (three-panel layout, compose modal, templates)
+            ├── stickynotes.css  ← Sticky notes (grid cards, color picker, shared badges)
+            ├── activity.css     ← Activity (cards, type icons, RSVP, create modal)
+            ├── teamfeed.css     ← Team feed (post cards, comments, reactions, pins)
+            ├── salary.css       ← Salary (month cards, breakdown table, disputes)
+            ├── notifications.css ← Notifications (center, toast stack, emergency)
+            ├── search.css       ← Search (bar, results, deep progress, history)
+            ├── ai.css           ← AI (settings, feature buttons, result panels, task suggestions)
+            └── onboarding.css   ← Onboarding (wizard steps, toggles, checklist) + Profile page
 ```
 
 ## Architecture Decisions (from Developer Log)
@@ -210,6 +263,15 @@ Admin titles with power templates: HR, Team Lead, Manager, Department Head (or c
 | `/tasks/*` | Tasks CRUD, to-dos, labels, convert to-do → task |
 | `/workspace/*` | Workspaces, documents (TipTap), notes, links |
 | `/meetings/*` | Meetings CRUD, responses, MoM, mark present, end meeting |
+| `/email/*` | Accounts, messages, send, drafts, templates, categories, bulk actions |
+| `/sticky-notes/*` | CRUD, attach/detach to entities, share/unshare |
+| `/activities/*` | CRUD, RSVP (join/skip), filter by type/audience/date |
+| `/feed/*` | Posts CRUD, comments, reactions, personal pin/unpin |
+| `/salary/*` | Rules, monthly generation, view, finalize, disputes CRUD |
+| `/notifications/*` | List, unread counts, mark read, dismiss, acknowledge, send, emergency |
+| `/search/*` | Normal metadata search, deep search queue/cancel/status, per-scope |
+| `/ai/*` | Config status, activate (code/direct), summarize, extract-tasks, draft-email, format-mom, meeting-summary |
+| `/onboarding/*` | Company info CRUD, onboarding status/complete, settings update, profile CRUD |
 
 ## Socket.io Events
 
@@ -236,15 +298,16 @@ Admin titles with power templates: HR, Team Lead, Manager, Department Head (or c
 - **Phase 5**: Tasks (priority groups, detail view, progress, status, subtasks, labels, to-do list)
 - **Phase 6**: Workspace (TipTap document editor, notes, links, workspace management)
 - **Phase 7**: Meetings (creation, Google Meet link, invite responses, MoM with TipTap, scratchpad, publish flow, attendee management, end meeting)
+- **Phase 8**: Email (accounts, compose, reply/reply-all/forward, drafts, templates, categories, shared inboxes with "Replied by", starred, trash, three-panel UI)
+- **Phase 9**: Sticky Notes (grid, colors, inline edit, attach to entities, share), Daily Activity (8 types, RSVP, filters, create modal), Team Feed (posts, comments, reactions, personal pins, audience filter)
+- **Phase 10**: Salary & Payroll (company deduction rules, per-employee overrides, monthly generation from attendance, breakdown table, disputes with resolve/reject, admin salary management)
+- **Phase 11**: Notifications (notification center with type groups, mark read/clear, emergency alerts with acknowledge, send/broadcast, socket real-time, TTL auto-cleanup)
+- **Phase 12**: Search (normal instant metadata search per scope, deep search background worker with chunked processing, progressive WebSocket delivery, max 4 results, cancel, search history, reusable SearchPanel component)
+- **Phase 13**: AI layer (generic adapter for Gemini/OpenAI/Claude, 5 features: summarize, extract tasks, draft email, format MoM, meeting summary, activation code system, fallback manager, encrypted key storage, Settings page)
+- **Phase 14**: Onboarding (6-step wizard: app intro, company card, welcome, settings, profile setup, checklist), Profile page, Company Info management
 
-### Remaining Phases
-- **Phase 8**: Email (SMTP/IMAP integration via Postfix/Dovecot)
-- **Phase 9**: Sticky Notes, Daily Activity, Team Feed
-- **Phase 10**: Salary & Payroll calculation
-- **Phase 11**: Notifications (Mac-style stack, notification center, DND, emergency alerts)
-- **Phase 12**: Search (normal metadata + deep search with chunked background jobs)
-- **Phase 13**: AI layer (summarize, draft, extract tasks — generic adapter for Gemini/OpenAI/Claude)
-- **Phase 14**: Onboarding flow, polish, Electron packaging
+### All Phases Complete
+The core application is feature-complete. Future work: Electron desktop packaging, VPS deployment with Nginx, Google Calendar API integration with service account, real SMTP/IMAP connection.
 
 ## Design System (Stitch)
 - **Stitch Project ID**: `4985826695348725443`

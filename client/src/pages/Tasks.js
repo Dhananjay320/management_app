@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import '../styles/tasks.css';
@@ -20,6 +20,21 @@ const STATUS_CONFIG = {
 const GRADIENTS = ['linear-gradient(135deg,#6366F1,#8B5CF6)','linear-gradient(135deg,#10B981,#06B6D4)','linear-gradient(135deg,#F59E0B,#F97316)','linear-gradient(135deg,#EC4899,#8B5CF6)','linear-gradient(135deg,#EF4444,#F97316)'];
 function getGrad(id) { return GRADIENTS[((id||'').charCodeAt(0)||0) % GRADIENTS.length]; }
 function initials(n) { return (n||'?').split(' ').map(w=>w[0]).join('').slice(0,2); }
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function formatMinutes(mins) {
+  if (!mins) return '—';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
 
 export default function Tasks() {
   const { user } = useAuth();
@@ -106,10 +121,10 @@ export default function Tasks() {
       )}
 
       {tab === 'detail' && selectedTask && (
-        <TaskDetail task={selectedTask} onBack={() => { setTab('tasks'); setSelectedTask(null); }} onUpdate={updateTask} />
+        <TaskDetail task={selectedTask} onBack={() => { setTab('tasks'); setSelectedTask(null); }} onUpdate={updateTask} onReload={() => openTask(selectedTask._id)} />
       )}
 
-      {tab === 'create' && <CreateTask onBack={() => setTab('tasks')} onCreated={() => { setTab('tasks'); loadTasks(); }} users={[]} />}
+      {tab === 'create' && <CreateTask onBack={() => setTab('tasks')} onCreated={() => { setTab('tasks'); loadTasks(); }} />}
 
       {tab === 'todo' && <TodoList />}
     </div>
@@ -140,6 +155,8 @@ function TaskCard({ task, onClick }) {
         {task.labels?.slice(0, 2).map(l => (
           <span key={l._id} className="badge-pill" style={{ background: l.color + '14', color: l.color, fontSize: 9 }}>{l.name}</span>
         ))}
+        {task.isPrivate && <span style={{ fontSize: 9, color: '#94A3B8' }}>🔒</span>}
+        {task.isRecurring && <span style={{ fontSize: 9, color: '#6366F1' }}>🔄</span>}
       </div>
       {task.statusNote && <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontStyle: 'italic' }}>{task.statusNote}</div>}
       <div className="task-card-progress">
@@ -150,11 +167,43 @@ function TaskCard({ task, onClick }) {
   );
 }
 
-function TaskDetail({ task, onBack, onUpdate }) {
+function TaskDetail({ task, onBack, onUpdate, onReload }) {
   const pc = PRIORITY_CONFIG[task.priority];
   const sc = STATUS_CONFIG[task.status];
   const [progress, setProgress] = useState(task.progress);
   const [statusNote, setStatusNote] = useState(task.statusNote || '');
+  const [estHours, setEstHours] = useState(task.estimatedTime ? Math.floor(task.estimatedTime / 60) : 0);
+  const [estMins, setEstMins] = useState(task.estimatedTime ? task.estimatedTime % 60 : 0);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleEstTimeUpdate = () => {
+    const totalMins = (parseInt(estHours) || 0) * 60 + (parseInt(estMins) || 0);
+    onUpdate(task._id, { estimatedTime: totalMins });
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await api.post(`/tasks/${task._id}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      onReload();
+    } catch (err) {
+      alert('Failed to upload file.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handlePrivateToggle = () => {
+    onUpdate(task._id, { isPrivate: !task.isPrivate });
+  };
 
   return (
     <div>
@@ -164,8 +213,12 @@ function TaskDetail({ task, onBack, onUpdate }) {
           <div className="card" style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>
-                <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>{task.title}</h2>
-                <div style={{ display: 'flex', gap: 6 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>
+                  {task.title}
+                  {task.isPrivate && <span style={{ fontSize: 12, marginLeft: 8, color: '#94A3B8' }}>🔒 Private</span>}
+                  {task.isRecurring && <span style={{ fontSize: 12, marginLeft: 8, color: '#6366F1' }}>🔄 Recurring</span>}
+                </h2>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <span className="badge-pill" style={{ background: pc.color + '14', color: pc.color }}>{pc.label}</span>
                   <span className="badge-pill" style={{ background: sc.color + '14', color: sc.color }}>{sc.label}</span>
                   {task.team && <span className="badge-pill" style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981' }}>{task.team.name}</span>}
@@ -181,7 +234,7 @@ function TaskDetail({ task, onBack, onUpdate }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
                 <div className="task-field-label">Assignees</div>
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {task.assignees?.map(a => (
                     <div key={a._id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <div className="avatar-sm" style={{ background: getGrad(a._id), width: 20, height: 20, fontSize: 8 }}>{initials(a.name)}</div>
@@ -203,6 +256,44 @@ function TaskDetail({ task, onBack, onUpdate }) {
                     onMouseUp={() => onUpdate(task._id, { progress })}
                     style={{ flex: 1, accentColor: pc.color }} />
                   <span style={{ fontSize: 12, fontWeight: 700, color: pc.color }}>{progress}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* More fields row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
+                <div className="task-field-label">Estimated Time</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <input type="number" min="0" max="999" value={estHours} onChange={e => setEstHours(e.target.value)}
+                    style={{ width: 40, padding: '4px 6px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, textAlign: 'center', background: '#fff' }} />
+                  <span style={{ fontSize: 10, color: '#94A3B8' }}>h</span>
+                  <input type="number" min="0" max="59" value={estMins} onChange={e => setEstMins(e.target.value)}
+                    style={{ width: 40, padding: '4px 6px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, textAlign: 'center', background: '#fff' }} />
+                  <span style={{ fontSize: 10, color: '#94A3B8' }}>m</span>
+                  <button className="btn btn-primary-sm" style={{ padding: '3px 8px', fontSize: 9 }} onClick={handleEstTimeUpdate}>Set</button>
+                </div>
+              </div>
+              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
+                <div className="task-field-label">Visibility</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div className="task-toggle" onClick={handlePrivateToggle}
+                    style={{ width: 36, height: 20, borderRadius: 10, background: task.isPrivate ? '#6366F1' : '#E2E8F0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+                    <div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', position: 'absolute', top: 2, left: task.isPrivate ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: '#475569' }}>{task.isPrivate ? '🔒 Private' : '🌐 Public'}</span>
+                </div>
+              </div>
+              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
+                <div className="task-field-label">Recurring</div>
+                <div style={{ fontSize: 12, color: '#1E293B' }}>
+                  {task.isRecurring ? (
+                    <span className="badge-pill" style={{ background: 'rgba(99,102,241,0.08)', color: '#6366F1' }}>
+                      🔄 {task.recurringPattern ? task.recurringPattern.charAt(0).toUpperCase() + task.recurringPattern.slice(1) : 'Yes'}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, color: '#CBD5E1' }}>Not recurring</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -230,10 +321,52 @@ function TaskDetail({ task, onBack, onUpdate }) {
             {task.labels?.length > 0 && (
               <div className="task-field">
                 <div className="task-field-label">Labels</div>
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {task.labels.map(l => <span key={l._id} className="badge-pill" style={{ background: l.color + '14', color: l.color }}>{l.name}</span>)}
                 </div>
               </div>
+            )}
+
+            {/* Linked Workspace */}
+            {task.linkedWorkspace && (
+              <div className="task-field">
+                <div className="task-field-label">Linked Workspace</div>
+                <div style={{ fontSize: 12, color: '#6366F1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  📁 <span style={{ textDecoration: 'underline' }}>Open linked workspace</span>
+                </div>
+              </div>
+            )}
+
+            {/* Linked Chat */}
+            {task.linkedChat && (
+              <div className="task-field">
+                <div className="task-field-label">Linked Chat</div>
+                <div style={{ fontSize: 12, color: '#6366F1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  💬 <span style={{ textDecoration: 'underline' }}>Open linked chat</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Attachments */}
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>Attachments ({task.attachments?.length || 0})</div>
+              <label className="btn btn-primary-sm" style={{ padding: '4px 10px', fontSize: 10, cursor: 'pointer', margin: 0 }}>
+                {uploading ? 'Uploading...' : '+ Upload'}
+                <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileUpload} disabled={uploading} />
+              </label>
+            </div>
+            {task.attachments?.length > 0 ? task.attachments.map((att, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #F0F2F7', fontSize: 11 }}>
+                <span style={{ fontSize: 14 }}>
+                  {att.mimeType?.startsWith('image/') ? '🖼️' : att.mimeType === 'application/pdf' ? '📄' : '📎'}
+                </span>
+                <span style={{ flex: 1, color: '#1E293B', fontWeight: 500 }}>{att.name}</span>
+                <span style={{ color: '#CBD5E1', fontSize: 10 }}>{formatFileSize(att.size)}</span>
+              </div>
+            )) : (
+              <div style={{ fontSize: 11, color: '#CBD5E1' }}>No attachments</div>
             )}
           </div>
 
@@ -278,10 +411,26 @@ function TaskDetail({ task, onBack, onUpdate }) {
             </div>
           )}
 
+          {/* Watchers */}
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>Watchers ({task.watchers?.length || 0})</div>
+            {task.watchers?.length > 0 ? task.watchers.map(w => (
+              <div key={w._id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', fontSize: 11 }}>
+                <div className="avatar-sm" style={{ background: getGrad(w._id), width: 18, height: 18, fontSize: 7 }}>{initials(w.name)}</div>
+                <span style={{ color: '#475569' }}>{w.name}</span>
+              </div>
+            )) : (
+              <div style={{ fontSize: 11, color: '#CBD5E1' }}>No watchers</div>
+            )}
+          </div>
+
           {/* Created info */}
           <div className="card">
             <div style={{ fontSize: 10, color: '#94A3B8' }}>Created by {task.createdBy?.name}</div>
             <div style={{ fontSize: 10, color: '#CBD5E1' }}>{new Date(task.createdAt).toLocaleDateString()}</div>
+            {task.estimatedTime > 0 && (
+              <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 6 }}>Est. time: {formatMinutes(task.estimatedTime)}</div>
+            )}
           </div>
         </div>
       </div>
@@ -291,14 +440,69 @@ function TaskDetail({ task, onBack, onUpdate }) {
 
 function CreateTask({ onBack, onCreated }) {
   const { user } = useAuth();
-  const [form, setForm] = useState({ title: '', description: '', priority: 'medium', deadline: '', statusNote: '' });
+  const [form, setForm] = useState({
+    title: '', description: '', priority: 'medium', deadline: '', statusNote: '',
+    assignees: [user._id],
+    team: '',
+    labels: [],
+    isRecurring: false,
+    recurringPattern: 'daily',
+    isPrivate: false
+  });
   const [loading, setLoading] = useState(false);
+
+  // Data for pickers
+  const [allUsers, setAllUsers] = useState([]);
+  const [allTeams, setAllTeams] = useState([]);
+  const [allLabels, setAllLabels] = useState([]);
+  const [showAssigneePicker, setShowAssigneePicker] = useState(false);
+
+  useEffect(() => {
+    // Fetch users, teams, labels in parallel
+    const fetchData = async () => {
+      try {
+        const [usersRes, teamsRes, labelsRes] = await Promise.allSettled([
+          api.get('/users/directory'),
+          api.get('/teams'),
+          api.get('/tasks/labels/list')
+        ]);
+        if (usersRes.status === 'fulfilled') setAllUsers(usersRes.value.data);
+        if (teamsRes.status === 'fulfilled') setAllTeams(teamsRes.value.data);
+        if (labelsRes.status === 'fulfilled') setAllLabels(labelsRes.value.data);
+      } catch {}
+    };
+    fetchData();
+  }, []);
+
+  const toggleAssignee = (uid) => {
+    setForm(p => {
+      const has = p.assignees.includes(uid);
+      return { ...p, assignees: has ? p.assignees.filter(id => id !== uid) : [...p.assignees, uid] };
+    });
+  };
+
+  const toggleLabel = (lid) => {
+    setForm(p => {
+      const has = p.labels.includes(lid);
+      return { ...p, labels: has ? p.labels.filter(id => id !== lid) : [...p.labels, lid] };
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/tasks', { ...form, assignees: [user._id] });
+      const payload = {
+        ...form,
+        assignees: form.assignees.length > 0 ? form.assignees : [user._id],
+        team: form.team || undefined,
+        labels: form.labels.length > 0 ? form.labels : undefined,
+        recurringPattern: form.isRecurring ? form.recurringPattern : undefined
+      };
+      if (!payload.isRecurring) {
+        delete payload.recurringPattern;
+      }
+      await api.post('/tasks', payload);
       onCreated();
     } catch (err) {
       alert(err.response?.data?.error || 'Failed.');
@@ -329,7 +533,103 @@ function CreateTask({ onBack, onCreated }) {
               <input type="date" value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} />
             </div>
           </div>
+
+          {/* Assignees picker */}
           <div className="form-field" style={{ marginBottom: 14 }}>
+            <label>Assignees</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              {form.assignees.map(uid => {
+                const u = allUsers.find(u => u._id === uid);
+                return (
+                  <div key={uid} className="badge-pill" style={{ background: 'rgba(99,102,241,0.08)', color: '#6366F1', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div className="avatar-sm" style={{ background: getGrad(uid), width: 16, height: 16, fontSize: 7 }}>{initials(u?.name || 'You')}</div>
+                    {u?.name || 'You'}
+                    <span style={{ cursor: 'pointer', marginLeft: 2, fontSize: 10 }} onClick={() => toggleAssignee(uid)}>✕</span>
+                  </div>
+                );
+              })}
+              <button type="button" className="btn btn-secondary" style={{ padding: '3px 10px', fontSize: 10 }}
+                onClick={() => setShowAssigneePicker(!showAssigneePicker)}>
+                {showAssigneePicker ? 'Close' : '+ Add'}
+              </button>
+            </div>
+            {showAssigneePicker && (
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 8, maxHeight: 180, overflowY: 'auto' }}>
+                {allUsers.length > 0 ? allUsers.map(u => (
+                  <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', fontSize: 11, color: '#1E293B' }}>
+                    <input type="checkbox" checked={form.assignees.includes(u._id)} onChange={() => toggleAssignee(u._id)}
+                      style={{ accentColor: '#6366F1' }} />
+                    <div className="avatar-sm" style={{ background: getGrad(u._id), width: 18, height: 18, fontSize: 7 }}>{initials(u.name)}</div>
+                    {u.name}
+                    <span style={{ color: '#CBD5E1', fontSize: 9, marginLeft: 'auto' }}>{u.email}</span>
+                  </label>
+                )) : (
+                  <div style={{ fontSize: 11, color: '#94A3B8', textAlign: 'center', padding: 8 }}>No users available</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Team selector */}
+          <div className="form-grid">
+            <div className="form-field">
+              <label>Team</label>
+              <select value={form.team} onChange={e => setForm(p => ({ ...p, team: e.target.value }))}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, background: '#F8FAFC', color: '#475569', fontFamily: 'Inter' }}>
+                <option value="">No team</option>
+                {allTeams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Labels</label>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {allLabels.map(l => (
+                  <div key={l._id}
+                    className={`chip ${form.labels.includes(l._id) ? 'active' : ''}`}
+                    style={form.labels.includes(l._id) ? { background: l.color + '14', color: l.color, borderColor: l.color + '33' } : {}}
+                    onClick={() => toggleLabel(l._id)}>
+                    <span style={{ width: 6, height: 6, borderRadius: 3, background: l.color, display: 'inline-block', marginRight: 4 }} />
+                    {l.name}
+                  </div>
+                ))}
+                {allLabels.length === 0 && <span style={{ fontSize: 11, color: '#CBD5E1' }}>No labels available</span>}
+              </div>
+            </div>
+          </div>
+
+          {/* Recurring + Private toggles */}
+          <div className="form-grid" style={{ marginTop: 14 }}>
+            <div className="form-field">
+              <label>Recurring Task</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div onClick={() => setForm(p => ({ ...p, isRecurring: !p.isRecurring }))}
+                  style={{ width: 36, height: 20, borderRadius: 10, background: form.isRecurring ? '#6366F1' : '#E2E8F0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                  <div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', position: 'absolute', top: 2, left: form.isRecurring ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+                </div>
+                {form.isRecurring && (
+                  <select value={form.recurringPattern} onChange={e => setForm(p => ({ ...p, recurringPattern: e.target.value }))}
+                    style={{ padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, color: '#475569', background: '#F8FAFC' }}>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                )}
+                {!form.isRecurring && <span style={{ fontSize: 11, color: '#94A3B8' }}>Off</span>}
+              </div>
+            </div>
+            <div className="form-field">
+              <label>Visibility</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div onClick={() => setForm(p => ({ ...p, isPrivate: !p.isPrivate }))}
+                  style={{ width: 36, height: 20, borderRadius: 10, background: form.isPrivate ? '#6366F1' : '#E2E8F0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                  <div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', position: 'absolute', top: 2, left: form.isPrivate ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+                </div>
+                <span style={{ fontSize: 11, color: '#475569' }}>{form.isPrivate ? '🔒 Private' : '🌐 Public'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="form-field" style={{ marginBottom: 14, marginTop: 14 }}>
             <label>Description</label>
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={4} placeholder="Details about this task..." />
           </div>
@@ -346,6 +646,10 @@ function CreateTask({ onBack, onCreated }) {
 function TodoList() {
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState('');
+  const [todoDeadline, setTodoDeadline] = useState('');
+  const [todoPriority, setTodoPriority] = useState('');
+  const [todoNotes, setTodoNotes] = useState('');
+  const [showMore, setShowMore] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -360,8 +664,16 @@ function TodoList() {
   const addTodo = async () => {
     if (!input.trim()) return;
     try {
-      await api.post('/tasks/todo', { title: input.trim() });
+      const payload = { title: input.trim() };
+      if (todoPriority) payload.priority = todoPriority;
+      if (todoDeadline) payload.deadline = todoDeadline;
+      if (todoNotes.trim()) payload.notes = todoNotes.trim();
+      await api.post('/tasks/todo', payload);
       setInput('');
+      setTodoDeadline('');
+      setTodoPriority('');
+      setTodoNotes('');
+      setShowMore(false);
       load();
     } catch {}
   };
@@ -387,17 +699,64 @@ function TodoList() {
     <div style={{ maxWidth: 560 }}>
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="todo-input-row">
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTodo()}
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !showMore && addTodo()}
             placeholder="Add a new to-do..." style={{ flex: 1, padding: '9px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, background: '#F8FAFC', outline: 'none', fontFamily: 'Inter' }} />
+          <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px', fontSize: 10 }}
+            onClick={() => setShowMore(!showMore)} title="More options">
+            {showMore ? '▲' : '▼'}
+          </button>
           <button className="btn btn-primary-sm" onClick={addTodo}>Add</button>
         </div>
+
+        {/* Expanded form fields */}
+        {showMore && (
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 10, marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Deadline</div>
+                <input type="date" value={todoDeadline} onChange={e => setTodoDeadline(e.target.value)}
+                  style={{ width: '100%', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#fff', fontFamily: 'Inter' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Priority</div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[['high', '🟠 High'], ['medium', '🟡 Med'], ['low', '🟢 Low']].map(([k, l]) => (
+                    <div key={k} className={`chip ${todoPriority === k ? 'active' : ''}`}
+                      style={todoPriority === k ? { background: priColors[k] + '14', color: priColors[k], borderColor: priColors[k] + '33', fontSize: 10, padding: '3px 8px' } : { fontSize: 10, padding: '3px 8px' }}
+                      onClick={() => setTodoPriority(todoPriority === k ? '' : k)}>
+                      {l}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Notes</div>
+              <textarea value={todoNotes} onChange={e => setTodoNotes(e.target.value)} rows={2} placeholder="Additional notes..."
+                style={{ width: '100%', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#fff', fontFamily: 'Inter', resize: 'vertical', outline: 'none' }} />
+            </div>
+          </div>
+        )}
+
         {loading ? <div style={{ color: '#94A3B8', fontSize: 12 }}>Loading...</div> : (
           todos.map(todo => (
             <div key={todo._id} className={`todo-item ${todo.isDone ? 'done' : ''}`}>
               <div className={`todo-check ${todo.isDone ? 'done' : ''}`} onClick={() => toggleTodo(todo._id, todo.isDone)}>
                 {todo.isDone && '✓'}
               </div>
-              <div className={`todo-text ${todo.isDone ? 'done' : ''}`}>{todo.title}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className={`todo-text ${todo.isDone ? 'done' : ''}`}>{todo.title}</div>
+                {(todo.deadline || todo.notes) && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                    {todo.deadline && (
+                      <span style={{ fontSize: 9, color: new Date(todo.deadline) < new Date() && !todo.isDone ? '#EF4444' : '#94A3B8' }}>
+                        📅 {new Date(todo.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    )}
+                    {todo.notes && <span style={{ fontSize: 9, color: '#CBD5E1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {todo.notes}</span>}
+                  </div>
+                )}
+              </div>
               {todo.priority && <div className="todo-priority-dot" style={{ background: priColors[todo.priority] || '#CBD5E1' }} />}
               <div className="todo-actions">
                 {!todo.isDone && <span className="todo-action-btn" onClick={() => convertToTask(todo._id)} title="Convert to task">📋</span>}

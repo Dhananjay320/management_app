@@ -12,6 +12,7 @@ export default function OTPLogin() {
   const [loading, setLoading] = useState(false);
   const { requestOTP, verifyOTP } = useAuth();
   const navigate = useNavigate();
+  const isForgotPassword = window.location.pathname === '/forgot-password';
 
   const handleRequestOTP = async (e) => {
     e.preventDefault();
@@ -33,8 +34,8 @@ export default function OTPLogin() {
     setError('');
     setLoading(true);
     try {
-      const data = await verifyOTP(email, code);
-      if (data.isFirstLogin) {
+      const data = await verifyOTP(email, code, isForgotPassword ? 'forgot_password' : undefined);
+      if (data.isFirstLogin || data.mustResetPassword || isForgotPassword) {
         navigate('/set-password');
       } else {
         navigate('/');
@@ -61,8 +62,8 @@ export default function OTPLogin() {
             <span className="link back-link" onClick={() => navigate('/login')}>← Back to Login</span>
             <div className="auth-card-header">
               <div className="auth-icon-box purple">🔒</div>
-              <h2>Login with OTP</h2>
-              <p>Enter your email to request a one-time password</p>
+              <h2>{isForgotPassword ? 'Forgot Password' : 'Login with OTP'}</h2>
+              <p>{isForgotPassword ? 'Enter your email to reset your password via OTP' : 'Enter your email to request a one-time password'}</p>
             </div>
             {error && <div className="auth-error">{error}</div>}
             <div className="form-group">

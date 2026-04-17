@@ -71,6 +71,13 @@ router.post('/mark-entry', protect, async (req, res) => {
       { upsert: true, new: true }
     );
 
+    // Auto-update user status per spec Section 6.5
+    if (user.settings?.autoStatusWFH !== false && verificationMethod === 'remote') {
+      await User.findByIdAndUpdate(user._id, { 'currentStatus.type': 'wfh', 'currentStatus.text': 'Working from Home' });
+    } else if (verificationMethod === 'wifi' || verificationMethod === 'gps') {
+      await User.findByIdAndUpdate(user._id, { 'currentStatus.type': 'in_office', 'currentStatus.text': 'In Office' });
+    }
+
     // Notify via socket
     const io = req.app.get('io');
     if (io) {
@@ -222,6 +229,15 @@ router.put('/leave/:id/approve', protect, requirePower('attendance', 'editRecord
 
     if (!leave) return res.status(404).json({ error: 'Leave not found.' });
 
+    // Auto-set status "On Leave" per spec Section 6.5
+    const leaveUser = await User.findById(leave.user._id || leave.user).select('settings');
+    if (leaveUser?.settings?.autoStatusLeave !== false) {
+      await User.findByIdAndUpdate(leave.user._id || leave.user, {
+        'currentStatus.type': 'on_leave',
+        'currentStatus.text': 'On Leave'
+      });
+    }
+
     // Create attendance records for leave days
     const start = new Date(leave.startDate);
     const end = new Date(leave.endDate);
@@ -293,6 +309,82 @@ router.get('/stats', protect, async (req, res) => {
       month: { present: monthRecords.length, total: monthWorkDays },
       pendingLeaves
     });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/attendance/no-entry-check — trigger no-entry alerts (called by scheduler or admin)
+// Per spec: at 10:30 AM, notify HR about employees who haven't marked entry
+router.post('/no-entry-check', protect, requirePower('attendance', 'forwardAlerts'), async (req, res) => {
+  try {
+    const date = todayStr();
+    const markedUserIds = (await Attendance.find({ date, entryTime: { $ne: null } }).select('user')).map(r => r.user.toString());
+
+    const unmarked = await User.find({
+      _id: { $nin: markedUserIds },
+      isActive: true,
+      workType: { $ne: 'full_remote' }
+    }).select('name email manager');
+
+    const io = req.app.get('io');
+
+    // Notify HR users (those with forwardAlerts power) and the requesting user
+    for (const emp of unmarked) {
+      // Notify the requesting admin (HR)
+      if (io) {
+        io.to(`user:${req.user._id}`).emit('notification:new', {
+          type: 'attendance',
+          title: 'No-entry alert',
+          message: `${emp.name} has not marked entry today.`
+        });
+      }
+    }
+
+    res.json({ unmarkedCount: unmarked.length, employees: unmarked.map(e => ({ _id: e._id, name: e.name, email: e.email })) });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/attendance/forward-alert — HR forwards no-entry alert to manager
+router.post('/forward-alert', protect, requirePower('attendance', 'forwardAlerts'), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const employee = await User.findById(userId).select('name manager');
+    if (!employee) return res.status(404).json({ error: 'Employee not found.' });
+
+    const io = req.app.get('io');
+    if (io && employee.manager) {
+      io.to(`user:${employee.manager}`).emit('notification:new', {
+        type: 'attendance',
+        title: 'No-entry alert forwarded',
+        message: `HR forwarded: ${employee.name} has not marked entry today. Please follow up.`
+      });
+    }
+
+    res.json({ ok: true, message: `Alert forwarded to ${employee.name}'s manager.` });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/attendance/manual-mark — admin manually marks entry for employee
+router.post('/manual-mark', protect, requirePower('attendance', 'markManually'), async (req, res) => {
+  try {
+    const { userId, date, entryTime, note } = req.body;
+    const record = await Attendance.findOneAndUpdate(
+      { user: userId, date: date || todayStr() },
+      {
+        entryTime: entryTime ? new Date(entryTime) : new Date(),
+        status: 'present',
+        verificationMethod: 'manual',
+        markedByAdmin: req.user._id,
+        adminNote: note || `Manually marked by ${req.user.name}`
+      },
+      { upsert: true, new: true }
+    );
+    res.json(record);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }

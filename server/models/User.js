@@ -103,6 +103,7 @@ const userSchema = new mongoose.Schema({
   // Auth state
   tempPassword: { type: String },
   isFirstLogin: { type: Boolean, default: true },
+  mustResetPassword: { type: Boolean, default: false },
   refreshToken: { type: String },
   failedLoginAttempts: { type: Number, default: 0 },
   isLocked: { type: Boolean, default: false },
@@ -150,6 +151,20 @@ const userSchema = new mongoose.Schema({
 
   // Calendar assignment
   calendarId: { type: mongoose.Schema.Types.ObjectId, ref: 'Calendar' },
+
+  // DND (Do Not Disturb)
+  dnd: {
+    active: { type: Boolean, default: false },
+    until: { type: Date },           // DND expires at this time
+    reason: { type: String }          // 'manual', 'meeting', 'focus'
+  },
+
+  // User status (rich, per spec Section 6.5)
+  currentStatus: {
+    type: { type: String, enum: ['online', 'in_meeting', 'on_leave', 'wfh', 'in_office', 'custom'], default: 'online' },
+    text: { type: String, default: '' },
+    expiresAt: { type: Date }
+  },
 
   // Onboarding
   onboardingComplete: { type: Boolean, default: false },

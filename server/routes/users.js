@@ -23,6 +23,19 @@ router.get('/', protect, requirePower('users', 'create'), async (req, res) => {
   }
 });
 
+// GET /api/v1/users/directory — lightweight user list for pickers (any authenticated user)
+router.get('/directory', protect, async (req, res) => {
+  try {
+    const users = await User.find({ isActive: true })
+      .select('name email avatar teams')
+      .populate('teams', 'name')
+      .sort({ name: 1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // GET /api/v1/users/:id
 router.get('/:id', protect, async (req, res) => {
   try {

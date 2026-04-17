@@ -66,6 +66,17 @@ const momSchema = new mongoose.Schema({
   // Tasks created from this MoM
   linkedTasks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
 
+  // Comments on published MoMs (spec: others can view, comment, react — cannot edit)
+  comments: [{
+    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    content: { type: String },
+    reactions: [{
+      emoji: String,
+      users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    }],
+    createdAt: { type: Date, default: Date.now }
+  }],
+
   isActive: { type: Boolean, default: true }
 }, {
   timestamps: true

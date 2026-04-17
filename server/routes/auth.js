@@ -28,13 +28,24 @@ router.post('/login', async (req, res) => {
         user.isLocked = true;
         user.lockedAt = new Date();
         await user.save();
-        // Notify admins via socket
+        // Notify security admins only (not broadcast)
         const io = req.app.get('io');
-        if (io) io.emit('notification:new', {
-          type: 'security',
-          title: 'Account Locked',
-          message: `${user.name}'s account has been locked after 5 failed login attempts.`
-        });
+        if (io) {
+          const securityAdmins = await User.find({
+            isActive: true,
+            $or: [
+              { role: 'main_admin' },
+              { 'powers.security.unlockAccounts': true }
+            ]
+          }).select('_id');
+          securityAdmins.forEach(admin => {
+            io.to(`user:${admin._id}`).emit('notification:new', {
+              type: 'security',
+              title: 'Account Locked',
+              message: `${user.name}'s account has been locked after 5 failed login attempts.`
+            });
+          });
+        }
         return res.status(403).json({ error: 'Account locked after 5 failed attempts. Contact your administrator.' });
       }
       await user.save();
@@ -126,8 +137,15 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     // OTP verified — issue tokens
+    const isForgotPassword = req.body.flow === 'forgot_password';
     user.failedLoginAttempts = 0;
     user.lastLogin = new Date();
+
+    // If forgot password flow, force password reset on next step
+    if (isForgotPassword) {
+      user.mustResetPassword = true;
+    }
+
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
     user.refreshToken = refreshToken;
@@ -143,7 +161,8 @@ router.post('/verify-otp', async (req, res) => {
       accessToken,
       refreshToken,
       user: userData,
-      isFirstLogin: user.isFirstLogin
+      isFirstLogin: user.isFirstLogin,
+      mustResetPassword: isForgotPassword || user.isFirstLogin
     });
   } catch (err) {
     console.error('OTP verify error:', err);
@@ -168,6 +187,7 @@ router.post('/set-password', protect, async (req, res) => {
     const user = await User.findById(req.user._id);
     user.password = newPassword;
     user.isFirstLogin = false;
+    user.mustResetPassword = false;
     user.tempPassword = undefined;
     await user.save();
 

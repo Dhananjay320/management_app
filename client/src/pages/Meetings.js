@@ -48,11 +48,24 @@ export default function MeetingsPage() {
     openMeeting(selected._id);
   };
 
+  const startMeeting = async () => {
+    if (!selected) return;
+    await api.post(`/meetings/${selected._id}/start`);
+    openMeeting(selected._id);
+    load();
+  };
+
   const endMeeting = async () => {
     if (!selected) return;
     await api.post(`/meetings/${selected._id}/end`);
     openMeeting(selected._id);
     load();
+  };
+
+  const addAttendee = async (userId) => {
+    if (!selected) return;
+    await api.post(`/meetings/${selected._id}/attendees`, { userIds: [userId] });
+    openMeeting(selected._id);
   };
 
   const openMom = (mom) => { setEditingMom(mom); setView('mom'); };
@@ -129,7 +142,7 @@ export default function MeetingsPage() {
 
       {/* Detail */}
       {view === 'detail' && selected && (
-        <MeetingDetail meeting={selected} user={user} onRespond={respond} onEnd={endMeeting}
+        <MeetingDetail meeting={selected} user={user} onRespond={respond} onStart={startMeeting} onEnd={endMeeting} onAddAttendee={addAttendee} allUsers={users}
           onOpenMom={openMom} onCreateMom={createMom} onRefresh={() => openMeeting(selected._id)} />
       )}
 
@@ -168,7 +181,18 @@ function MeetingDetail({ meeting, user, onRespond, onEnd, onOpenMom, onCreateMom
               </div>
             </div>
             {isUpcoming && isCreator && (
-              <button className="btn btn-danger" onClick={onEnd}>End Meeting</button>
+              {meeting.status === 'scheduled' && (
+                <button className="btn btn-primary-sm" onClick={onStart}>Start Meeting</button>
+              )}
+              {meeting.status === 'in_progress' && (
+                <button className="btn btn-danger" onClick={onEnd}>End Meeting</button>
+              )}
+              {meeting.status === 'scheduled' && (
+                <button className="btn btn-secondary" onClick={() => {
+                  const uid = prompt('Enter user ID to add as attendee:');
+                  if (uid) onAddAttendee(uid);
+                }}>+ Add Attendee</button>
+              )}
             )}
           </div>
 

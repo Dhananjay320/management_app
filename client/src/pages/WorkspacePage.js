@@ -202,10 +202,38 @@ export default function WorkspacePage() {
       )}
 
       {activeTab === 'files' && (
-        <div style={{ color: '#94A3B8', textAlign: 'center', padding: 40 }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>📎</div>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>File uploads coming in next phase</div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>Drag & drop with auto-compression</div>
+        <div>
+          <div style={{ marginBottom: 12 }}>
+            <label className="btn btn-primary-sm" style={{ cursor: 'pointer' }}>
+              📎 Upload File
+              <input type="file" style={{ display: 'none' }} onChange={async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                  await api.post(`/workspace/${selectedWs}/files`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                  });
+                  openWorkspace(selectedWs);
+                } catch {}
+                e.target.value = '';
+              }} />
+            </label>
+          </div>
+          {wsDetail?.files?.map(file => (
+            <div key={file._id} className="ws-doc-item">
+              <div className="ws-doc-icon">📎</div>
+              <div style={{ flex: 1 }}>
+                <div className="ws-doc-title">{file.originalName || file.name}</div>
+                <div className="ws-doc-meta">
+                  {file.uploadedBy?.name && `Uploaded by ${file.uploadedBy.name} · `}
+                  {file.originalSize ? `${(file.originalSize / 1024).toFixed(1)} KB` : ''}
+                </div>
+              </div>
+            </div>
+          ))}
+          {(!wsDetail?.files || wsDetail.files.length === 0) && <div style={{ color: '#CBD5E1', fontSize: 12, padding: 20, textAlign: 'center' }}>No files yet</div>}
         </div>
       )}
     </div>

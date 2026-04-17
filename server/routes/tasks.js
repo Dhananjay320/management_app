@@ -4,6 +4,21 @@ const Todo = require('../models/Todo');
 const Label = require('../models/Label');
 const { protect } = require('../middleware/auth');
 
+// Helper: recalculate parent task progress from subtask completion
+async function recalcParentProgress(parentId) {
+  const subtasks = await Task.find({ parentTask: parentId, isActive: true });
+  if (subtasks.length === 0) return;
+
+  const doneCount = subtasks.filter(s => s.status === 'done').length;
+  const avgProgress = Math.round(subtasks.reduce((sum, s) => sum + (s.progress || 0), 0) / subtasks.length);
+
+  // Use the higher of: done-ratio or average-progress
+  const doneRatio = Math.round((doneCount / subtasks.length) * 100);
+  const progress = Math.max(doneRatio, avgProgress);
+
+  await Task.findByIdAndUpdate(parentId, { progress });
+}
+
 // ─── TASKS ───
 
 // GET /api/v1/tasks — list tasks
@@ -146,6 +161,15 @@ router.put('/:id', protect, async (req, res) => {
       .populate('assignees', 'name email avatar')
       .populate('labels', 'name color type');
 
+    // If this is a subtask and status changed to done, recalculate parent progress
+    if (updated.parentTask && updates.status === 'done') {
+      await recalcParentProgress(updated.parentTask);
+    }
+    // If progress changed on subtask, also recalculate parent
+    if (updated.parentTask && updates.progress !== undefined) {
+      await recalcParentProgress(updated.parentTask);
+    }
+
     // Notify via socket
     const io = req.app.get('io');
     if (io) io.emit('task:updated', { taskId: updated._id, status: updated.status, progress: updated.progress });
@@ -163,6 +187,41 @@ router.delete('/:id', protect, async (req, res) => {
     // Also deactivate subtasks
     await Task.updateMany({ parentTask: req.params.id }, { isActive: false });
     res.json({ message: 'Task deleted.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/tasks/:id/attachments — upload file to task
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const taskUploadDir = path.join(__dirname, '..', 'uploads', 'tasks');
+if (!fs.existsSync(taskUploadDir)) fs.mkdirSync(taskUploadDir, { recursive: true });
+
+const taskStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, taskUploadDir),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+});
+const taskUpload = multer({ storage: taskStorage, limits: { fileSize: 50 * 1024 * 1024 } });
+
+router.post('/:id/attachments', protect, taskUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file.' });
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ error: 'Task not found.' });
+
+    task.attachments.push({
+      name: req.file.originalname,
+      path: req.file.path,
+      size: req.file.size,
+      mimeType: req.file.mimetype,
+      uploadedBy: req.user._id,
+      uploadedAt: new Date()
+    });
+    await task.save();
+    res.json(task.attachments);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }
@@ -250,6 +309,10 @@ router.get('/labels/list', protect, async (req, res) => {
 
 router.post('/labels', protect, async (req, res) => {
   try {
+    // Company labels — admin only
+    if (req.body.type === 'company' && !['main_admin', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only admins can create company labels.' });
+    }
     const label = await Label.create({ ...req.body, createdBy: req.user._id, user: req.body.type === 'personal' ? req.user._id : undefined });
     res.status(201).json(label);
   } catch (err) {

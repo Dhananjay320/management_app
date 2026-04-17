@@ -37,8 +37,8 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const verifyOTP = async (email, code) => {
-    const { data } = await api.post('/auth/verify-otp', { email, code });
+  const verifyOTP = async (email, code, flow) => {
+    const { data } = await api.post('/auth/verify-otp', { email, code, flow });
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
     setUser(data.user);
@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
 
   const setPassword = async (newPassword) => {
     await api.post('/auth/set-password', { newPassword });
-    setUser(prev => ({ ...prev, isFirstLogin: false }));
+    setUser(prev => ({ ...prev, isFirstLogin: false, mustResetPassword: false }));
   };
 
   const logout = async () => {

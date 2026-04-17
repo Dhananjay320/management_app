@@ -26,6 +26,10 @@ app.use(express.urlencoded({ extended: true }));
 // Connect to MongoDB
 connectDB();
 
+// Start deep search background worker
+const { startDeepSearchWorker } = require('./utils/deepSearchWorker');
+const { startSchedulers } = require('./utils/schedulers');
+
 // API Routes
 app.use('/api/v1/auth', require('./routes/auth'));
 app.use('/api/v1/users', require('./routes/users'));
@@ -37,6 +41,16 @@ app.use('/api/v1/messages', require('./routes/messages'));
 app.use('/api/v1/tasks', require('./routes/tasks'));
 app.use('/api/v1/workspace', require('./routes/workspace'));
 app.use('/api/v1/meetings', require('./routes/meetings'));
+app.use('/api/v1/email', require('./routes/email'));
+app.use('/api/v1/sticky-notes', require('./routes/stickyNotes'));
+app.use('/api/v1/activities', require('./routes/activities'));
+app.use('/api/v1/feed', require('./routes/feed'));
+app.use('/api/v1/salary', require('./routes/salary'));
+app.use('/api/v1/notifications', require('./routes/notifications'));
+app.use('/api/v1/search', require('./routes/search'));
+app.use('/api/v1/ai', require('./routes/ai'));
+app.use('/api/v1/onboarding', require('./routes/onboarding'));
+app.use('/api/v1/announcements', require('./routes/announcements'));
 
 // Health check
 app.get('/api/v1/health', (req, res) => {
@@ -94,4 +108,6 @@ app.set('onlineUsers', onlineUsers);
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Avadeti Team server running on port ${PORT}`);
+  startDeepSearchWorker(io);
+  startSchedulers(io);
 });

@@ -74,4 +74,30 @@ router.post('/force-logout/:id', protect, requirePower('security', 'forceLogout'
   }
 });
 
+// GET /api/v1/security/password-resets — history of password changes
+router.get('/password-resets', protect, requirePower('security', 'viewOTPs'), async (req, res) => {
+  try {
+    // Users who recently changed password (isFirstLogin=false, sorted by updatedAt)
+    // In a production system, we'd have a dedicated PasswordHistory collection.
+    // Here we use OTP records that were successfully used as password reset indicators.
+    const usedOTPs = await OTP.find({ isUsed: true })
+      .populate('userId', 'name email')
+      .sort({ usedAt: -1 })
+      .limit(50);
+
+    // Also get users who set password recently (changed from temp)
+    const recentPasswordChanges = await User.find({
+      isFirstLogin: false,
+      tempPassword: { $exists: false }
+    })
+      .select('name email updatedAt')
+      .sort({ updatedAt: -1 })
+      .limit(50);
+
+    res.json({ otpResets: usedOTPs, passwordChanges: recentPasswordChanges });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 module.exports = router;

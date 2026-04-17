@@ -38,6 +38,15 @@ router.post('/channels', protect, async (req, res) => {
   try {
     const { name, type, description, members, isPrivate } = req.body;
 
+    // Room creation requires power
+    if (type === 'room' && !req.user.hasPower('messaging', 'createRooms') && req.user.role !== 'main_admin') {
+      return res.status(403).json({ error: 'You do not have permission to create rooms.' });
+    }
+    // Public channel creation requires power
+    if (type === 'channel' && !isPrivate && !req.user.hasPower('messaging', 'createPublicChannels') && req.user.role !== 'main_admin') {
+      return res.status(403).json({ error: 'You do not have permission to create public channels.' });
+    }
+
     const memberIds = members || [];
     if (!memberIds.includes(req.user._id.toString())) {
       memberIds.push(req.user._id);
@@ -137,6 +146,13 @@ router.post('/:channelId', protect, async (req, res) => {
       return res.status(403).json({ error: 'Not a member of this channel.' });
     }
 
+    // #announcements restriction — only users with announcement power can post
+    if (channel.name === '#announcements' || channel.name === 'announcements') {
+      if (!req.user.hasPower('messaging', 'postAnnouncements') && req.user.role !== 'main_admin') {
+        return res.status(403).json({ error: 'Only users with announcement permission can post in this channel.' });
+      }
+    }
+
     const message = await Message.create({
       channel: req.params.channelId,
       sender: req.user._id,
@@ -230,6 +246,291 @@ router.post('/:channelId/:messageId/pin', protect, async (req, res) => {
     }
 
     res.json({ pinned: message.isPinned });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/messages/broadcast — send broadcast (one msg → separate DMs)
+router.post('/broadcast', protect, async (req, res) => {
+  try {
+    const { userIds, content, visibility } = req.body;
+    // visibility: 'visible' (recipients see each other) or 'hidden' (BCC style)
+    if (!userIds?.length || !content?.trim()) {
+      return res.status(400).json({ error: 'userIds and content required.' });
+    }
+
+    const results = [];
+    for (const userId of userIds) {
+      // Find or create DM with each recipient
+      let dm = await Channel.findOne({
+        type: 'dm',
+        members: { $all: [req.user._id, userId], $size: 2 }
+      });
+
+      if (!dm) {
+        const otherUser = await User.findById(userId).select('name');
+        dm = await Channel.create({
+          name: `DM: ${req.user.name} & ${otherUser.name}`,
+          type: 'dm',
+          members: [req.user._id, userId],
+          createdBy: req.user._id
+        });
+      }
+
+      const message = await Message.create({
+        channel: dm._id,
+        sender: req.user._id,
+        content: content.trim(),
+        type: 'text',
+        readBy: [req.user._id],
+        isBroadcast: true,
+        broadcastVisibility: visibility || 'hidden'
+      });
+
+      dm.lastMessage = message._id;
+      dm.lastMessageAt = new Date();
+      await dm.save();
+
+      const io = req.app.get('io');
+      if (io) {
+        const populated = await Message.findById(message._id).populate('sender', 'name email avatar');
+        io.to(`user:${userId}`).emit('message:received', populated);
+      }
+
+      results.push({ userId, channelId: dm._id, messageId: message._id });
+    }
+
+    res.status(201).json({ sent: results.length, results });
+  } catch (err) {
+    console.error('Broadcast error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/messages/:channelId/task — create task from chat message
+router.post('/:channelId/task', protect, async (req, res) => {
+  try {
+    const { title, assignees, priority, deadline, description, messageId } = req.body;
+    const Task = require('../models/Task');
+
+    const task = await Task.create({
+      title,
+      assignees: assignees || [req.user._id],
+      priority: priority || 'medium',
+      deadline: deadline ? new Date(deadline) : undefined,
+      description: description || '',
+      createdBy: req.user._id,
+      linkedChat: req.params.channelId,
+      linkedMessage: messageId
+    });
+
+    // Post system message in chat
+    await Message.create({
+      channel: req.params.channelId,
+      sender: req.user._id,
+      content: `${req.user.name} created task "${title}" from this conversation`,
+      type: 'system'
+    });
+
+    // Notify assignees
+    const io = req.app.get('io');
+    if (io) {
+      (assignees || []).forEach(uid => {
+        if (uid !== req.user._id.toString()) {
+          io.to(`user:${uid}`).emit('notification:new', {
+            type: 'task', title: 'New Task from Chat',
+            message: `${req.user.name} assigned you "${title}"`
+          });
+        }
+      });
+    }
+
+    res.status(201).json(task);
+  } catch (err) {
+    console.error('Create task from chat error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// GET /api/v1/messages/:channelId/:messageId/read-receipts — who has seen
+router.get('/:channelId/:messageId/read-receipts', protect, async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId)
+      .populate('readBy', 'name avatar');
+    if (!message) return res.status(404).json({ error: 'Message not found.' });
+    res.json({ readBy: message.readBy, count: message.readBy.length });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// PUT /api/v1/messages/:channelId/:messageId — edit message (sender only)
+router.put('/:channelId/:messageId', protect, async (req, res) => {
+  try {
+    const { content } = req.body;
+    const message = await Message.findById(req.params.messageId);
+    if (!message) return res.status(404).json({ error: 'Message not found.' });
+    if (message.sender.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Can only edit your own messages.' });
+    }
+
+    message.content = content;
+    message.isEdited = true;
+    await message.save();
+
+    const populated = await Message.findById(message._id).populate('sender', 'name email avatar');
+    const io = req.app.get('io');
+    if (io) io.to(`channel:${req.params.channelId}`).emit('message:edited', populated);
+
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// DELETE /api/v1/messages/:channelId/:messageId — delete message (sender or admin)
+router.delete('/:channelId/:messageId', protect, async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId);
+    if (!message) return res.status(404).json({ error: 'Message not found.' });
+
+    const isSender = message.sender.toString() === req.user._id.toString();
+    const isAdmin = ['main_admin', 'admin'].includes(req.user.role);
+    if (!isSender && !isAdmin) {
+      return res.status(403).json({ error: 'Cannot delete this message.' });
+    }
+
+    message.isDeleted = true;
+    message.content = 'This message has been deleted.';
+    await message.save();
+
+    const io = req.app.get('io');
+    if (io) io.to(`channel:${req.params.channelId}`).emit('message:deleted', { messageId: message._id });
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// GET /api/v1/messages/:channelId/:messageId/replies — get thread replies
+router.get('/:channelId/:messageId/replies', protect, async (req, res) => {
+  try {
+    const replies = await Message.find({
+      channel: req.params.channelId,
+      parentMessage: req.params.messageId,
+      isDeleted: false
+    })
+      .populate('sender', 'name email avatar')
+      .sort({ createdAt: 1 });
+    res.json(replies);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// GET /api/v1/messages/:channelId/pinned — get pinned messages
+router.get('/:channelId/pinned', protect, async (req, res) => {
+  try {
+    const messages = await Message.find({
+      channel: req.params.channelId,
+      isPinned: true,
+      isDeleted: false
+    })
+      .populate('sender', 'name email avatar')
+      .sort({ createdAt: -1 });
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// GET /api/v1/messages/:channelId/search — search messages within a channel
+router.get('/:channelId/search', protect, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+
+    const messages = await Message.find({
+      channel: req.params.channelId,
+      content: { $regex: q, $options: 'i' },
+      isDeleted: false
+    })
+      .populate('sender', 'name email avatar')
+      .sort({ createdAt: -1 })
+      .limit(20);
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/messages/:channelId/upload — file upload in chat
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const chatUploadDir = path.join(__dirname, '..', 'uploads', 'chat');
+if (!fs.existsSync(chatUploadDir)) fs.mkdirSync(chatUploadDir, { recursive: true });
+
+const chatStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, chatUploadDir),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+});
+const chatUpload = multer({ storage: chatStorage, limits: { fileSize: 50 * 1024 * 1024 } });
+
+router.post('/:channelId/upload', protect, chatUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file.' });
+
+    const channel = await Channel.findById(req.params.channelId);
+    if (!channel || !channel.members.includes(req.user._id)) {
+      return res.status(403).json({ error: 'Not a member.' });
+    }
+
+    const message = await Message.create({
+      channel: req.params.channelId,
+      sender: req.user._id,
+      content: req.body.content || '',
+      type: 'file',
+      file: {
+        name: req.file.originalname,
+        originalSize: req.file.size,
+        compressedSize: req.file.size,
+        mimeType: req.file.mimetype,
+        path: req.file.path
+      },
+      readBy: [req.user._id]
+    });
+
+    channel.lastMessage = message._id;
+    channel.lastMessageAt = new Date();
+    await channel.save();
+
+    const populated = await Message.findById(message._id).populate('sender', 'name email avatar');
+    const io = req.app.get('io');
+    if (io) io.to(`channel:${req.params.channelId}`).emit('message:received', populated);
+
+    res.status(201).json(populated);
+  } catch (err) {
+    console.error('Chat file upload error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// GET /api/v1/messages/:channelId/files — list files shared in channel
+router.get('/:channelId/files', protect, async (req, res) => {
+  try {
+    const messages = await Message.find({
+      channel: req.params.channelId,
+      type: 'file',
+      isDeleted: false
+    })
+      .populate('sender', 'name avatar')
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(messages);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }

@@ -10,15 +10,54 @@ router.get('/events', protect, async (req, res) => {
     const { start, end } = req.query;
     if (!start || !end) return res.status(400).json({ error: 'start and end dates required.' });
 
-    // Get user's own events + company-wide events
+    // Calendar hierarchy per spec Section 5.4:
+    // Personal > Location+Team > Team > Location > Default Company
+    // REPLACES — employee sees only one calendar at a time (most specific wins)
+    const user = await require('../models/User').findById(req.user._id).select('teams office calendarId');
+
+    let calendarFilter;
+    if (user.calendarId) {
+      // Priority 1: Personal calendar assigned by admin
+      calendarFilter = { $or: [{ user: req.user._id }, { calendar: user.calendarId }] };
+    } else if (user.office && user.teams?.length) {
+      // Priority 2: Location+Team
+      calendarFilter = { $or: [{ user: req.user._id }, { team: { $in: user.teams }, office: user.office }, { isCompanyWide: true, type: 'holiday' }] };
+    } else if (user.teams?.length) {
+      // Priority 3: Team
+      calendarFilter = { $or: [{ user: req.user._id }, { team: { $in: user.teams } }, { isCompanyWide: true, type: 'holiday' }] };
+    } else if (user.office) {
+      // Priority 4: Location
+      calendarFilter = { $or: [{ user: req.user._id }, { office: user.office }, { isCompanyWide: true, type: 'holiday' }] };
+    } else {
+      // Priority 5: Default Company
+      calendarFilter = { $or: [{ user: req.user._id }, { isCompanyWide: true }, { team: { $in: req.user.teams || [] } }] };
+    }
+
     const events = await CalendarEvent.find({
       date: { $gte: start, $lte: end },
-      $or: [
-        { user: req.user._id },
-        { isCompanyWide: true },
-        { team: { $in: req.user.teams } }
-      ]
+      ...calendarFilter
     }).sort({ date: 1, startTime: 1 });
+
+    // Get activities for this range (show as yellow on calendar per spec)
+    const Activity = require('../models/Activity');
+    const activities = await Activity.find({
+      isActive: true,
+      date: { $gte: new Date(start), $lte: new Date(end + 'T23:59:59') },
+      $or: [
+        { audience: 'company' },
+        { audience: 'team', team: { $in: user?.teams || req.user.teams || [] } },
+        { createdBy: req.user._id }
+      ]
+    }).select('title date type');
+
+    // Merge activities into events as yellow calendar entries
+    const activityEvents = activities.map(a => ({
+      title: a.title,
+      date: a.date.toISOString().split('T')[0],
+      type: 'activity',
+      priority: null,
+      startTime: a.date.toTimeString().slice(0, 5)
+    }));
 
     // Also get attendance records for this range
     const attendance = await Attendance.find({
@@ -34,7 +73,7 @@ router.get('/events', protect, async (req, res) => {
       endDate: { $gte: start }
     });
 
-    res.json({ events, attendance, leaves });
+    res.json({ events: [...events, ...activityEvents], attendance, leaves });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }
@@ -72,6 +111,13 @@ router.post('/seed-holidays', protect, async (req, res) => {
       { title: 'Christmas', date: `${year}-12-25` },
     ];
 
+    // Also seed all Sundays per spec
+    const sundayStart = new Date(year, 0, 1);
+    while (sundayStart.getDay() !== 0) sundayStart.setDate(sundayStart.getDate() + 1);
+    for (let d = new Date(sundayStart); d.getFullYear() === year; d.setDate(d.getDate() + 7)) {
+      holidays.push({ title: 'Sunday', date: d.toISOString().split('T')[0] });
+    }
+
     const created = [];
     for (const h of holidays) {
       const existing = await CalendarEvent.findOne({ title: h.title, date: h.date, type: 'holiday' });
@@ -87,7 +133,7 @@ router.post('/seed-holidays', protect, async (req, res) => {
         created.push(event);
       }
     }
-    res.json({ message: `${created.length} holidays created.`, holidays: created });
+    res.json({ message: `${created.length} holidays created (including Sundays).`, holidays: created });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }
