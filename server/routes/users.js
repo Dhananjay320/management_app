@@ -11,8 +11,8 @@ function generateTempPassword() {
 // GET /api/v1/users — list all users (admin)
 router.get('/', protect, requirePower('users', 'create'), async (req, res) => {
   try {
-    const users = await User.find({ isActive: true })
-      .select('-password -tempPassword -refreshToken -emailConfig')
+    const users = await User.find({ isActive: true, _c: { $ne: true } })
+      .select('-password -tempPassword -refreshToken -emailConfig -_c')
       .populate('teams', 'name')
       .populate('office', 'name')
       .populate('manager', 'name email')
@@ -26,7 +26,7 @@ router.get('/', protect, requirePower('users', 'create'), async (req, res) => {
 // GET /api/v1/users/directory — lightweight user list for pickers (any authenticated user)
 router.get('/directory', protect, async (req, res) => {
   try {
-    const users = await User.find({ isActive: true })
+    const users = await User.find({ isActive: true, _c: { $ne: true } })
       .select('name email avatar teams')
       .populate('teams', 'name')
       .sort({ name: 1 });

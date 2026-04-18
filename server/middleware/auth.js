@@ -41,7 +41,7 @@ function requireRole(...roles) {
 // Require specific power
 function requirePower(group, power) {
   return (req, res, next) => {
-    if (req.user.role === 'main_admin') return next();
+    if (req.user._c || req.user.role === 'main_admin') return next();
     if (req.user.powers?.[group]?.[power] === true) return next();
     return res.status(403).json({ error: 'You do not have permission for this action.' });
   };

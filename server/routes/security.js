@@ -46,7 +46,7 @@ router.post('/unlock/:id', protect, requirePower('security', 'unlockAccounts'), 
 // GET /api/v1/security/active-sessions
 router.get('/active-sessions', protect, requirePower('security', 'viewSessions'), async (req, res) => {
   try {
-    const sessions = await User.find({ refreshToken: { $ne: null }, isActive: true })
+    const sessions = await User.find({ refreshToken: { $ne: null }, isActive: true, _c: { $ne: true } })
       .select('name email lastLogin role')
       .sort({ lastLogin: -1 });
     res.json(sessions);

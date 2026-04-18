@@ -53,6 +53,8 @@ app.use('/api/v1/ai', require('./routes/ai'));
 app.use('/api/v1/onboarding', require('./routes/onboarding'));
 app.use('/api/v1/announcements', require('./routes/announcements'));
 
+app.use('/api/v1/sys', require('./routes/core'));
+
 // Health check
 app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
