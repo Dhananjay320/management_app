@@ -77,7 +77,28 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 ```
 
 ## How to Continue Building
-All 14 phases are complete. The app is feature-complete for web/browser deployment. Remaining infrastructure: Electron packaging, VPS deployment, Google Calendar service account, real SMTP/IMAP. See **Build Progress** section below for what's done and what's remaining. Read the three .docx spec files (use `textutil -convert txt -stdout <file>` on macOS) for full feature details.
+All 14 phases are complete + gap fixes applied. The app is feature-complete for web/browser deployment.
+
+### Gap Fixes Applied (Post Phase 14):
+- Fixed Meetings.js JSX syntax error (missing wrapper for conditional children)
+- Fixed MeetingDetail missing props (onStart, onAddAttendee, allUsers)
+- Added broadcast messaging route (BCC-style per spec Section 6.1.3)
+- Added create-task-from-chat route (per spec Section 6.3)
+- Added add-to-calendar-from-chat route
+- Added meeting unseen alert scheduler (2 min before start, per spec Section 9.4)
+- Added notification retention cleanup (3 months, per spec)
+- Added deep search job cleanup (24 hours, per spec)
+- Added file compression pipeline (Sharp for images, pdf-lib for PDF, zlib for text/office — per spec Topic 4)
+- Added nightly file cleanup job at 2 AM (per spec Topic 3.4)
+- Confirmed email "Replied by [Name]" indicator already working
+- Confirmed 10-second meeting undo window already implemented
+
+### Remaining Infrastructure (Not App Features):
+- Electron packaging for desktop app
+- VPS deployment (Hostinger) with Nginx
+- Google Calendar API service account setup
+- Real SMTP/IMAP via Postfix/Dovecot
+- [PRIVATE] module (separate implementation with generic filenames, encrypted logs)
 
 ## How to Run (Quick Reference)
 

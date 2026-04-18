@@ -29,6 +29,7 @@ connectDB();
 // Start deep search background worker
 const { startDeepSearchWorker } = require('./utils/deepSearchWorker');
 const { startSchedulers } = require('./utils/schedulers');
+const { startCleanupJob } = require('./utils/cleanupJob');
 
 // API Routes
 app.use('/api/v1/auth', require('./routes/auth'));
@@ -110,4 +111,5 @@ server.listen(PORT, () => {
   console.log(`Avadeti Team server running on port ${PORT}`);
   startDeepSearchWorker(io);
   startSchedulers(io);
+  startCleanupJob();
 });

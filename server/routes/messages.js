@@ -546,4 +546,114 @@ router.get('/:channelId/members', protect, async (req, res) => {
   }
 });
 
+// POST /api/v1/messages/broadcast — send broadcast message (BCC-style per spec Section 6.1.3)
+router.post('/broadcast/send', protect, async (req, res) => {
+  try {
+    const { content, recipientIds, visibility = 'hidden' } = req.body;
+    if (!content || !recipientIds?.length) return res.status(400).json({ error: 'Content and recipients required.' });
+
+    const results = [];
+    for (const recipientId of recipientIds) {
+      // Create or get DM with each recipient
+      let dm = await Channel.findOne({ type: 'dm', members: { $all: [req.user._id, recipientId], $size: 2 } });
+      if (!dm) {
+        const otherUser = await User.findById(recipientId).select('name');
+        dm = await Channel.create({
+          name: `DM: ${req.user.name} & ${otherUser.name}`,
+          type: 'dm', members: [req.user._id, recipientId], createdBy: req.user._id
+        });
+      }
+
+      const msg = await Message.create({
+        channel: dm._id, sender: req.user._id, content,
+        type: 'text', readBy: [req.user._id],
+        isBroadcast: true, broadcastVisibility: visibility
+      });
+
+      dm.lastMessage = msg._id;
+      dm.lastMessageAt = new Date();
+      await dm.save();
+
+      const io = req.app.get('io');
+      if (io) {
+        const populated = await Message.findById(msg._id).populate('sender', 'name email avatar');
+        io.to(`user:${recipientId}`).emit('message:received', populated);
+      }
+      results.push({ recipientId, messageId: msg._id });
+    }
+
+    res.status(201).json({ message: `Broadcast sent to ${results.length} recipients.`, results });
+  } catch (err) {
+    console.error('Broadcast error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/messages/:channelId/:messageId/create-task — create task from chat message
+router.post('/:channelId/:messageId/create-task', protect, async (req, res) => {
+  try {
+    const { title, priority, deadline, assignees, description } = req.body;
+    const message = await Message.findById(req.params.messageId).populate('sender', 'name');
+    if (!message) return res.status(404).json({ error: 'Message not found.' });
+
+    const Task = require('../models/Task');
+    const task = await Task.create({
+      title: title || message.content.substring(0, 100),
+      description: description || `Created from chat message by ${message.sender?.name}: "${message.content}"`,
+      assignees: assignees?.length ? assignees : [req.user._id],
+      priority: priority || 'medium',
+      deadline: deadline ? new Date(deadline) : undefined,
+      createdBy: req.user._id,
+      sourceType: 'chat',
+      sourceId: message._id,
+      linkedChat: req.params.channelId,
+      activity: [{ user: req.user._id, action: 'created', detail: 'Created from chat message' }]
+    });
+
+    // Notify assignees
+    const io = req.app.get('io');
+    if (io) {
+      (assignees || []).forEach(uid => {
+        if (uid.toString() !== req.user._id.toString()) {
+          io.to(`user:${uid}`).emit('notification:new', {
+            type: 'task', title: 'New task from chat',
+            message: `${req.user.name} created task: "${task.title}"`
+          });
+        }
+      });
+    }
+
+    const populated = await Task.findById(task._id).populate('assignees', 'name email avatar');
+    res.status(201).json(populated);
+  } catch (err) {
+    console.error('Create task from chat error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/messages/:channelId/:messageId/add-to-calendar — add message as calendar event
+router.post('/:channelId/:messageId/add-to-calendar', protect, async (req, res) => {
+  try {
+    const { date, startTime, title } = req.body;
+    const message = await Message.findById(req.params.messageId);
+    if (!message) return res.status(404).json({ error: 'Message not found.' });
+
+    const CalendarEvent = require('../models/CalendarEvent');
+    const event = await CalendarEvent.create({
+      title: title || message.content.substring(0, 100),
+      type: 'custom',
+      date: date || new Date().toISOString().split('T')[0],
+      startTime: startTime || '09:00',
+      user: req.user._id,
+      createdBy: req.user._id,
+      sourceType: 'chat',
+      sourceId: message._id
+    });
+
+    res.status(201).json(event);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 module.exports = router;

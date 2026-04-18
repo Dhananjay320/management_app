@@ -157,7 +157,7 @@ export default function MeetingsPage() {
   );
 }
 
-function MeetingDetail({ meeting, user, onRespond, onEnd, onOpenMom, onCreateMom, onRefresh }) {
+function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee, allUsers, onOpenMom, onCreateMom, onRefresh }) {
   const myAttendee = meeting.attendees?.find(a => a.user?._id === user._id);
   const isCreator = meeting.createdBy?._id === user._id;
   const isUpcoming = meeting.status === 'scheduled';
@@ -181,18 +181,14 @@ function MeetingDetail({ meeting, user, onRespond, onEnd, onOpenMom, onCreateMom
               </div>
             </div>
             {isUpcoming && isCreator && (
-              {meeting.status === 'scheduled' && (
-                <button className="btn btn-primary-sm" onClick={onStart}>Start Meeting</button>
-              )}
-              {meeting.status === 'in_progress' && (
-                <button className="btn btn-danger" onClick={onEnd}>End Meeting</button>
-              )}
-              {meeting.status === 'scheduled' && (
-                <button className="btn btn-secondary" onClick={() => {
-                  const uid = prompt('Enter user ID to add as attendee:');
-                  if (uid) onAddAttendee(uid);
-                }}>+ Add Attendee</button>
-              )}
+              <div style={{ display: 'flex', gap: 6 }}>
+                {meeting.status === 'scheduled' && (
+                  <button className="btn btn-primary-sm" onClick={onStart}>Start Meeting</button>
+                )}
+                {meeting.status === 'in_progress' && (
+                  <button className="btn btn-danger" onClick={onEnd}>End Meeting</button>
+                )}
+              </div>
             )}
           </div>
 

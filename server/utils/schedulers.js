@@ -117,10 +117,83 @@ function startWrapUpReminderScheduler(io) {
   }, 60000); // Check every minute
 }
 
+// ─── Meeting Unseen Alert Scheduler ───
+// Per spec Section 9.4: If attendee hasn't seen invite 2 min before start, notify organizer
+function startMeetingUnseenAlertScheduler(io) {
+  const { Meeting } = require('../models/Meeting');
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      const twoMinLater = new Date(now.getTime() + 2 * 60 * 1000);
+      const today = now.toISOString().split('T')[0];
+      const timeNow = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const timeTarget = `${String(twoMinLater.getHours()).padStart(2, '0')}:${String(twoMinLater.getMinutes()).padStart(2, '0')}`;
+
+      const meetings = await Meeting.find({
+        date: { $gte: new Date(today), $lte: new Date(today + 'T23:59:59') },
+        startTime: timeTarget,
+        status: 'scheduled',
+        isActive: true
+      }).populate('attendees.user', 'name').populate('createdBy', 'name');
+
+      for (const meeting of meetings) {
+        const unseen = meeting.attendees.filter(a => !a.hasSeen && a.user._id.toString() !== meeting.createdBy._id.toString());
+        if (unseen.length > 0 && io) {
+          const names = unseen.map(a => a.user.name).join(', ');
+          io.to(`user:${meeting.createdBy._id}`).emit('notification:new', {
+            type: 'meeting',
+            title: 'Unseen Meeting Invite',
+            message: `Heads up — ${names} hasn't seen the invite for "${meeting.title}" yet. You may want to reach out directly.`
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Meeting unseen alert error:', err);
+    }
+  }, 60000);
+}
+
+// ─── Notification Retention Cleanup ───
+// Per spec: 3 months then auto-deleted
+function startNotificationCleanupScheduler() {
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      // Run once daily at 3 AM
+      if (now.getHours() !== 3 || now.getMinutes() !== 0) return;
+      const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const result = await Notification.deleteMany({ createdAt: { $lt: threeMonthsAgo }, type: { $ne: 'emergency' } });
+      if (result.deletedCount > 0) console.log(`[Cleanup] Deleted ${result.deletedCount} old notifications`);
+    } catch (err) {
+      console.error('Notification cleanup error:', err);
+    }
+  }, 60000);
+}
+
+// ─── Deep Search Result Cleanup ───
+// Per spec: 24 hours then auto-deleted
+function startDeepSearchCleanupScheduler() {
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      if (now.getHours() !== 3 || now.getMinutes() !== 5) return;
+      const DeepSearchJob = require('../models/DeepSearchJob');
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const result = await DeepSearchJob.deleteMany({ createdAt: { $lt: oneDayAgo }, status: { $in: ['complete', 'cancelled'] } });
+      if (result.deletedCount > 0) console.log(`[Cleanup] Deleted ${result.deletedCount} old deep search jobs`);
+    } catch (err) {
+      console.error('Deep search cleanup error:', err);
+    }
+  }, 60000);
+}
+
 function startSchedulers(io) {
   startNoEntryAlertScheduler(io);
   startWrapUpReminderScheduler(io);
-  console.log('Attendance schedulers started (no-entry alerts + wrap-up reminders)');
+  startMeetingUnseenAlertScheduler(io);
+  startNotificationCleanupScheduler();
+  startDeepSearchCleanupScheduler();
+  console.log('All schedulers started (attendance, meeting alerts, retention cleanup)');
 }
 
 module.exports = { startSchedulers };
