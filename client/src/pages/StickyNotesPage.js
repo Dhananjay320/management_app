@@ -26,7 +26,7 @@ function formatTime(dateStr) {
 export default function StickyNotesPage() {
   const { user } = useAuth();
   const [notes, setNotes] = useState([]);
-  const [editingId, setEditingId] = useState(null);
+  const [, setEditingId] = useState(null);
   const [colorPickerId, setColorPickerId] = useState(null);
   const [expandedNote, setExpandedNote] = useState(null); // Full-window view
 

@@ -36,7 +36,7 @@ const POWER_GROUPS = [
 
 export default function CreateUser() {
   const navigate = useNavigate();
-  const [teams, setTeams] = useState([]);
+  const [, setTeams] = useState([]);
   const [offices, setOffices] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);

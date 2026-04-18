@@ -75,7 +75,7 @@ export default function ActivityPage() {
 
   const rsvp = async (activityId, response) => {
     try {
-      const { data } = await api.post(`/activities/${activityId}/rsvp`, { response });
+      await api.post(`/activities/${activityId}/rsvp`, { response });
       setActivities(prev => prev.map(a => {
         if (a._id !== activityId) return a;
         const updated = { ...a };

@@ -28,7 +28,7 @@ export default function SalaryPage() {
       setRecords(data);
       if (data.length > 0 && !selectedRecord) setSelectedRecord(data[0]);
     } catch {}
-  }, [year]);
+  }, [year, selectedRecord]);
 
   const loadDisputes = useCallback(async () => {
     try {

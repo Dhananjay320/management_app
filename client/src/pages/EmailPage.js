@@ -84,7 +84,7 @@ export default function EmailPage() {
         setComposeData(prev => ({ ...prev, accountId: data[0]._id }));
       }
     } catch {}
-  }, []);
+  }, [composeData.accountId]);
 
   const loadEmails = useCallback(async () => {
     setLoading(true);
@@ -171,9 +171,7 @@ export default function EmailPage() {
     } catch {}
   };
 
-  const markAsTask = async () => {
-    // Placeholder for mark-as-task integration
-  };
+  // markAsTask placeholder removed — will be added when integration is ready
 
   // ─── Compose ───
   const openCompose = (mode = 'new', email = null) => {

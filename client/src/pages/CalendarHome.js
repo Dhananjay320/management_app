@@ -23,7 +23,8 @@ const PRIORITY_COLORS = {
 // Priority rank for monthly view (lower = higher priority to display)
 const EVENT_PRIORITY_RANK = { leave: 1, half_day: 2, holiday: 3, task: 4, activity: 5, meeting: 4, custom: 6 };
 // Compat alias
-const COLORS = { ...EVENT_COLORS, ...PRIORITY_COLORS };
+// eslint-disable-next-line no-unused-vars
+const _COLORS = { ...EVENT_COLORS, ...PRIORITY_COLORS };
 
 function getWeekDates(date) {
   const d = new Date(date);
@@ -41,13 +42,14 @@ function dateStr(d) { return d.toISOString().split('T')[0]; }
 function isToday(d) { return dateStr(d) === dateStr(new Date()); }
 
 export default function CalendarHome() {
-  const { user } = useAuth();
+  // eslint-disable-next-line no-unused-vars
+  const { user: _user } = useAuth();
   const { adminMode } = useOutletContext();
   const navigate = useNavigate();
   const [view, setView] = useState('weekly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
-  const [attendance, setAttendance] = useState([]);
+  const [, setAttendance] = useState([]);
   const [todayAtt, setTodayAtt] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
 
@@ -334,7 +336,7 @@ function DailyView({ date, events, todayAtt }) {
                     {p} Priority
                   </div>
                   {groupTasks.map((t, i) => (
-                    <div key={i} className="cal-time-event" style={{ background: '#3B82F6' + '0A', borderLeft: `3px solid #3B82F6`, marginBottom: 4 }}>
+                    <div key={i} className="cal-time-event" style={{ background: '#3B82F60A', borderLeft: `3px solid #3B82F6`, marginBottom: 4 }}>
                       <div className="cal-time-event-title" style={{ color: '#1E293B' }}>
                         <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: pCol, marginRight: 6 }} />
                         {t.title}

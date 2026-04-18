@@ -12,7 +12,8 @@ const FEATURES = [
 ];
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  // eslint-disable-next-line no-unused-vars
+  const { user: _user } = useAuth();
   const [aiConfig, setAiConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 

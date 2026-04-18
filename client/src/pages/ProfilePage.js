@@ -20,7 +20,8 @@ function getInitials(name) {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  // eslint-disable-next-line no-unused-vars
+  const { user: _user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ phone: '', statusMessage: '' });

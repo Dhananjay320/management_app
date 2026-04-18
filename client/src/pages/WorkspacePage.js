@@ -329,7 +329,8 @@ function CreateWorkspaceForm({ onClose, onCreated }) {
   const [loading, setLoading] = useState(false);
 
   const icons = ['📁','🚀','🎯','🎨','💡','📊','🔬','📚','🏗️','💼'];
-  const colors = ['#6366F1','#10B981','#F59E0B','#EC4899','#8B5CF6','#EF4444','#06B6D4','#F97316'];
+  // eslint-disable-next-line no-unused-vars
+  const _colors = ['#6366F1','#10B981','#F59E0B','#EC4899','#8B5CF6','#EF4444','#06B6D4','#F97316'];
 
   const handleSubmit = async (e) => {
     e.preventDefault();

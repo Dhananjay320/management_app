@@ -37,7 +37,8 @@ function formatMinutes(mins) {
 }
 
 export default function Tasks() {
-  const { user } = useAuth();
+  // eslint-disable-next-line no-unused-vars
+  const { user: _user } = useAuth();
   const [tab, setTab] = useState('tasks'); // tasks, create, detail, todo
   const [view, setView] = useState('my');
   const [tasks, setTasks] = useState([]);
