@@ -1,0 +1,250 @@
+/* ============================================================================
+   Meetings restyle (Session 20).
+   Layered on styles/meetings.css — covers hero header, list card polish,
+   MoM sticky save bar, deep-link flash, mobile stack.
+   ============================================================================ */
+
+.ad-mtg {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Hero header ──────────────────────────────────────────────────────── */
+.ad-mtg__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 4px 4px 8px;
+}
+
+.ad-mtg__head-left { flex: 1; min-width: 240px; }
+
+.ad-mtg__title {
+  margin: 0;
+  font-size: var(--ad-fs-32, 32px);
+  font-weight: 700;
+  letter-spacing: var(--ad-ls-display, -0.02em);
+  color: var(--ad-ink, #0F172A);
+  line-height: 1.1;
+}
+
+.ad-mtg__sub {
+  margin: 6px 0 0;
+  font-size: var(--ad-fs-13, 13px);
+  color: var(--ad-ink-2, #475569);
+}
+
+.ad-mtg__head-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Back button (view !== 'list') */
+.ad-mtg__back {
+  padding: 8px 14px;
+  border-radius: var(--ad-r-btn, 10px);
+  background: transparent;
+  border: 1px solid var(--ad-line, rgba(255,255,255,0.12));
+  color: var(--ad-ink-2, #475569);
+  font-size: var(--ad-fs-13, 13px);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--ad-dur, 0.18s) var(--ad-ease, ease);
+}
+.ad-mtg__back:hover {
+  background: var(--ad-glass-hover, rgba(0,0,0,0.04));
+  color: var(--ad-ink, #0F172A);
+}
+
+/* ─── Loading / empty states ─────────────────────────────────────────── */
+.ad-mtg__state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--ad-ink-3, #94A3B8);
+  font-size: var(--ad-fs-13, 13px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ad-mtg__empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--ad-r-md, 10px);
+  background: rgba(99, 102, 241, 0.12);
+  color: #A5B4FC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ad-mtg__empty-title {
+  font-size: var(--ad-fs-14, 14px);
+  font-weight: 600;
+  color: var(--ad-ink, #0F172A);
+  margin-top: 4px;
+}
+
+.ad-mtg__empty-sub {
+  font-size: var(--ad-fs-12, 12px);
+  color: var(--ad-ink-3, #94A3B8);
+}
+
+/* ─── List card polish ─────────────────────────────────────────────────── */
+.ad-mtg-row {
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.25, 1), box-shadow 0.2s;
+}
+.ad-mtg-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
+}
+
+/* ─── Deep-link flash ──────────────────────────────────────────────────── */
+.ad-mtg-row--flash { animation: ad-mtg-flash 1.8s ease-out; }
+
+@keyframes ad-mtg-flash {
+  0%   {
+    outline: 2px solid rgba(139, 92, 246, 0);
+    outline-offset: 4px;
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+  }
+  20%  {
+    outline: 2px solid rgba(139, 92, 246, 0.85);
+    outline-offset: 4px;
+    box-shadow: 0 0 28px rgba(139, 92, 246, 0.5);
+    transform: scale(1.008);
+  }
+  100% {
+    outline: 2px solid rgba(139, 92, 246, 0);
+    outline-offset: 4px;
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+    transform: scale(1);
+  }
+}
+
+/* ─── MoM editor — sticky save bar ─────────────────────────────────────── */
+.ad-mom { display: flex; flex-direction: column; gap: 12px; }
+
+.ad-mom__bar {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--ad-r-card, 14px);
+  background: var(--ad-glass, rgba(255, 255, 255, 0.04));
+  -webkit-backdrop-filter: blur(16px);
+          backdrop-filter: blur(16px);
+  border: 1px solid var(--ad-line-2, rgba(255, 255, 255, 0.14));
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+.ad-mom__bar-left  { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.ad-mom__bar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.ad-mom__back {
+  padding: 6px 12px;
+  border-radius: var(--ad-r-btn, 10px);
+  background: transparent;
+  border: 1px solid var(--ad-line, rgba(255,255,255,0.12));
+  color: var(--ad-ink-2, #94A3B8);
+  font-size: var(--ad-fs-12, 12px);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ad-mom__back:hover { color: var(--ad-ink, #1E293B); background: var(--ad-glass-hover, rgba(255,255,255,0.06)); }
+
+.ad-mom__title {
+  font-size: var(--ad-fs-18, 18px);
+  font-weight: 700;
+  letter-spacing: var(--ad-ls-tight, -0.01em);
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ad-ink, #1E293B);
+  min-width: 0;
+  flex: 1;
+}
+.ad-mom__title::placeholder { color: var(--ad-ink-3, #94A3B8); }
+
+.ad-mom__scratch   { background: rgba(245,158,11,0.14) !important; color: #FBBF24 !important; }
+.ad-mom__published { background: rgba(139,92,246,0.14) !important; color: #C4B5FD !important; }
+
+.ad-mom__status {
+  font-size: var(--ad-fs-11, 11px);
+  color: var(--ad-ink-3, #94A3B8);
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-mom__btn {
+  padding: 6px 14px;
+  border-radius: var(--ad-r-btn, 10px);
+  font-size: var(--ad-fs-12, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--ad-dur, 0.18s) var(--ad-ease, ease);
+  border: none;
+  font-family: inherit;
+}
+.ad-mom__btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.ad-mom__btn--secondary {
+  background: transparent;
+  border: 1px solid var(--ad-line, rgba(255,255,255,0.14));
+  color: var(--ad-ink-2, #94A3B8);
+}
+.ad-mom__btn--secondary:hover:not(:disabled) {
+  background: var(--ad-glass-hover, rgba(255,255,255,0.08));
+  color: var(--ad-ink, #1E293B);
+}
+
+.ad-mom__btn--primary {
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  color: white;
+}
+.ad-mom__btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+}
+
+.ad-mom__wrap {
+  flex: 1;
+  min-height: 400px;
+}
+
+/* ─── Mobile (< 760px) ────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .ad-mtg__title { font-size: var(--ad-fs-24, 24px); }
+  .ad-mtg__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .ad-mtg__head-right { justify-content: space-between; }
+
+  .ad-mom__bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px;
+  }
+  .ad-mom__bar-left  { flex-wrap: wrap; }
+  .ad-mom__bar-right { justify-content: flex-end; }
+  .ad-mom__title { font-size: var(--ad-fs-14, 14px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-mtg-row--flash {
+    animation: none;
+    outline: 2px solid rgba(139, 92, 246, 0.6);
+    outline-offset: 4px;
+  }
+  .ad-mtg-row:hover { transform: none; }
+}

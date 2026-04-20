@@ -190,7 +190,7 @@ router.put('/dnd', protect, async (req, res) => {
 // ══════════════════════════════════════
 
 // POST /api/v1/notifications/send — send notification to user(s)
-router.post('/send', protect, async (req, res) => {
+router.post('/send', protect, requirePower('notifications', 'sendSystem'), async (req, res) => {
   try {
     const { userIds, type, title, message, icon, actionType, actionTarget, entityType, entityId, isEmergency } = req.body;
 

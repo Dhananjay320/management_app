@@ -1,0 +1,144 @@
+/* ============================================================================
+   Avadeti Design System — Tokens
+   ============================================================================
+   Extracted from approved mockups: 01-calendar, 02-tasks, 03-messages.
+   Import this FIRST in App.js (before any other stylesheet).
+   ============================================================================ */
+
+:root {
+  /* ─── Canvas ─────────────────────────────────────────────────────────── */
+  --ad-bg-0: #0A0B1A;               /* deep navy-black */
+  --ad-bg-1: #14162E;               /* subtle gradient target */
+
+  /* ─── Ink (text) ─────────────────────────────────────────────────────── */
+  --ad-ink:   #F8FAFC;              /* primary text */
+  --ad-ink-2: rgba(248, 250, 252, 0.62);  /* secondary text */
+  --ad-ink-3: rgba(248, 250, 252, 0.40);  /* muted / meta */
+  --ad-ink-4: rgba(248, 250, 252, 0.25);  /* very faint */
+
+  /* ─── Glass surfaces ─────────────────────────────────────────────────── */
+  --ad-glass:   rgba(255, 255, 255, 0.04);
+  --ad-glass-2: rgba(255, 255, 255, 0.06);
+  --ad-glass-hover: rgba(255, 255, 255, 0.08);
+  --ad-line:    rgba(255, 255, 255, 0.08);
+  --ad-line-2:  rgba(255, 255, 255, 0.14);
+  --ad-line-3:  rgba(255, 255, 255, 0.22);
+
+  /* ─── Semantic accent colors ─────────────────────────────────────────── */
+  --ad-indigo:  #6366F1;
+  --ad-violet:  #8B5CF6;
+  --ad-emerald: #10B981;
+  --ad-cyan:    #06B6D4;
+  --ad-amber:   #F59E0B;
+  --ad-gold:    #FBBF24;
+  --ad-rose:    #EC4899;
+  --ad-pink:    #F472B6;
+  --ad-danger:  #EF4444;
+
+  /* ─── Signature gradients ────────────────────────────────────────────── */
+  --ad-grad-primary:  linear-gradient(135deg, #6366F1, #8B5CF6);   /* indigo → violet (CTA, nav active) */
+  --ad-grad-success:  linear-gradient(135deg, #10B981, #06B6D4);   /* emerald → cyan (task done) */
+  --ad-grad-warn:     linear-gradient(135deg, #F59E0B, #FBBF24);   /* amber → gold (announcement, urgent) */
+  --ad-grad-danger:   linear-gradient(135deg, #EF4444, #EC4899);   /* red → pink (TOP priority, overdue) */
+  --ad-grad-activity: linear-gradient(135deg, #EC4899, #F472B6);   /* rose (social activity) */
+  --ad-grad-ai:       linear-gradient(135deg, #8B5CF6, #EC4899);   /* violet → pink (AI buttons) */
+
+  /* Text shimmer gradient (animated via @keyframes shimmer) */
+  --ad-grad-text:     linear-gradient(90deg, #A5B4FC 0%, #C4B5FD 40%, #F0ABFC 70%, #A5B4FC 100%);
+  --ad-grad-text-warn: linear-gradient(90deg, #FBBF24, #F59E0B, #F97316, #FBBF24);
+
+  /* ─── Shadows ────────────────────────────────────────────────────────── */
+  --ad-shadow-soft:    0 8px 32px rgba(0, 0, 0, 0.30);
+  --ad-shadow-lift:    0 18px 40px rgba(0, 0, 0, 0.45);
+  --ad-shadow-drawer: -30px 0 60px rgba(0, 0, 0, 0.5);
+
+  /* Accent glows */
+  --ad-glow-indigo:   0 0 40px rgba(99, 102, 241, 0.30);
+  --ad-glow-violet:   0 0 22px rgba(139, 92, 246, 0.55);
+  --ad-glow-primary:  0 8px 24px rgba(99, 102, 241, 0.35);
+  --ad-glow-danger:   0 0 22px rgba(239, 68, 68, 0.75);
+  --ad-glow-emerald:  0 0 22px rgba(16, 185, 129, 0.45);
+
+  /* ─── Radius ─────────────────────────────────────────────────────────── */
+  --ad-r-pill: 9999px;
+  --ad-r-xs: 6px;
+  --ad-r-sm: 8px;
+  --ad-r-md: 10px;
+  --ad-r-btn: 12px;
+  --ad-r-chip: 14px;
+  --ad-r-card: 16px;
+  --ad-r-panel: 20px;
+  --ad-r-2xl: 22px;
+
+  /* ─── Spacing scale (use these, not Tailwind arbitrary) ─────────────── */
+  --ad-sp-1: 4px;
+  --ad-sp-2: 8px;
+  --ad-sp-3: 12px;
+  --ad-sp-4: 16px;
+  --ad-sp-5: 20px;
+  --ad-sp-6: 24px;
+  --ad-sp-8: 32px;
+  --ad-sp-10: 40px;
+  --ad-sp-12: 48px;
+
+  /* ─── Typography ─────────────────────────────────────────────────────── */
+  --ad-font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ad-font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Monaco, Consolas, monospace;
+
+  --ad-fs-10: 10px;
+  --ad-fs-11: 11px;
+  --ad-fs-12: 12px;
+  --ad-fs-13: 13px;
+  --ad-fs-14: 14px;
+  --ad-fs-15: 15px;
+  --ad-fs-18: 18px;
+  --ad-fs-24: 24px;
+  --ad-fs-28: 28px;
+  --ad-fs-36: 36px;
+  --ad-fs-48: 48px;
+
+  --ad-ls-tight: -0.01em;
+  --ad-ls-tighter: -0.02em;
+  --ad-ls-display: -0.03em;
+  --ad-ls-wide: 0.16em;
+  --ad-ls-wider: 0.22em;
+
+  /* ─── Motion ─────────────────────────────────────────────────────────── */
+  --ad-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ad-dur-fast: 0.18s;
+  --ad-dur: 0.22s;
+  --ad-dur-slow: 0.38s;
+  --ad-dur-enter: 0.6s;
+
+  /* ─── Layout ─────────────────────────────────────────────────────────── */
+  --ad-layout-max: 1440px;
+  --ad-layout-pad: 24px;
+  --ad-topbar-h: 72px;
+  --ad-sidebar-w: 240px;
+  --ad-sidebar-slim: 68px;
+
+  /* ─── Z-index scale ──────────────────────────────────────────────────── */
+  --ad-z-bg: 0;
+  --ad-z-base: 1;
+  --ad-z-sticky: 10;
+  --ad-z-drawer: 50;
+  --ad-z-modal: 60;
+  --ad-z-toast: 70;
+  --ad-z-tooltip: 80;
+}
+
+/* Scrollbar — apply globally so it looks the same everywhere */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  transition: background var(--ad-dur);
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.16); }
+
+/* Font smoothing on root */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

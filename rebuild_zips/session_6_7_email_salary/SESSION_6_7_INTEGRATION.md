@@ -1,0 +1,226 @@
+# Sessions 6 + 7 — Real Email & Real PDF Payslip
+
+**Status: ✅ Verified.** Real PDF output smoke-tested (2.6KB, valid `%PDF` header). All server files syntax-check clean.
+
+These sessions fix two modules the audit flagged as "advertised but not actually working":
+- **Session 6** — Email pretended to send but never connected to SMTP. Now it actually sends via nodemailer and polls IMAP for new mail.
+- **Session 7** — Payslip download was a `.txt` file with ASCII box-drawing characters. Now it's a real `.pdf` with proper layout.
+
+---
+
+## What's in this zip
+
+```
+server/
+├── index.js                 (MODIFIED — starts IMAP poller on boot)
+├── models/
+│   └── Email.js             (MODIFIED — added `references`, `smtpDelivered` fields)
+├── routes/
+│   ├── email.js             (PATCHED — real SMTP send, threadId fix, encryption)
+│   └── salary.js            (PATCHED — real PDF endpoint, missing-field refusal)
+└── utils/
+    ├── emailTransport.js    (NEW — nodemailer + imapflow transport layer)
+    └── payroll.js           (NEW — payslip calc helpers + pdf-lib generator)
+```
+
+**6 files: 4 modified + 2 new.**
+
+---
+
+## ⚠️ New dependencies required
+
+**Before integrating**, install these in your server folder:
+
+```bash
+cd server
+npm install --save nodemailer imapflow
+```
+
+`pdf-lib` is already in your package.json.
+
+The transport module gracefully degrades if these packages are missing — the app will still run, but SMTP sending + IMAP polling will be no-ops with a clear console warning. Install them to enable real email.
+
+---
+
+## New environment variables (optional)
+
+In your `server/.env`:
+
+```bash
+# Disable IMAP polling entirely (useful in dev with no real IMAP servers)
+ENABLE_IMAP_POLLER=false
+
+# Poll interval in milliseconds (default: 5 minutes)
+IMAP_POLL_INTERVAL_MS=300000
+```
+
+Also required from Session 4 — keep this set:
+```bash
+AI_MASTER_SECRET=<your_strong_random_string_at_least_16_chars>
+```
+The email module reuses this secret to encrypt stored SMTP/IMAP passwords.
+
+---
+
+## Integration steps
+
+**Prerequisite:** Sessions 1–5 already integrated.
+
+### Step 1 — Install new packages
+
+```bash
+cd server
+npm install --save nodemailer imapflow
+```
+
+### Step 2 — Copy files
+
+Replace/add these files in your server:
+
+```
+server/index.js               (replace)
+server/models/Email.js        (replace — has new fields)
+server/routes/email.js        (replace)
+server/routes/salary.js       (replace)
+server/utils/emailTransport.js (new)
+server/utils/payroll.js       (new)
+```
+
+### Step 3 — Optional env tuning
+
+Edit `server/.env` to add the new env vars listed above (or leave them unset — defaults are safe).
+
+### Step 4 — Restart and verify
+
+```bash
+cd server
+npm start
+```
+
+**Expected boot output:**
+```
+Avadeti Team server running on port 3000
+[email] IMAP poller started (every 300s).
+```
+
+If you haven't configured any email accounts yet, the poller will idle harmlessly. If any accounts are active, you'll see the first poll attempt within 10 seconds.
+
+---
+
+## What changed — Session 6 (Email)
+
+### POST /api/v1/email/send (real SMTP)
+
+**Before:** Created an Email document in the database. That's it. Emails never left the server.
+
+**Now:** Connects to the account's SMTP host via nodemailer, transmits the message, then stores the copy. If SMTP fails, the response includes a `_warning` field explaining what went wrong — the sent-folder copy is still created so nothing is lost.
+
+**Also fixed:**
+- `threadId` is now inherited from the parent email on reply (was regenerating a new thread each time).
+- Standard RFC 2822 `References` header is built, so external mail clients thread replies correctly.
+- Quoted reply text is prepended: `On [date], [name] wrote: > ...` in both HTML and plain text.
+- Internal recipients still get in-app delivery via socket, so the app's inbox lights up regardless of SMTP config.
+
+### IMAP polling (new)
+
+A background poller runs every 5 minutes (configurable). For each `EmailAccount` with an IMAP config, it:
+1. Connects to the IMAP server.
+2. Fetches unseen messages.
+3. Parses envelope + body, deduplicates by message-ID.
+4. Creates `Email` documents for the owner (or every access-list user for shared inboxes).
+5. Emits `email:new` socket event so the UI lights up immediately.
+6. Marks the messages seen on the IMAP server so they're not re-fetched.
+
+### SMTP/IMAP password encryption
+
+Account create/update now runs `encryptCredential()` on `smtp.pass` and `imap.pass` before saving. Passwords stored before this patch will still work (legacy unencrypted credentials are auto-detected). New credentials go in encrypted.
+
+---
+
+## What changed — Session 7 (Payslip)
+
+### GET /api/v1/salary/monthly/:userId/:year/:month/pdf (real PDF)
+
+**Before:** Returned a `.txt` file with Unicode box-drawing characters pretending to be a document.
+
+**Now:** Returns an actual A4 PDF generated by pdf-lib, with:
+- Indigo header band with "SALARY SLIP" and month/year
+- Employee block (name, email, job title, generation date)
+- Section headers with shaded backgrounds (Attendance, Earnings, Deductions, Tax, Bonuses)
+- Colored values (deductions rose-red, bonuses amber, net indigo)
+- Highlighted net-salary footer block
+- Proper `Content-Type: application/pdf` with a `.pdf` filename
+
+### POST /api/v1/salary/generate (refuses silent zero-salary)
+
+**Before:** If an employee had no `salary.base` configured, the endpoint happily returned a ₹0 payslip — which is what the audit flagged as "silently generates as 0".
+
+**Now:** Refuses with HTTP 400 and a clear message listing the missing fields:
+```json
+{
+  "error": "Employee salary is not configured. Missing fields: base.",
+  "missingFields": ["base"]
+}
+```
+
+### Attendance counting fixed
+
+**Before:** Query used `{ date: { $regex: '^2025-04' } }`. If `date` was stored as a JS `Date` object instead of a string, the regex silently matched nothing, so all month counts were 0 — the audit called this out.
+
+**Now:** Uses `monthAttendanceQuery()` which `$or`s both a string-prefix regex AND a Date range. Works with either storage format.
+
+### Working days from company config
+
+**Before:** Hardcoded "exclude Sundays only." Saturdays always counted as working days — breaks companies with 5-day weeks or ones with holidays.
+
+**Now:** Reads `SalaryStructure.workingDayIndices` (default `[1,2,3,4,5]` for Mon-Fri) and `SalaryStructure.holidays` (ISO date strings to skip). Falls back to the Mon-Fri default if the structure doesn't define them yet.
+
+If you want to enable the holiday feature, add these fields to your `SalaryStructure` Mongoose schema:
+```js
+workingDayIndices: { type: [Number], default: [1, 2, 3, 4, 5] },
+holidays: { type: [String], default: [] }, // ["2026-04-14", ...]
+```
+The payroll helper ignores them gracefully if they're absent, so this schema update is optional for now.
+
+---
+
+## Testing
+
+### Email (requires real SMTP/IMAP credentials)
+
+1. Create an EmailAccount via the admin UI with valid SMTP host, port, user, pass.
+2. Send a test email from the app to your personal email. Check your inbox — it should arrive.
+3. Reply to that email from your personal inbox. Wait up to 5 minutes. The reply should appear in the app's inbox.
+
+If you're not yet ready to configure real SMTP:
+- `npm install nodemailer imapflow` still safe to run.
+- Set `ENABLE_IMAP_POLLER=false` in `.env`.
+- Send from the app — you'll get a `_warning` field in the response but internal delivery still works for users registered in the app.
+
+### Salary
+
+1. As admin, pick an employee who has `salary.base` unset.
+2. Try to generate their salary. Should get HTTP 400 with a clear message.
+3. Set a base salary for them, try again — should generate.
+4. Download the PDF. Open it in any PDF viewer — should be a real A4 document with colored sections.
+
+---
+
+## Progress map
+
+| Phase | Sessions | Status |
+|---|---|---|
+| A — Foundation | 1, 2, 3 | ✅ Complete |
+| B — Security | 4, 5 | ✅ Complete |
+| **C — Broken repairs** | **6, 7**, 8, 9 | ✅ 6+7 done |
+| D — Cross-cutting | 10-17 | Pending |
+| E — Module restyles | 18-23 | Pending |
+| F — New features | 24-27 | Pending |
+| G — Electron | 28, 29 | Pending |
+
+## Next batch
+
+**Session 8 — Meetings fixes** (Google Meet link generation, past/upcoming filter bug, MoM auto-save)  
+**Session 9 — Announcements CRUD UI + Activity/Feed team picker fix**
+
+Both are small and independent. When ready, say "next batch".

@@ -1,0 +1,123 @@
+# ============================================================================
+# release.yml — build + publish Avadeti Team desktop installers on tag push.
+# ============================================================================
+# Session 34 (final). Triggers on any tag matching v*.*.* (e.g. v1.2.3).
+# Builds for macOS, Windows, and Linux in parallel, signs + notarizes,
+# and uploads everything to the matching GitHub Release as .dmg, .exe,
+# .AppImage, .deb, and the auto-updater metadata files (*.yml, *.blockmap).
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#
+#   Windows code signing:
+#     CSC_LINK                    — base64-encoded .pfx certificate
+#     CSC_KEY_PASSWORD            — password for the .pfx
+#
+#   macOS code signing + notarization:
+#     MAC_CERTS                   — base64-encoded .p12 Developer ID cert
+#     MAC_CERTS_PASSWORD          — password for the .p12
+#     APPLE_ID                    — Apple ID email
+#     APPLE_APP_SPECIFIC_PASSWORD — from appleid.apple.com → App-Specific
+#     APPLE_TEAM_ID               — 10-char team ID
+#
+#   electron-builder publish:
+#     GITHUB_TOKEN                — auto-provided by Actions, no config needed
+#
+# To cut a release:
+#   1. Bump version in electron/package.json and client/package.json
+#   2. Update CHANGELOG.md under the new version heading
+#   3. Commit: `git commit -am "chore: release v1.2.3"`
+#   4. Tag:    `git tag v1.2.3 && git push --tags`
+#   5. Wait ~20 minutes for all three platforms to build
+#   6. Draft release appears on GitHub — edit notes + publish
+# ============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  # Allow manual trigger from the Actions tab for testing
+  workflow_dispatch:
+
+jobs:
+  release:
+    strategy:
+      # Don't kill the other two if one platform fails; we want to see all errors
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
+            electron/package-lock.json
+
+      - name: Install client deps + build
+        working-directory: client
+        run: |
+          npm ci
+          CI=true DISABLE_ESLINT_PLUGIN=true npm run build
+
+      - name: Install electron deps
+        working-directory: electron
+        run: npm ci
+
+      # ─── macOS: build + sign + notarize ──────────────────────────────
+      - name: Build (macOS)
+        if: matrix.os == 'macos-14'
+        working-directory: electron
+        env:
+          CSC_LINK: ${{ secrets.MAC_CERTS }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release:mac
+
+      # ─── Windows: build + sign ────────────────────────────────────────
+      - name: Build (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: electron
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release:win
+
+      # ─── Linux: build (no signing) ────────────────────────────────────
+      - name: Build (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release:linux
+
+      # ─── Upload artifacts so you can download failed builds for debugging ──
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          path: |
+            electron/dist/*.dmg
+            electron/dist/*.zip
+            electron/dist/*.exe
+            electron/dist/*.AppImage
+            electron/dist/*.deb
+            electron/dist/*.yml
+            electron/dist/*.blockmap
+          retention-days: 7
+          if-no-files-found: ignore

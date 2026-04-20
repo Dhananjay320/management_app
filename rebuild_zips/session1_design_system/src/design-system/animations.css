@@ -1,0 +1,165 @@
+/* ============================================================================
+   Avadeti Design System — Animations
+   ============================================================================
+   All named keyframes used across the app. Import AFTER tokens.css.
+   Usage: add `animation: ad-<name> <duration> <easing> [delay] [count] [mode];`
+   or apply one of the utility classes below.
+   ============================================================================ */
+
+/* ─── Orb drift (ambient background) ────────────────────────────────── */
+@keyframes ad-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(40px, 30px, 0) scale(1.08); }
+  100% { transform: translate3d(-30px, 60px, 0) scale(0.96); }
+}
+
+/* ─── Text shimmer (animated gradient fill) ─────────────────────────── */
+@keyframes ad-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* ─── Entrance fade-up (page/card load) ─────────────────────────────── */
+@keyframes ad-enter-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Live dot (online status pulse) ────────────────────────────────── */
+@keyframes ad-live {
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* ─── Badge pulse (unread ring) ─────────────────────────────────────── */
+@keyframes ad-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.45); }
+  50%      { box-shadow: 0 0 0 8px rgba(236, 72, 153, 0); }
+}
+
+/* ─── Light sweep (announcements, featured) ─────────────────────────── */
+@keyframes ad-sweep {
+  0%        { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(120%); }
+}
+
+/* ─── Conic border rotation (today-cell, special features) ──────────── */
+@property --ad-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes ad-spin-border {
+  to { --ad-angle: 360deg; }
+}
+
+/* ─── Breathe (subtle drop-shadow pulse) ────────────────────────────── */
+@keyframes ad-breathe {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(139, 92, 246, 0)); }
+  50%      { filter: drop-shadow(0 0 18px rgba(139, 92, 246, 0.55)); }
+}
+
+/* ─── Top priority glow (red pulsing edge) ──────────────────────────── */
+@keyframes ad-top-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.40); }
+  50%      { box-shadow: 0 0 22px rgba(239, 68, 68, 0.75); }
+}
+
+/* ─── @mention breathing glow ───────────────────────────────────────── */
+@keyframes ad-mention-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.20); }
+  50%      { box-shadow: 0 0 18px rgba(139, 92, 246, 0.45); }
+}
+
+/* ─── Typing indicator bounce ───────────────────────────────────────── */
+@keyframes ad-bop {
+  0%, 60%, 100% { transform: translateY(0);    opacity: 0.55; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ─── Kanban drop-target pulse ──────────────────────────────────────── */
+@keyframes ad-pulse-col {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.35), 0 0 24px rgba(139, 92, 246, 0.20) inset; }
+  50%      { box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.65), 0 0 48px rgba(139, 92, 246, 0.35) inset; }
+}
+
+/* ─── Wave emoji wave ───────────────────────────────────────────────── */
+@keyframes ad-wave {
+  0%, 60%, 100% { transform: rotate(0); }
+  70%           { transform: rotate(18deg); }
+  80%           { transform: rotate(-10deg); }
+  90%           { transform: rotate(14deg); }
+}
+
+/* ─── AI sparkle particles ──────────────────────────────────────────── */
+@keyframes ad-sp1 {
+  0%   { top: 50%; left: 10%; opacity: 0; transform: scale(0.5); }
+  50%  { top: -10%; left: 30%; opacity: 1; transform: scale(1); }
+  100% { top: -40%; left: 50%; opacity: 0; }
+}
+@keyframes ad-sp2 {
+  0%   { top: 60%; left: 60%; opacity: 0; transform: scale(0.5); }
+  50%  { top: -5%; left: 70%; opacity: 1; transform: scale(1); }
+  100% { top: -40%; left: 90%; opacity: 0; }
+}
+@keyframes ad-sp3 {
+  0%   { top: 30%; left: 90%; opacity: 0; transform: scale(0.5); }
+  50%  { top: -15%; left: 80%; opacity: 1; transform: scale(1); }
+  100% { top: -45%; left: 60%; opacity: 0; }
+}
+
+/* ─── Spin (generic rotation) ───────────────────────────────────────── */
+@keyframes ad-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Count-up placeholder (for stat numbers using JS tween) ────────── */
+/* JS handles the number tween; this is the fade-in of the container. */
+@keyframes ad-stat-enter {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Card shimmer sweep (on hover) ─────────────────────────────────── */
+@keyframes ad-card-shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* ──────────────────────────────────────────────────────────────────── */
+/*   Utility classes for common animation patterns                      */
+/* ──────────────────────────────────────────────────────────────────── */
+
+.ad-enter {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: ad-enter-up var(--ad-dur-enter) var(--ad-ease) forwards;
+}
+
+.ad-grad-text {
+  background: var(--ad-grad-text);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  animation: ad-shimmer 5s ease-in-out infinite;
+}
+
+.ad-grad-text-warn {
+  background: var(--ad-grad-text-warn);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  animation: ad-shimmer 4s ease-in-out infinite;
+}
+
+/* Reduce motion for users with that preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

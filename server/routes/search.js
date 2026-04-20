@@ -2,6 +2,10 @@ const router = require('express').Router();
 const DeepSearchJob = require('../models/DeepSearchJob');
 const { protect } = require('../middleware/auth');
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Lazy-load models to avoid circular deps
 function getModel(scope) {
   switch (scope) {
@@ -41,9 +45,10 @@ router.get('/normal', protect, async (req, res) => {
     const Model = getModel(scope);
     if (!Model) return res.status(400).json({ error: 'Invalid scope.' });
 
-    // Build regex query for each field
+    // Build regex query for each field (escaped to prevent ReDoS)
+    const safeQ = escapeRegex(q);
     const orConditions = config.fields.map(field => ({
-      [field]: { $regex: q, $options: 'i' }
+      [field]: { $regex: safeQ, $options: 'i' }
     }));
 
     let query = { $or: orConditions };
@@ -61,12 +66,29 @@ router.get('/normal', protect, async (req, res) => {
       query.isActive = true;
     } else if (scope === 'tasks') {
       query.isActive = true;
+      // Privacy filter: only tasks user is assigned to, created, or non-private
+      query.$and = [
+        { $or: orConditions },
+        { $or: [{ isPrivate: { $ne: true } }, { assignees: req.user._id }, { createdBy: req.user._id }] }
+      ];
+      delete query.$or;
     } else if (scope === 'meetings') {
       query.isActive = true;
+      query['attendees.user'] = req.user._id;
     } else if (scope === 'messages') {
       query.isDeleted = false;
+      // Privacy filter: only messages in channels the user is a member of
+      const Channel = require('../models/Channel');
+      const userChannels = await Channel.find({ members: req.user._id }).select('_id').lean();
+      const channelIds = userChannels.map(c => c._id);
+      query.channel = { $in: channelIds };
     } else if (scope === 'workspace') {
       query.isActive = true;
+      // Privacy filter: only documents from workspaces the user is a member of
+      const { Workspace } = require('../models/Workspace');
+      const userWorkspaces = await Workspace.find({ members: req.user._id, isActive: true }).select('_id').lean();
+      const wsIds = userWorkspaces.map(w => w._id);
+      query.workspace = { $in: wsIds };
     }
 
     const results = await Model.find(query)

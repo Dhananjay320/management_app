@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    Session 33: minimal macOS hardened-runtime entitlements.
+    - com.apple.security.cs.allow-jit: required for V8 JIT in Electron
+    - com.apple.security.cs.allow-unsigned-executable-memory: required by some native deps
+    - com.apple.security.network.client: Electron needs outbound network
+    Session 34 will expand this list with `com.apple.security.automation.apple-events`
+    if auto-update requires relaunching via `open -a`.
+  -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+  <key>com.apple.security.network.client</key>
+  <true/>
+</dict>
+</plist>

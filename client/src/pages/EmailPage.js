@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import api from '../services/api';
@@ -506,7 +507,7 @@ export default function EmailPage() {
           <div className="email-detail-body">
             <div
               className="email-body-content"
-              dangerouslySetInnerHTML={{ __html: activeEmail.bodyHtml || activeEmail.bodyText?.replace(/\n/g, '<br/>') || '' }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activeEmail.bodyHtml || activeEmail.bodyText?.replace(/\n/g, '<br/>') || '') }}
             />
           </div>
         </div>

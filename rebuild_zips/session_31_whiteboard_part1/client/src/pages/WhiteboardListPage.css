@@ -1,0 +1,105 @@
+/* WhiteboardListPage — Session 31 (N2) */
+
+.ad-wb-list { display: flex; flex-direction: column; gap: 16px; }
+
+.ad-wb-list__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 4px 4px 8px;
+}
+
+.ad-wb-list__title {
+  margin: 0;
+  font-size: var(--ad-fs-32, 32px);
+  font-weight: 700;
+  letter-spacing: var(--ad-ls-display, -0.02em);
+  color: var(--ad-ink, #0F172A);
+  line-height: 1.1;
+}
+
+.ad-wb-list__sub {
+  margin: 6px 0 0;
+  font-size: var(--ad-fs-13, 13px);
+  color: var(--ad-ink-2, #475569);
+}
+
+.ad-wb-list__state {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--ad-ink-3, #94A3B8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ad-wb-list__empty-icon { font-size: 44px; }
+.ad-wb-list__empty-title {
+  font-size: var(--ad-fs-14, 14px);
+  font-weight: 600;
+  color: var(--ad-ink, #0F172A);
+}
+.ad-wb-list__empty-sub {
+  font-size: var(--ad-fs-12, 12px);
+  color: var(--ad-ink-3, #94A3B8);
+  max-width: 360px;
+}
+
+.ad-wb-list__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.ad-wb-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--ad-r-card, 14px);
+  background: var(--ad-glass, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--ad-line-2, rgba(255, 255, 255, 0.10));
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--ad-dur, 0.18s) var(--ad-ease, ease);
+}
+.ad-wb-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 10px 28px rgba(139, 92, 246, 0.18);
+}
+
+.ad-wb-card__preview {
+  height: 110px;
+  background: linear-gradient(135deg, #EDE9FE, #FCE7F3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+}
+
+.ad-wb-card__body { padding: 12px 14px; }
+
+.ad-wb-card__title {
+  font-size: var(--ad-fs-13, 13px);
+  font-weight: 700;
+  color: var(--ad-ink, #0F172A);
+  margin-bottom: 4px;
+}
+
+.ad-wb-card__meta {
+  font-size: var(--ad-fs-11, 11px);
+  color: var(--ad-ink-2, #64748B);
+}
+
+.ad-wb-card__time {
+  font-size: var(--ad-fs-10, 10px);
+  color: var(--ad-ink-3, #94A3B8);
+  margin-top: 4px;
+}
+
+@media (max-width: 760px) {
+  .ad-wb-list__title { font-size: var(--ad-fs-24, 24px); }
+}

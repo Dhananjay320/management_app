@@ -1,0 +1,79 @@
+/* ============================================================================
+   Avadeti Design System — Base
+   ============================================================================
+   Applies the ambient canvas background and fonts globally.
+   Import AFTER tokens.css and animations.css in App.js.
+
+   This file does NOT add an <AmbientBackground /> component — the orbs live
+   as a React component so they can be conditionally mounted (e.g., suppress
+   on print view, login modal, etc.). What's here is only the gradient canvas
+   + noise overlay — the "always on" ambient.
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* Reset body to dark canvas */
+html, body, #root {
+  background: var(--ad-bg-0);
+  color: var(--ad-ink);
+  font-family: var(--ad-font-sans);
+  letter-spacing: var(--ad-ls-tight);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body.ad-theme {
+  /* Gradient canvas from the approved mockups */
+  background:
+    radial-gradient(1200px 800px at 85% -10%, rgba(139, 92, 246, 0.18), transparent 60%),
+    radial-gradient(900px 700px at -10% 30%, rgba(99, 102, 241, 0.14), transparent 60%),
+    radial-gradient(800px 600px at 50% 110%, rgba(236, 72, 153, 0.10), transparent 60%),
+    linear-gradient(180deg, var(--ad-bg-0) 0%, var(--ad-bg-1) 100%);
+  background-attachment: fixed;
+}
+
+/* Noise overlay — fixed, behind everything, non-interactive */
+body.ad-theme::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+
+/* Tabular numerics for dates/counts — opt-in via class */
+.ad-tnum { font-variant-numeric: tabular-nums; }
+
+/* Section label (used in mockups as small uppercase gray headers) */
+.ad-label {
+  font-size: var(--ad-fs-11);
+  font-weight: 600;
+  letter-spacing: var(--ad-ls-wide);
+  text-transform: uppercase;
+  color: var(--ad-ink-3);
+}
+
+/* Utility: remove default button / input chrome */
+.ad-reset-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Focus-visible ring — accessibility. Used app-wide on interactive elements. */
+.ad-focus:focus-visible,
+button.ad-focus:focus-visible,
+a.ad-focus:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--ad-bg-0),
+    0 0 0 4px rgba(139, 92, 246, 0.55);
+}

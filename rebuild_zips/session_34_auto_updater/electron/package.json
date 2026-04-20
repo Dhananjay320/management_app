@@ -1,0 +1,126 @@
+{
+  "name": "avadeti-team-desktop",
+  "version": "1.0.0",
+  "description": "Avadeti Team — desktop app wrapper",
+  "main": "main.js",
+  "author": "Avadeti",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "//  DEVELOPMENT  ": "--",
+    "start": "electron .",
+    "dev": "concurrently -k -n client,server,electron \"cd ../client && npm start\" \"cd ../server && npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "//  BUILD (local, no publish)  ": "--",
+    "prebuild": "cd ../client && CI=true DISABLE_ESLINT_PLUGIN=true npm run build",
+    "build": "electron-builder --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:linux": "electron-builder --linux --publish never",
+    "//  RELEASE (signs + publishes to GitHub)  ": "--",
+    "prerelease:win": "cd ../client && CI=true DISABLE_ESLINT_PLUGIN=true npm run build",
+    "prerelease:mac": "cd ../client && CI=true DISABLE_ESLINT_PLUGIN=true npm run build",
+    "prerelease:linux": "cd ../client && CI=true DISABLE_ESLINT_PLUGIN=true npm run build",
+    "release:win": "electron-builder --win --publish always",
+    "release:mac": "electron-builder --mac --publish always",
+    "release:linux": "electron-builder --linux --publish always",
+    "release": "electron-builder --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.7"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "@electron/notarize": "^2.2.1",
+    "concurrently": "^8.2.2",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.avadeti.team",
+    "productName": "Avadeti Team",
+    "copyright": "© 2026 Avadeti",
+    "afterSign": "notarize.js",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "updater.js",
+      "notarize.js",
+      "assets/**/*",
+      "node_modules/electron-updater/**/*",
+      "node_modules/builder-util-runtime/**/*",
+      "node_modules/lodash.*/**/*",
+      "node_modules/debug/**/*",
+      "node_modules/ms/**/*",
+      "node_modules/js-yaml/**/*",
+      "node_modules/argparse/**/*",
+      "node_modules/sprintf-js/**/*",
+      "node_modules/semver/**/*",
+      "node_modules/sax/**/*",
+      "node_modules/tiny-typed-emitter/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../client/build",
+        "to": "../client/build",
+        "filter": ["**/*"]
+      }
+    ],
+    "protocols": [
+      {
+        "name": "Avadeti Deep Link",
+        "schemes": ["avadeti"]
+      }
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "avadeti",
+      "repo": "team",
+      "releaseType": "draft"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ],
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
+      "notarize": false
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "assets/icon.ico",
+      "signingHashAlgorithms": ["sha256"]
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ],
+      "category": "Office",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "dmg": {
+      "title": "Install Avadeti Team",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    }
+  }
+}

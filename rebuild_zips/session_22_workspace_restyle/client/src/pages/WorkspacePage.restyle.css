@@ -1,0 +1,366 @@
+/* ============================================================================
+   Workspace restyle (Session 22).
+   Layered on styles/workspace.css — covers breadcrumbs, hero header,
+   workspace cards, document editor autosave bar, mobile.
+   ============================================================================ */
+
+.ad-ws {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Hero header ──────────────────────────────────────────────────────── */
+.ad-ws__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 4px 4px 8px;
+}
+
+.ad-ws__head-left { flex: 1; min-width: 240px; }
+
+.ad-ws__title {
+  margin: 0;
+  font-size: var(--ad-fs-32, 32px);
+  font-weight: 700;
+  letter-spacing: var(--ad-ls-display, -0.02em);
+  color: var(--ad-ink, #0F172A);
+  line-height: 1.1;
+}
+
+.ad-ws__sub {
+  margin: 6px 0 0;
+  font-size: var(--ad-fs-13, 13px);
+  color: var(--ad-ink-2, #475569);
+}
+
+.ad-ws__head-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ─── Breadcrumbs ─────────────────────────────────────────────────────── */
+.ad-ws-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: var(--ad-fs-12, 12px);
+  padding: 4px 0;
+}
+
+.ad-ws-crumbs__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ad-ws-crumbs__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--ad-r-btn, 8px);
+  background: transparent;
+  border: none;
+  color: var(--ad-ink-2, #475569);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: all var(--ad-dur, 0.18s) var(--ad-ease, ease);
+}
+.ad-ws-crumbs__link:hover {
+  background: var(--ad-glass-hover, rgba(99, 102, 241, 0.08));
+  color: var(--ad-ink, #0F172A);
+}
+
+.ad-ws-crumbs__current {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  color: var(--ad-ink-3, #94A3B8);
+}
+.ad-ws-crumbs__current--active {
+  color: var(--ad-ink, #0F172A);
+  font-weight: 600;
+}
+
+.ad-ws-crumbs__icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.ad-ws-crumbs__sep {
+  color: var(--ad-ink-3, #94A3B8);
+  font-size: 14px;
+  line-height: 1;
+  margin: 0 2px;
+  user-select: none;
+}
+
+/* ─── Loading / empty states ──────────────────────────────────────────── */
+.ad-ws__state {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--ad-ink-3, #94A3B8);
+  font-size: var(--ad-fs-13, 13px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ad-ws__empty-icon {
+  font-size: 40px;
+  margin-bottom: 6px;
+}
+
+.ad-ws__empty-title {
+  font-size: var(--ad-fs-14, 14px);
+  font-weight: 600;
+  color: var(--ad-ink, #0F172A);
+}
+
+.ad-ws__empty-sub {
+  font-size: var(--ad-fs-12, 12px);
+  color: var(--ad-ink-3, #94A3B8);
+}
+
+.ad-ws__empty-inline {
+  color: var(--ad-ink-3, #CBD5E1);
+  font-size: var(--ad-fs-12, 12px);
+  padding: 20px;
+  text-align: center;
+}
+
+/* ─── Workspace cards ─────────────────────────────────────────────────── */
+.ad-ws-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.ad-ws-card {
+  padding: 16px !important;
+  border-radius: var(--ad-r-card, 14px) !important;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.25, 1), box-shadow 0.2s !important;
+  cursor: pointer;
+}
+.ad-ws-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.18);
+}
+
+.ad-ws-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ad-ws-card__icon {
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  border-radius: var(--ad-r-md, 10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.ad-ws-card__head-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ad-ws-card__name {
+  font-size: var(--ad-fs-14, 14px);
+  font-weight: 700;
+  color: var(--ad-ink, #0F172A);
+  letter-spacing: var(--ad-ls-tight, -0.01em);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ad-ws-card__desc {
+  font-size: var(--ad-fs-12, 12px);
+  color: var(--ad-ink-2, #64748B);
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.ad-ws-card__stats {
+  display: flex;
+  gap: 10px;
+  font-size: var(--ad-fs-11, 11px);
+  color: var(--ad-ink-3, #94A3B8);
+  padding-top: 10px;
+  border-top: 1px solid var(--ad-line, rgba(255,255,255,0.08));
+}
+
+/* ─── Tabs + tab content ───────────────────────────────────────────────── */
+.ad-ws__tabs {
+  padding: 8px 0;
+}
+
+.ad-ws__tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Doc / file rows polish */
+.ad-ws-doc, .ad-ws-link {
+  transition: background 0.15s ease;
+}
+.ad-ws-doc:hover, .ad-ws-link:hover {
+  background: var(--ad-glass-hover, rgba(99, 102, 241, 0.06));
+}
+
+/* Note cards hover */
+.ad-ws-note {
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.25, 1), box-shadow 0.2s;
+}
+.ad-ws-note:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+/* ─── Upload button ──────────────────────────────────────────────────── */
+.ad-ws__upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--ad-r-btn, 10px);
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  color: white;
+  font-size: var(--ad-fs-13, 13px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.ad-ws__upload:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+}
+
+/* ─── Document editor — sticky autosave bar ──────────────────────────── */
+.ad-ws-doc-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ad-ws-doc-edit__bar {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--ad-r-card, 14px);
+  background: var(--ad-glass, rgba(255, 255, 255, 0.04));
+  -webkit-backdrop-filter: blur(16px);
+          backdrop-filter: blur(16px);
+  border: 1px solid var(--ad-line-2, rgba(255, 255, 255, 0.14));
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+.ad-ws-doc-edit__title {
+  font-size: var(--ad-fs-22, 22px);
+  font-weight: 800;
+  color: var(--ad-ink, #0F172A);
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  min-width: 0;
+  letter-spacing: var(--ad-ls-tight, -0.01em);
+}
+.ad-ws-doc-edit__title::placeholder { color: var(--ad-ink-3, #94A3B8); }
+
+.ad-ws-doc-edit__status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ad-ws-doc-edit__saved {
+  font-size: var(--ad-fs-11, 11px);
+  color: var(--ad-ink-3, #94A3B8);
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-ws-doc-edit__save-btn {
+  padding: 6px 14px;
+  border-radius: var(--ad-r-btn, 10px);
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  color: white;
+  border: none;
+  font-family: inherit;
+  font-size: var(--ad-fs-12, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.ad-ws-doc-edit__save-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+}
+.ad-ws-doc-edit__save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ─── Mobile (< 760 px) ────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .ad-ws__title { font-size: var(--ad-fs-24, 24px); }
+  .ad-ws__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .ad-ws__head-right { justify-content: space-between; }
+
+  .ad-ws-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ad-ws-crumbs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ad-ws-crumbs::-webkit-scrollbar { display: none; }
+  .ad-ws-crumbs__link, .ad-ws-crumbs__current {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .ad-ws-doc-edit__bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px;
+  }
+  .ad-ws-doc-edit__title { font-size: var(--ad-fs-18, 18px); }
+  .ad-ws-doc-edit__status { justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-ws-card:hover, .ad-ws-note:hover, .ad-ws__upload:hover {
+    transform: none;
+  }
+}

@@ -4,10 +4,16 @@ const crypto = require('crypto');
 //  ENCRYPTION — for storing API keys
 // ═══════════════════════════════════════
 
-const MASTER_SECRET = process.env.AI_MASTER_SECRET || 'avadeti_team_ai_secret_key_32ch';
+let AI_ENABLED = true;
+if (!process.env.AI_MASTER_SECRET || process.env.AI_MASTER_SECRET.length < 16) {
+  console.warn('[AI WARNING] AI_MASTER_SECRET env var is missing or shorter than 16 chars. AI encryption features will be disabled.');
+  AI_ENABLED = false;
+}
+const MASTER_SECRET = process.env.AI_MASTER_SECRET || null;
 const ALGORITHM = 'aes-256-cbc';
 
 function encrypt(text) {
+  if (!AI_ENABLED) throw new Error('AI features are disabled — AI_MASTER_SECRET not configured.');
   const iv = crypto.randomBytes(16);
   const key = crypto.scryptSync(MASTER_SECRET, 'salt', 32);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
@@ -17,6 +23,7 @@ function encrypt(text) {
 }
 
 function decrypt(encryptedText) {
+  if (!AI_ENABLED) throw new Error('AI features are disabled — AI_MASTER_SECRET not configured.');
   const [ivHex, encrypted] = encryptedText.split(':');
   const iv = Buffer.from(ivHex, 'hex');
   const key = crypto.scryptSync(MASTER_SECRET, 'salt', 32);

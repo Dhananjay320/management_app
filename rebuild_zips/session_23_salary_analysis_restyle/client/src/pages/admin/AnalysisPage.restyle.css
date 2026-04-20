@@ -1,0 +1,70 @@
+/* ============================================================================
+   Analysis restyle (Session 23).
+   Hero + tab/period controls + stat cards + mobile.
+   ============================================================================ */
+
+.ad-ana {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ad-ana__head {
+  padding: 4px 4px 8px;
+}
+
+.ad-ana__head-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ad-ana__title {
+  margin: 0;
+  font-size: var(--ad-fs-32, 32px);
+  font-weight: 700;
+  letter-spacing: var(--ad-ls-display, -0.02em);
+  color: var(--ad-ink, #0F172A);
+  line-height: 1.1;
+}
+
+.ad-ana__sub {
+  margin: 0;
+  font-size: var(--ad-fs-13, 13px);
+  color: var(--ad-ink-2, #475569);
+}
+
+.ad-ana__tabs {
+  padding: 0;
+}
+
+.ad-ana__periods {
+  padding: 0;
+}
+
+.ad-ana__state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--ad-ink-3, #94A3B8);
+  font-size: var(--ad-fs-13, 13px);
+}
+
+/* Stat card hover polish */
+.card {
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.25, 1), box-shadow 0.2s;
+}
+
+/* Make the legacy StatCard grid responsive */
+.ad-ana .stat-row,
+.ad-ana [style*="display: flex"][style*="gap"] {
+  gap: 12px !important;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+  .ad-ana__title { font-size: var(--ad-fs-24, 24px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}

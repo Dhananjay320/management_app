@@ -1,0 +1,54 @@
+/* ErrorState — inline error UI for failed data loads */
+
+.ad-errstate {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--ad-r-md, 10px);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--ad-ink, #1E293B);
+}
+
+.ad-errstate--compact {
+  padding: 10px 12px;
+  gap: 10px;
+  font-size: var(--ad-fs-12, 12px);
+}
+
+.ad-errstate__body { flex: 1; min-width: 0; }
+
+.ad-errstate__message {
+  font-size: var(--ad-fs-13, 13px);
+  font-weight: 500;
+  color: var(--ad-ink, #1E293B);
+  line-height: 1.4;
+}
+.ad-errstate--compact .ad-errstate__message { font-size: var(--ad-fs-12, 12px); }
+
+.ad-errstate__detail {
+  margin-top: 4px;
+  font-size: var(--ad-fs-11, 11px);
+  color: var(--ad-ink-3, #64748B);
+  font-family: var(--ad-font-mono, ui-monospace, monospace);
+}
+
+.ad-errstate__btn {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: var(--ad-r-btn, 10px);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.15);
+  color: #FCA5A5;
+  font-family: var(--ad-font-sans, inherit);
+  font-size: var(--ad-fs-12, 12px);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.ad-errstate__btn:hover {
+  background: rgba(239, 68, 68, 0.22);
+  color: white;
+  border-color: rgba(239, 68, 68, 0.5);
+}

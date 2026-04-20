@@ -1,0 +1,133 @@
+/* FollowButton — Session 25 (N4) */
+
+.ad-fb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--ad-dur, 0.18s) var(--ad-ease, ease);
+  white-space: nowrap;
+}
+
+.ad-fb--sm {
+  padding: 5px 12px;
+  font-size: var(--ad-fs-11, 11px);
+  border-radius: 999px;
+}
+
+.ad-fb--md {
+  padding: 8px 18px;
+  font-size: var(--ad-fs-13, 13px);
+  border-radius: var(--ad-r-btn, 10px);
+}
+
+.ad-fb--primary {
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  color: white;
+}
+.ad-fb--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+}
+
+.ad-fb--following {
+  background: rgba(99, 102, 241, 0.14);
+  color: #A5B4FC;
+  border: 1px solid rgba(99, 102, 241, 0.32);
+}
+
+.ad-fb--danger {
+  background: rgba(239, 68, 68, 0.14);
+  color: #FCA5A5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.ad-fb--loading {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ad-ink-3, #94A3B8);
+}
+
+.ad-fb:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Picker ───────────────────────────────────────────────────────── */
+.ad-fb-picker {
+  padding: 14px;
+  border-radius: var(--ad-r-card, 14px);
+  background: var(--ad-glass, rgba(255, 255, 255, 0.04));
+  -webkit-backdrop-filter: blur(16px);
+          backdrop-filter: blur(16px);
+  border: 1px solid var(--ad-line-2, rgba(255, 255, 255, 0.14));
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.24);
+  width: 280px;
+}
+
+.ad-fb-picker__head {
+  font-size: var(--ad-fs-13, 13px);
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--ad-ink, #1E293B);
+}
+
+.ad-fb-picker__label {
+  display: block;
+  font-size: var(--ad-fs-10, 10px);
+  font-weight: 600;
+  color: var(--ad-ink-2, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 8px 0 4px;
+}
+
+.ad-fb-picker__input {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--ad-r-md, 8px);
+  border: 1px solid var(--ad-line-2, rgba(255, 255, 255, 0.14));
+  background: var(--ad-glass, rgba(255, 255, 255, 0.04));
+  color: var(--ad-ink, #1E293B);
+  font-family: inherit;
+  font-size: var(--ad-fs-12, 12px);
+  outline: none;
+  transition: border-color var(--ad-dur, 0.18s) var(--ad-ease, ease);
+}
+.ad-fb-picker__input:focus {
+  border-color: rgba(139, 92, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+}
+
+.ad-fb-picker__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.ad-fb-picker__btn {
+  padding: 6px 14px;
+  border-radius: var(--ad-r-btn, 10px);
+  border: none;
+  font-family: inherit;
+  font-size: var(--ad-fs-11, 11px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--ad-dur, 0.18s) var(--ad-ease, ease);
+}
+
+.ad-fb-picker__btn--secondary {
+  background: transparent;
+  border: 1px solid var(--ad-line, rgba(255, 255, 255, 0.14));
+  color: var(--ad-ink-2, #94A3B8);
+}
+.ad-fb-picker__btn--primary {
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  color: white;
+}
+.ad-fb-picker__btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}

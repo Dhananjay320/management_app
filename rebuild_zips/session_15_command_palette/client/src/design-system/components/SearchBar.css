@@ -1,0 +1,76 @@
+/* SearchBar */
+.ad-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--ad-r-btn);
+  background: var(--ad-glass);
+  border: 1px solid var(--ad-line);
+  color: var(--ad-ink-2);
+  transition: all var(--ad-dur) var(--ad-ease);
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.ad-search:focus-within {
+  border-color: rgba(139, 92, 246, 0.55);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Session 15 — trigger mode: the whole bar acts as a button that opens the
+   CommandPalette. Input inside is readOnly, so we show pointer cursor and
+   hover state on the wrapper instead of focus-within. */
+.ad-search--trigger {
+  cursor: pointer;
+}
+.ad-search--trigger:hover {
+  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(255, 255, 255, 0.06);
+}
+.ad-search--trigger .ad-search__input {
+  cursor: pointer;
+  user-select: none;
+}
+.ad-search--trigger:focus-visible {
+  outline: 2px solid rgba(139, 92, 246, 0.55);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.ad-search__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--ad-ink-2);
+  line-height: 0;
+}
+
+.ad-search__input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--ad-ink);
+  font-family: var(--ad-font-sans);
+  font-size: var(--ad-fs-13);
+  letter-spacing: var(--ad-ls-tight);
+}
+
+.ad-search__input::placeholder {
+  color: var(--ad-ink-3);
+}
+
+.ad-search__kbd {
+  font-family: var(--ad-font-mono);
+  font-size: var(--ad-fs-11);
+  color: var(--ad-ink-3);
+  border: 1px solid var(--ad-line-2);
+  padding: 1px 6px;
+  border-radius: var(--ad-r-xs);
+  flex-shrink: 0;
+  user-select: none;
+}

@@ -1,0 +1,49 @@
+/* SegmentedControl */
+.ad-seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: var(--ad-r-md);
+  background: var(--ad-glass);
+  border: 1px solid var(--ad-line);
+}
+
+.ad-seg__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--ad-r-sm);
+  border: none;
+  background: transparent;
+  font-family: var(--ad-font-sans);
+  font-size: var(--ad-fs-12);
+  font-weight: 500;
+  color: var(--ad-ink-2);
+  cursor: pointer;
+  transition: all var(--ad-dur) var(--ad-ease);
+}
+
+.ad-seg__btn:hover:not(.ad-seg__btn--on) {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ad-ink);
+}
+
+.ad-seg__btn--on {
+  color: white;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(139, 92, 246, 0.35));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 6px 16px rgba(99, 102, 241, 0.2);
+}
+
+.ad-seg__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+/* Small size */
+.ad-seg--sm { padding: 2px; gap: 2px; }
+.ad-seg--sm .ad-seg__btn { padding: 4px 10px; font-size: var(--ad-fs-11); }

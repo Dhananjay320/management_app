@@ -3,6 +3,25 @@ const { Workspace, WorkspaceDocument, WorkspaceNote, WorkspaceFile, WorkspaceLin
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
+// Middleware: verify user is a member of the workspace or main_admin
+async function requireWorkspaceMember(req, res, next) {
+  try {
+    const wsId = req.params.id;
+    if (!wsId) return next();
+    const ws = await Workspace.findById(wsId);
+    if (!ws) return res.status(404).json({ error: 'Workspace not found.' });
+    const isMember = ws.members.some(m => m.toString() === req.user._id.toString());
+    const isMainAdmin = req.user.role === 'main_admin';
+    if (!isMember && !isMainAdmin) {
+      return res.status(403).json({ error: 'You are not a member of this workspace.' });
+    }
+    req.workspace = ws;
+    next();
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+}
+
 // ─── WORKSPACES ───
 
 router.get('/', protect, async (req, res) => {
@@ -44,7 +63,7 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, requireWorkspaceMember, async (req, res) => {
   try {
     const ws = await Workspace.findById(req.params.id)
       .populate('members', 'name email avatar')
@@ -67,7 +86,7 @@ router.get('/:id', protect, async (req, res) => {
 
 // ─── DOCUMENTS ───
 
-router.post('/:id/documents', protect, async (req, res) => {
+router.post('/:id/documents', protect, requireWorkspaceMember, async (req, res) => {
   try {
     const doc = await WorkspaceDocument.create({
       workspace: req.params.id,
@@ -121,7 +140,7 @@ router.delete('/documents/:docId', protect, async (req, res) => {
 
 // ─── NOTES ───
 
-router.post('/:id/notes', protect, async (req, res) => {
+router.post('/:id/notes', protect, requireWorkspaceMember, async (req, res) => {
   try {
     const note = await WorkspaceNote.create({
       workspace: req.params.id,
@@ -156,7 +175,7 @@ router.delete('/notes/:noteId', protect, async (req, res) => {
 
 // ─── LINKS ───
 
-router.post('/:id/links', protect, async (req, res) => {
+router.post('/:id/links', protect, requireWorkspaceMember, async (req, res) => {
   try {
     const link = await WorkspaceLink.create({
       workspace: req.params.id,
@@ -196,7 +215,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
 
-router.post('/:id/files', protect, upload.single('file'), async (req, res) => {
+router.post('/:id/files', protect, requireWorkspaceMember, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
 
@@ -235,7 +254,7 @@ const Channel = require('../models/Channel');
 const Message = require('../models/Message');
 
 // PUT /api/v1/workspace/:id/members — add members (with cross-team invite flow per spec 8.2)
-router.put('/:id/members', protect, async (req, res) => {
+router.put('/:id/members', protect, requireWorkspaceMember, async (req, res) => {
   try {
     const { userIds } = req.body;
     const ws = await Workspace.findById(req.params.id);
@@ -409,7 +428,7 @@ router.post('/documents/:docId/request-share', protect, async (req, res) => {
 });
 
 // PUT /api/v1/workspace/:id/external-share/:shareId/approve — admin approves sharing
-router.put('/:id/external-share/:shareId/approve', protect, async (req, res) => {
+router.put('/:id/external-share/:shareId/approve', protect, requireWorkspaceMember, async (req, res) => {
   try {
     if (!['main_admin', 'admin'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Admin approval required.' });
@@ -448,7 +467,7 @@ router.put('/:id/external-share/:shareId/approve', protect, async (req, res) => 
 });
 
 // DELETE /api/v1/workspace/:id/members/:userId — remove member
-router.delete('/:id/members/:userId', protect, async (req, res) => {
+router.delete('/:id/members/:userId', protect, requireWorkspaceMember, async (req, res) => {
   try {
     const ws = await Workspace.findById(req.params.id);
     if (!ws) return res.status(404).json({ error: 'Workspace not found.' });
@@ -467,7 +486,7 @@ router.delete('/:id/members/:userId', protect, async (req, res) => {
 });
 
 // PUT /api/v1/workspace/:id — update workspace settings
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, requireWorkspaceMember, async (req, res) => {
   try {
     const { name, description, icon, color } = req.body;
     const update = {};

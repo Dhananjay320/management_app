@@ -1,0 +1,51 @@
+/* AmbientBackground — 3 drifting gradient orbs. */
+.ad-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ad-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: ad-drift 22s var(--ad-ease) infinite alternate;
+}
+
+.ad-orb--a {
+  width: 520px;
+  height: 520px;
+  left: -140px;
+  top: -120px;
+  background: radial-gradient(circle, #6366F1 0%, transparent 60%);
+  animation-duration: 26s;
+}
+
+.ad-orb--b {
+  width: 620px;
+  height: 620px;
+  right: -180px;
+  top: 10%;
+  background: radial-gradient(circle, #8B5CF6 0%, transparent 60%);
+  animation-duration: 30s;
+  animation-delay: -6s;
+}
+
+.ad-orb--c {
+  width: 440px;
+  height: 440px;
+  left: 40%;
+  bottom: -160px;
+  background: radial-gradient(circle, #EC4899 0%, transparent 60%);
+  animation-duration: 34s;
+  animation-delay: -12s;
+  opacity: 0.38;
+}
+
+/* Quiet variant — reduced presence */
+.ad-ambient--quiet .ad-orb { opacity: 0.22; }
+.ad-ambient--quiet .ad-orb--c { opacity: 0.16; }

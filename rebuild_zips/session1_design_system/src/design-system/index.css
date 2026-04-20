@@ -1,0 +1,20 @@
+/* ============================================================================
+   Avadeti Design System — Master Stylesheet
+   ============================================================================
+   Import this ONCE at the app root (App.js or index.js).
+   Order matters: tokens → animations → base → components.
+   ============================================================================ */
+
+@import './tokens.css';
+@import './animations.css';
+@import './base.css';
+
+@import './components/AmbientBackground.css';
+@import './components/GlassPanel.css';
+@import './components/IconButton.css';
+@import './components/PrimaryButton.css';
+@import './components/Avatar.css';
+@import './components/SegmentedControl.css';
+@import './components/FilterPill.css';
+@import './components/SearchBar.css';
+@import './components/LiveDot.css';

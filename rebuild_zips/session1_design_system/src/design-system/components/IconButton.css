@@ -1,0 +1,71 @@
+/* IconButton */
+.ad-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ad-r-md);
+  background: var(--ad-glass);
+  border: 1px solid var(--ad-line);
+  color: var(--ad-ink-2);
+  cursor: pointer;
+  transition:
+    background var(--ad-dur) var(--ad-ease),
+    color var(--ad-dur) var(--ad-ease),
+    border-color var(--ad-dur) var(--ad-ease),
+    transform var(--ad-dur) var(--ad-ease),
+    box-shadow var(--ad-dur) var(--ad-ease);
+}
+.ad-icon-btn:hover {
+  background: var(--ad-glass-hover);
+  color: var(--ad-ink);
+  border-color: var(--ad-line-2);
+}
+.ad-icon-btn:active { transform: scale(0.96); }
+
+/* Sizes */
+.ad-icon-btn--sm      { width: 28px; height: 28px; border-radius: var(--ad-r-sm); }
+.ad-icon-btn--default { width: 36px; height: 36px; }
+.ad-icon-btn--lg      { width: 44px; height: 44px; border-radius: var(--ad-r-btn); }
+
+/* Variants */
+.ad-icon-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.ad-icon-btn--ghost:hover {
+  background: var(--ad-glass);
+  border-color: var(--ad-line);
+}
+
+.ad-icon-btn--primary {
+  background: var(--ad-grad-primary);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: var(--ad-glow-primary);
+}
+.ad-icon-btn--primary:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 12px 36px rgba(99, 102, 241, 0.55);
+}
+
+/* Badge — pulsing pink/red pill on top-right */
+.ad-icon-btn__badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  font-size: var(--ad-fs-10);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  background: var(--ad-grad-danger);
+  box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.55);
+  animation: ad-badge-pulse 2s infinite;
+  pointer-events: none;
+}

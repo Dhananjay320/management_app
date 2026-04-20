@@ -1,0 +1,142 @@
+/* ============================================================================
+   Tasks restyle (Session 18).
+   Layered on top of styles/tasks.css which still owns the TaskCard / TaskDetail
+   / CreateTask internals. This file covers the new page shell + deep-link
+   flash animation + mobile stack layout.
+   ============================================================================ */
+
+.ad-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Hero header ──────────────────────────────────────────────────────── */
+.ad-tasks__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 4px 4px 8px;
+}
+
+.ad-tasks__head-left { flex: 1; min-width: 240px; }
+
+.ad-tasks__title {
+  margin: 0;
+  font-size: var(--ad-fs-32, 32px);
+  font-weight: 700;
+  letter-spacing: var(--ad-ls-display, -0.02em);
+  color: var(--ad-ink, #0F172A);
+  line-height: 1.1;
+}
+
+.ad-tasks__sub {
+  margin: 6px 0 0;
+  font-size: var(--ad-fs-13, 13px);
+  color: var(--ad-ink-2, #475569);
+}
+
+.ad-tasks__head-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ─── View filters ─────────────────────────────────────────────────────── */
+.ad-tasks__filters {
+  padding: 2px 0 4px;
+}
+
+/* ─── Loading / empty states ──────────────────────────────────────────── */
+.ad-tasks__state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--ad-ink-3, #94A3B8);
+  font-size: var(--ad-fs-13, 13px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ad-tasks__empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--ad-r-md, 10px);
+  background: rgba(99, 102, 241, 0.12);
+  color: #A5B4FC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ad-tasks__empty-title {
+  font-size: var(--ad-fs-14, 14px);
+  font-weight: 600;
+  color: var(--ad-ink, #0F172A);
+  margin-top: 4px;
+}
+
+.ad-tasks__empty-sub {
+  font-size: var(--ad-fs-12, 12px);
+  color: var(--ad-ink-3, #94A3B8);
+}
+
+/* ─── Deep-link flash ─────────────────────────────────────────────────── */
+/* When Session 12 notifications (or Session 15 palette) deep-links to a
+   task, it comes in as ?highlight=<taskId>. The Tasks component finds it,
+   scrolls into view, and applies .ad-tasks-row--flash which pulses a ring
+   around the card so the user sees it. */
+.ad-tasks-row {
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+.ad-tasks-row--flash {
+  animation: ad-tasks-flash 1.6s ease-out;
+}
+
+@keyframes ad-tasks-flash {
+  0%   {
+    outline: 2px solid rgba(139, 92, 246, 0);
+    outline-offset: 4px;
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+  }
+  20%  {
+    outline: 2px solid rgba(139, 92, 246, 0.85);
+    outline-offset: 4px;
+    box-shadow: 0 0 24px rgba(139, 92, 246, 0.45);
+    transform: scale(1.01);
+  }
+  100% {
+    outline: 2px solid rgba(139, 92, 246, 0);
+    outline-offset: 4px;
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+    transform: scale(1);
+  }
+}
+
+/* ─── Mobile (< 760px) ────────────────────────────────────────────────── */
+/* Shrink the hero on small screens and stack the head actions. */
+@media (max-width: 760px) {
+  .ad-tasks__title {
+    font-size: var(--ad-fs-24, 24px);
+  }
+  .ad-tasks__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .ad-tasks__head-right {
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-tasks-row--flash {
+    animation: none;
+    outline: 2px solid rgba(139, 92, 246, 0.6);
+    outline-offset: 4px;
+  }
+}

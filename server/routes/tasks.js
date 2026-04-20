@@ -62,6 +62,17 @@ router.get('/:id', protect, async (req, res) => {
 
     if (!task) return res.status(404).json({ error: 'Task not found.' });
 
+    // Private task access check
+    if (task.isPrivate === true) {
+      const userId = req.user._id.toString();
+      const isAssignee = task.assignees?.some(a => (a._id || a).toString() === userId);
+      const isCreator = task.createdBy && (task.createdBy._id || task.createdBy).toString() === userId;
+      const hasViewAny = req.user.role === 'main_admin' || req.user.powers?.tasks?.viewAny === true;
+      if (!isAssignee && !isCreator && !hasViewAny) {
+        return res.status(403).json({ error: 'You do not have access to this private task.' });
+      }
+    }
+
     // Get subtasks
     const subtasks = await Task.find({ parentTask: task._id, isActive: true })
       .populate('assignees', 'name avatar')
@@ -170,9 +181,16 @@ router.put('/:id', protect, async (req, res) => {
       await recalcParentProgress(updated.parentTask);
     }
 
-    // Notify via socket
+    // Notify via socket — targeted to assignees, watchers, and creator only
     const io = req.app.get('io');
-    if (io) io.emit('task:updated', { taskId: updated._id, status: updated.status, progress: updated.progress });
+    if (io) {
+      const recipients = new Set();
+      (updated.assignees || []).forEach(a => recipients.add((a._id || a).toString()));
+      (updated.watchers || []).forEach(w => recipients.add((w._id || w).toString()));
+      if (updated.createdBy) recipients.add((updated.createdBy._id || updated.createdBy).toString());
+      const payload = { taskId: updated._id, status: updated.status, progress: updated.progress };
+      recipients.forEach(uid => io.to(`user:${uid}`).emit('task:updated', payload));
+    }
 
     res.json(updated);
   } catch (err) {

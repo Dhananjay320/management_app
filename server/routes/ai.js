@@ -35,10 +35,22 @@ router.post('/activate', protect, async (req, res) => {
     const parsed = parseActivationCode(activationCode);
     if (!parsed) return res.status(400).json({ error: 'Invalid activation code format.' });
 
-    // Check expiry
+    // Check expiry — handle both YYYY-MM and YYYY-MM-DD formats
+    let expiryDate = null;
     if (parsed.expiry) {
-      const expiryDate = new Date(parsed.expiry + '-01');
-      if (expiryDate < new Date()) {
+      const parts = parsed.expiry.split('-');
+      if (parts.length === 2) {
+        // YYYY-MM format: expire at end of that month
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10); // 1-based
+        expiryDate = new Date(year, month, 0, 23, 59, 59, 999); // last day of month
+      } else if (parts.length === 3) {
+        // YYYY-MM-DD format: expire at end of that day
+        expiryDate = new Date(parts[0], parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 23, 59, 59, 999);
+      } else {
+        expiryDate = new Date(parsed.expiry);
+      }
+      if (isNaN(expiryDate.getTime()) || expiryDate < new Date()) {
         return res.status(400).json({ error: 'Activation code has expired.' });
       }
     }
@@ -52,7 +64,7 @@ router.post('/activate', protect, async (req, res) => {
         provider: parsed.provider,
         encryptedKey,
         activationCode: activationCode.substring(0, 20) + '...', // Store truncated for reference
-        expiresAt: parsed.expiry ? new Date(parsed.expiry + '-01') : undefined,
+        expiresAt: expiryDate || undefined,
         isActive: true,
         activatedAt: new Date()
       },

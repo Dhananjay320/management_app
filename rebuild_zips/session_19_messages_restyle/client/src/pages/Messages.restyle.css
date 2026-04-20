@@ -1,0 +1,139 @@
+/* ============================================================================
+   Messages restyle (Session 19).
+   Layered on styles/messaging.css — covers mobile stack, typing dots,
+   back button, and deep-link flash animation.
+   ============================================================================ */
+
+/* ─── Typing indicator — animated dots ─────────────────────────────────── */
+/* Replaces the plain "X is typing..." text with three bouncing dots + name. */
+.ad-typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 18px;
+  padding: 0 14px;
+  font-size: var(--ad-fs-11, 11px);
+  color: var(--ad-ink-3, #94A3B8);
+  font-style: italic;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.ad-typing--visible { opacity: 1; }
+
+.ad-typing__dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+.ad-typing__dots span {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ad-typing-bounce 1.2s ease-in-out infinite;
+}
+.ad-typing__dots span:nth-child(2) { animation-delay: 0.15s; }
+.ad-typing__dots span:nth-child(3) { animation-delay: 0.30s; }
+
+@keyframes ad-typing-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ─── Deep-link flash on target message ─────────────────────────────────── */
+.ad-msg--flash {
+  position: relative;
+  animation: ad-msg-flash 1.8s ease-out;
+  border-radius: 8px;
+}
+@keyframes ad-msg-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); background: transparent; }
+  20%  {
+    box-shadow: 0 0 0 6px rgba(139, 92, 246, 0.18), 0 0 24px rgba(139, 92, 246, 0.35);
+    background: rgba(139, 92, 246, 0.06);
+  }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); background: transparent; }
+}
+
+/* ─── Mobile back button (shell-level) ──────────────────────────────────── */
+.ad-msg-back {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ad-r-btn, 10px);
+  background: transparent;
+  border: 1px solid var(--ad-line, rgba(0, 0, 0, 0.08));
+  color: var(--ad-ink-2, #475569);
+  cursor: pointer;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.ad-msg-back:hover {
+  background: var(--ad-glass-hover, rgba(0, 0, 0, 0.04));
+  color: var(--ad-ink, #1E293B);
+}
+
+/* ─── Mobile stack (< 760px) ─────────────────────────────────────────────
+   Messages is a two-column layout (conv sidebar + chat area). On mobile the
+   user can only see one at a time: sidebar shows by default; once a channel
+   is picked (body gets .ad-msg--chat-open) the chat fills the viewport and
+   the sidebar hides. Back arrow in chat header returns to the sidebar. */
+@media (max-width: 760px) {
+  .msg-layout {
+    display: block !important;  /* override the grid from messaging.css */
+    position: relative;
+  }
+
+  .msg-sidebar {
+    width: 100% !important;
+    max-width: none !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--ad-line, rgba(0,0,0,0.08));
+  }
+
+  .msg-chat {
+    display: none !important;
+  }
+
+  /* When a channel is active, flip: hide sidebar, show chat full-screen */
+  .ad-msg--chat-open .msg-sidebar { display: none !important; }
+  .ad-msg--chat-open .msg-chat {
+    display: flex !important;
+    position: fixed;
+    inset: 0;
+    top: 60px;  /* leave room for the topbar */
+    z-index: 50;
+    background: var(--ad-canvas, #F8FAFC);
+  }
+
+  /* Show back button on mobile */
+  .ad-msg-back { display: inline-flex; }
+
+  /* Search in header takes too much room on mobile — collapse to icon only */
+  .msg-header-search-input { display: none; }
+
+  /* Right panel (pinned/files/members) becomes a bottom sheet */
+  .msg-right-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    z-index: 55;
+    border-top: 1px solid var(--ad-line, rgba(0,0,0,0.08));
+    box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* ─── Respect reduced motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ad-typing__dots span { animation: none; opacity: 0.8; }
+  .ad-msg--flash {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
+    background: rgba(139, 92, 246, 0.06);
+  }
+}

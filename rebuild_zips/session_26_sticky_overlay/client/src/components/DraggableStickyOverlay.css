@@ -1,0 +1,123 @@
+/* DraggableStickyOverlay — Session 26 (N1) */
+
+.ad-sticky-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;  /* let clicks pass through to app content */
+  z-index: 9990;         /* above pages, below modals/palette */
+}
+
+.ad-sticky-note {
+  position: absolute;
+  pointer-events: auto;  /* but the notes themselves are clickable */
+  border-radius: 8px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 8px 20px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  color: #1F2937;
+  font-family: var(--ad-font-sans, 'Inter', sans-serif);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+.ad-sticky-note:hover {
+  transform: scale(1.01);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 14px 30px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.ad-sticky-note:focus-visible {
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.2);
+}
+.ad-sticky-note:active {
+  cursor: grabbing;
+}
+
+.ad-sticky-note__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 4px;
+  gap: 8px;
+}
+
+.ad-sticky-note__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(31, 41, 55, 0.75);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.ad-sticky-note__unpin {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  color: rgba(31, 41, 55, 0.7);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ad-sticky-note__unpin:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #991B1B;
+}
+
+.ad-sticky-note__body {
+  flex: 1;
+  padding: 6px 10px 10px;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: text;
+  user-select: text;
+}
+.ad-sticky-note__body::placeholder {
+  color: rgba(31, 41, 55, 0.45);
+}
+
+/* Resize handle — bottom-right corner */
+.ad-sticky-note__resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 50%, rgba(31, 41, 55, 0.3) 50%, rgba(31, 41, 55, 0.3) 55%, transparent 55%, transparent 60%, rgba(31, 41, 55, 0.3) 60%, rgba(31, 41, 55, 0.3) 65%, transparent 65%, transparent 70%, rgba(31, 41, 55, 0.3) 70%, rgba(31, 41, 55, 0.3) 75%, transparent 75%);
+  border-bottom-right-radius: 8px;
+}
+
+/* Hide overlay entirely on narrow mobile — drag UX is bad on touch for this */
+@media (max-width: 640px) {
+  .ad-sticky-overlay { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-sticky-note { transition: none; }
+  .ad-sticky-note:hover { transform: none; }
+}

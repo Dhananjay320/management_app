@@ -132,6 +132,15 @@ router.put('/:id', protect, async (req, res) => {
     const old = await Meeting.findById(req.params.id);
     if (!old) return res.status(404).json({ error: 'Meeting not found.' });
 
+    // Permission check: creator, attendee, or meetings.editAny power
+    const userId = req.user._id.toString();
+    const isCreator = old.createdBy && old.createdBy.toString() === userId;
+    const isAttendee = old.attendees?.some(a => (a.user._id || a.user).toString() === userId);
+    const hasEditAny = req.user.role === 'main_admin' || req.user.powers?.meetings?.editAny === true;
+    if (!isCreator && !isAttendee && !hasEditAny) {
+      return res.status(403).json({ error: 'You do not have permission to edit this meeting.' });
+    }
+
     const updates = { ...req.body };
     delete updates.attendees;
 
@@ -363,6 +372,14 @@ router.delete('/:id', protect, async (req, res) => {
     const meeting = await Meeting.findById(req.params.id)
       .populate('attendees.user', 'name');
     if (!meeting) return res.status(404).json({ error: 'Meeting not found.' });
+
+    // Permission check: creator or meetings.deleteAny power
+    const userId = req.user._id.toString();
+    const isCreator = meeting.createdBy && (meeting.createdBy._id || meeting.createdBy).toString() === userId;
+    const hasDeleteAny = req.user.role === 'main_admin' || req.user.powers?.meetings?.deleteAny === true;
+    if (!isCreator && !hasDeleteAny) {
+      return res.status(403).json({ error: 'You do not have permission to delete this meeting.' });
+    }
 
     const createdAgo = Date.now() - new Date(meeting.createdAt).getTime();
     const silentWindow = createdAgo < 10000; // Within 10 seconds

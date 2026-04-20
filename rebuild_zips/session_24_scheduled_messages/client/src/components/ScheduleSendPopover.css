@@ -1,0 +1,169 @@
+/* ScheduleSendPopover — Session 24 (N3) */
+
+.ad-sched {
+  position: absolute;
+  bottom: 56px;
+  right: 12px;
+  z-index: 200;
+  width: 320px;
+  padding: 16px;
+  border-radius: var(--ad-r-card, 14px);
+  background: var(--ad-glass, rgba(255, 255, 255, 0.04));
+  -webkit-backdrop-filter: blur(20px);
+          backdrop-filter: blur(20px);
+  border: 1px solid var(--ad-line-2, rgba(255, 255, 255, 0.16));
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  animation: ad-sched-enter 0.18s ease-out;
+}
+
+@keyframes ad-sched-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ad-sched__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.ad-sched__title {
+  font-size: var(--ad-fs-14, 14px);
+  font-weight: 700;
+  color: var(--ad-ink, #1E293B);
+  letter-spacing: var(--ad-ls-tight, -0.01em);
+}
+
+.ad-sched__close {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--ad-ink-3, #94A3B8);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.ad-sched__close:hover { color: var(--ad-ink, #1E293B); background: rgba(255, 255, 255, 0.06); }
+
+.ad-sched__presets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.ad-sched__preset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: var(--ad-r-btn, 10px);
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid transparent;
+  color: var(--ad-ink, #1E293B);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--ad-dur, 0.18s) var(--ad-ease, ease);
+}
+.ad-sched__preset:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateX(2px);
+}
+
+.ad-sched__preset-label {
+  font-size: var(--ad-fs-13, 13px);
+  font-weight: 600;
+}
+
+.ad-sched__preset-sub {
+  font-size: var(--ad-fs-11, 11px);
+  color: var(--ad-ink-3, #94A3B8);
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-sched__custom {
+  padding-top: 12px;
+  border-top: 1px solid var(--ad-line, rgba(255, 255, 255, 0.08));
+}
+
+.ad-sched__label {
+  display: block;
+  font-size: var(--ad-fs-11, 11px);
+  font-weight: 600;
+  color: var(--ad-ink-2, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.ad-sched__input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--ad-r-md, 8px);
+  border: 1px solid var(--ad-line-2, rgba(255, 255, 255, 0.14));
+  background: var(--ad-glass, rgba(255, 255, 255, 0.04));
+  color: var(--ad-ink, #1E293B);
+  font-family: inherit;
+  font-size: var(--ad-fs-13, 13px);
+  outline: none;
+  transition: border-color var(--ad-dur, 0.18s) var(--ad-ease, ease);
+}
+.ad-sched__input:focus {
+  border-color: rgba(139, 92, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+}
+
+.ad-sched__error {
+  font-size: var(--ad-fs-11, 11px);
+  color: #F87171;
+  margin-top: 8px;
+}
+
+.ad-sched__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ad-sched__btn {
+  padding: 7px 14px;
+  border-radius: var(--ad-r-btn, 10px);
+  font-family: inherit;
+  font-size: var(--ad-fs-12, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all var(--ad-dur, 0.18s) var(--ad-ease, ease);
+}
+
+.ad-sched__btn--secondary {
+  background: transparent;
+  border: 1px solid var(--ad-line, rgba(255, 255, 255, 0.14));
+  color: var(--ad-ink-2, #94A3B8);
+}
+.ad-sched__btn--secondary:hover { color: var(--ad-ink, #1E293B); background: rgba(255,255,255,0.04); }
+
+.ad-sched__btn--primary {
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  color: white;
+}
+.ad-sched__btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+}
+
+/* Mobile — popover grows to fit */
+@media (max-width: 520px) {
+  .ad-sched {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    bottom: 70px;
+  }
+}

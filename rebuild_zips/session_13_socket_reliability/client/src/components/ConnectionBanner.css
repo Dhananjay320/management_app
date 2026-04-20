@@ -1,0 +1,51 @@
+/* ConnectionBanner — shown when the socket is disconnected */
+
+.ad-connbanner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(249, 115, 22, 0.92));
+  color: #1a120a;
+  font-family: var(--ad-font-sans);
+  font-size: var(--ad-fs-12);
+  font-weight: 600;
+  letter-spacing: var(--ad-ls-tight);
+  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.35);
+  animation: ad-connbanner-in 0.3s var(--ad-ease);
+  /* 2-second grace period before showing on initial load */
+  animation-delay: 2s;
+  animation-fill-mode: backwards;
+}
+
+@keyframes ad-connbanner-in {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.ad-connbanner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1a120a;
+  animation: ad-connbanner-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ad-connbanner-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.4); opacity: 0.5; }
+}
+
+.ad-connbanner__label { white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-connbanner { animation-delay: 0s; }
+  .ad-connbanner__dot { animation: none; }
+}
