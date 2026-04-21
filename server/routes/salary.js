@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const { SalaryStructure, EmployeeOverride, SalaryMonthly, SalaryDispute } = require('../models/Salary');
 const Attendance = require('../models/Attendance');
 const Leave = require('../models/Leave');
@@ -79,13 +80,13 @@ router.put('/override/:userId', protect, requirePower('salary', 'editStructure')
 //  MONTHLY SALARY — GENERATE & VIEW
 // ══════════════════════════════════════
 
-// Helper: calculate working days in a month (exclude Sundays)
+// Helper: calculate working days in a month (exclude Sundays and Saturdays)
 function getWorkingDays(year, month) {
   let count = 0;
   const daysInMonth = new Date(year, month, 0).getDate();
   for (let d = 1; d <= daysInMonth; d++) {
     const day = new Date(year, month - 1, d).getDay();
-    if (day !== 0) count++; // Exclude Sundays
+    if (day !== 0 && day !== 6) count++; // Exclude Sundays and Saturdays
   }
   return count;
 }
@@ -98,6 +99,12 @@ router.post('/generate', protect, requirePower('salary', 'editStructure'), async
     const employee = await User.findById(userId);
     if (!employee) return res.status(404).json({ error: 'Employee not found.' });
 
+    // Skip if baseSalary is 0 or missing
+    const baseSalary = employee.salary?.base || 0;
+    if (!baseSalary) {
+      return res.status(400).json({ error: 'Cannot generate salary: employee has no base salary configured.' });
+    }
+
     // Get rules (employee override or company default)
     const companyRules = await SalaryStructure.findOne({ isActive: true });
     const override = await EmployeeOverride.findOne({ user: userId });
@@ -106,7 +113,7 @@ router.post('/generate', protect, requirePower('salary', 'editStructure'), async
     const perHalfDay = override?.perHalfDay ?? companyRules?.perHalfDay ?? 0;
     const perUnapprovedLeave = override?.perUnapprovedLeave ?? companyRules?.perUnapprovedLeave ?? 0;
 
-    // Count attendance for the month
+    // Count attendance for the month (Attendance.date is a String in YYYY-MM-DD format)
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
     const attendances = await Attendance.find({
       user: userId,
@@ -146,7 +153,6 @@ router.post('/generate', protect, requirePower('salary', 'editStructure'), async
     const totalDeductions = deductions.reduce((s, d) => s + d.amount, 0);
 
     // Tax
-    const baseSalary = employee.salary?.base || 0;
     const tds = employee.salary?.tds || 0;
     const pf = employee.salary?.pf || 0;
     const esi = employee.salary?.esi || 0;
@@ -276,72 +282,129 @@ router.get('/monthly/:userId/:year/:month/pdf', protect, async (req, res) => {
     const employee = await User.findById(userId).select('name email jobTitle');
     const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const monthName = MONTHS[record.month];
-
-    // Generate simple HTML-to-text PDF-like content (plain text format for download)
-    // In production, use pdf-lib or puppeteer for real PDF
     const fmt = (n) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n || 0);
 
-    let lines = [];
-    lines.push('═══════════════════════════════════════');
-    lines.push('           SALARY SLIP');
-    lines.push(`         ${monthName} ${year}`);
-    lines.push('═══════════════════════════════════════');
-    lines.push('');
-    lines.push(`Employee: ${employee.name}`);
-    lines.push(`Email: ${employee.email}`);
-    if (employee.jobTitle) lines.push(`Title: ${employee.jobTitle}`);
-    lines.push('');
-    lines.push('───────────────────────────────────────');
-    lines.push('ATTENDANCE SUMMARY');
-    lines.push(`  Working Days:        ${record.workingDays}`);
-    lines.push(`  Present:             ${record.presentDays}`);
-    lines.push(`  Absent:              ${record.absentDays}`);
-    lines.push(`  Half Days:           ${record.halfDays}`);
-    lines.push(`  Leaves:              ${record.leaveDays}`);
-    lines.push('');
-    lines.push('───────────────────────────────────────');
-    lines.push('EARNINGS');
-    lines.push(`  Base Salary:         INR ${fmt(record.baseSalary)}`);
-    lines.push('');
+    // Generate real PDF using pdf-lib
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontNormal = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const darkColor = rgb(0.12, 0.16, 0.21);
+    const grayColor = rgb(0.4, 0.45, 0.53);
+    const accentColor = rgb(0.24, 0.36, 0.96);
 
+    let y = 790;
+    const lx = 50; // left margin
+    const rx = 545; // right margin
+
+    // Company header
+    page.drawText('AVADETI MEDIA', { x: lx, y, font: fontBold, size: 20, color: accentColor });
+    y -= 18;
+    page.drawText('Salary Slip', { x: lx, y, font: fontNormal, size: 12, color: grayColor });
+    y -= 14;
+    page.drawText(`${monthName} ${year}`, { x: lx, y, font: fontNormal, size: 12, color: grayColor });
+    y -= 30;
+
+    // Horizontal rule
+    page.drawLine({ start: { x: lx, y }, end: { x: rx, y }, thickness: 1, color: rgb(0.85, 0.87, 0.9) });
+    y -= 22;
+
+    // Employee info
+    const drawRow = (label, value, bold) => {
+      page.drawText(label, { x: lx, y, font: fontNormal, size: 10, color: grayColor });
+      page.drawText(value || '', { x: 180, y, font: bold ? fontBold : fontNormal, size: 10, color: darkColor });
+      y -= 16;
+    };
+    drawRow('Employee Name:', employee.name, true);
+    drawRow('Email:', employee.email);
+    if (employee.jobTitle) drawRow('Designation:', employee.jobTitle);
+    y -= 10;
+
+    // Attendance section
+    page.drawText('ATTENDANCE SUMMARY', { x: lx, y, font: fontBold, size: 11, color: darkColor });
+    y -= 18;
+    drawRow('Working Days:', String(record.workingDays));
+    drawRow('Present:', String(record.presentDays));
+    drawRow('Absent:', String(record.absentDays));
+    drawRow('Half Days:', String(record.halfDays));
+    drawRow('Leaves:', String(record.leaveDays));
+    y -= 6;
+    page.drawLine({ start: { x: lx, y }, end: { x: rx, y }, thickness: 0.5, color: rgb(0.85, 0.87, 0.9) });
+    y -= 18;
+
+    // Earnings
+    page.drawText('EARNINGS', { x: lx, y, font: fontBold, size: 11, color: darkColor });
+    y -= 18;
+    page.drawText('Base Salary', { x: lx, y, font: fontNormal, size: 10, color: grayColor });
+    page.drawText(`INR ${fmt(record.baseSalary)}`, { x: 400, y, font: fontNormal, size: 10, color: darkColor });
+    y -= 16;
+
+    // Deductions
     if (record.deductions?.length > 0) {
-      lines.push('DEDUCTIONS');
-      record.deductions.forEach(d => {
-        lines.push(`  ${d.name} (${d.count}):   - INR ${fmt(d.amount)}`);
-      });
-      lines.push(`  Total Deductions:    - INR ${fmt(record.totalDeductions)}`);
-      lines.push('');
+      y -= 6;
+      page.drawText('DEDUCTIONS', { x: lx, y, font: fontBold, size: 11, color: darkColor });
+      y -= 18;
+      for (const d of record.deductions) {
+        page.drawText(`${d.name} (x${d.count})`, { x: lx, y, font: fontNormal, size: 10, color: grayColor });
+        page.drawText(`- INR ${fmt(d.amount)}`, { x: 400, y, font: fontNormal, size: 10, color: rgb(0.8, 0.2, 0.2) });
+        y -= 16;
+      }
+      page.drawText('Total Deductions', { x: lx, y, font: fontBold, size: 10, color: grayColor });
+      page.drawText(`- INR ${fmt(record.totalDeductions)}`, { x: 400, y, font: fontBold, size: 10, color: rgb(0.8, 0.2, 0.2) });
+      y -= 16;
     }
 
-    lines.push('TAX DEDUCTIONS');
-    if (record.tds > 0) lines.push(`  TDS:                 - INR ${fmt(record.tds)}`);
-    if (record.pf > 0) lines.push(`  PF:                  - INR ${fmt(record.pf)}`);
-    if (record.esi > 0) lines.push(`  ESI:                 - INR ${fmt(record.esi)}`);
-    lines.push(`  Total Tax:           - INR ${fmt(record.totalTax)}`);
-    lines.push('');
+    // Tax
+    y -= 6;
+    page.drawText('TAX DEDUCTIONS', { x: lx, y, font: fontBold, size: 11, color: darkColor });
+    y -= 18;
+    if (record.tds > 0) { drawRow('TDS:', `- INR ${fmt(record.tds)}`); }
+    if (record.pf > 0) { drawRow('PF:', `- INR ${fmt(record.pf)}`); }
+    if (record.esi > 0) { drawRow('ESI:', `- INR ${fmt(record.esi)}`); }
+    page.drawText('Total Tax', { x: lx, y, font: fontBold, size: 10, color: grayColor });
+    page.drawText(`- INR ${fmt(record.totalTax)}`, { x: 400, y, font: fontBold, size: 10, color: rgb(0.8, 0.2, 0.2) });
+    y -= 16;
 
+    // Bonuses
     if (record.totalBonuses > 0) {
-      lines.push('BONUSES');
-      if (record.fixedBonus > 0) lines.push(`  Fixed Bonus:         + INR ${fmt(record.fixedBonus)}`);
-      record.performanceBonuses?.forEach(b => {
-        lines.push(`  ${b.name}:  + INR ${fmt(b.amount)}`);
-      });
-      lines.push(`  Total Bonuses:       + INR ${fmt(record.totalBonuses)}`);
-      lines.push('');
+      y -= 6;
+      page.drawText('BONUSES', { x: lx, y, font: fontBold, size: 11, color: darkColor });
+      y -= 18;
+      if (record.fixedBonus > 0) {
+        page.drawText('Fixed Bonus', { x: lx, y, font: fontNormal, size: 10, color: grayColor });
+        page.drawText(`+ INR ${fmt(record.fixedBonus)}`, { x: 400, y, font: fontNormal, size: 10, color: rgb(0.1, 0.6, 0.3) });
+        y -= 16;
+      }
+      for (const b of (record.performanceBonuses || [])) {
+        page.drawText(b.name, { x: lx, y, font: fontNormal, size: 10, color: grayColor });
+        page.drawText(`+ INR ${fmt(b.amount)}`, { x: 400, y, font: fontNormal, size: 10, color: rgb(0.1, 0.6, 0.3) });
+        y -= 16;
+      }
+      page.drawText('Total Bonuses', { x: lx, y, font: fontBold, size: 10, color: grayColor });
+      page.drawText(`+ INR ${fmt(record.totalBonuses)}`, { x: 400, y, font: fontBold, size: 10, color: rgb(0.1, 0.6, 0.3) });
+      y -= 16;
     }
 
-    lines.push('═══════════════════════════════════════');
-    lines.push(`  NET SALARY:          INR ${fmt(record.netSalary)}`);
-    lines.push('═══════════════════════════════════════');
-    lines.push('');
-    lines.push(`Generated: ${new Date().toLocaleDateString()}`);
-    lines.push('This is a computer-generated document.');
+    // Net salary
+    y -= 10;
+    page.drawLine({ start: { x: lx, y }, end: { x: rx, y }, thickness: 1.5, color: accentColor });
+    y -= 22;
+    page.drawText('NET SALARY', { x: lx, y, font: fontBold, size: 14, color: darkColor });
+    page.drawText(`INR ${fmt(record.netSalary)}`, { x: 400, y, font: fontBold, size: 14, color: accentColor });
+    y -= 30;
+    page.drawLine({ start: { x: lx, y }, end: { x: rx, y }, thickness: 1.5, color: accentColor });
 
-    const content = lines.join('\n');
+    // Footer
+    y -= 30;
+    page.drawText(`Generated: ${new Date().toLocaleDateString()}`, { x: lx, y, font: fontNormal, size: 8, color: grayColor });
+    y -= 12;
+    page.drawText('This is a computer-generated document and does not require a signature.', { x: lx, y, font: fontNormal, size: 8, color: grayColor });
 
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', `attachment; filename=salary_${employee.name.replace(/\s/g, '_')}_${monthName}_${year}.txt`);
-    res.send(content);
+    const pdfBytes = await pdfDoc.save();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=salary_${employee.name.replace(/\s/g, '_')}_${monthName}_${year}.pdf`);
+    res.send(Buffer.from(pdfBytes));
   } catch (err) {
     console.error('Salary PDF error:', err);
     res.status(500).json({ error: 'Server error.' });

@@ -3,6 +3,8 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { protect, requirePower } = require('../middleware/auth');
 
+// TODO: Avatar upload endpoint pending — needs multer setup for frontend + backend file handling
+
 // Generate readable temp password
 function generateTempPassword() {
   return 'Temp' + crypto.randomBytes(4).toString('hex') + '!1';

@@ -10,6 +10,7 @@ import CreateUser from './pages/admin/CreateUser';
 import EditUser from './pages/admin/EditUser';
 import SecurityPanel from './pages/admin/SecurityPanel';
 import AnalysisPage from './pages/admin/AnalysisPage';
+import AnnouncementManager from './pages/admin/AnnouncementManager';
 import AttendancePage from './pages/Attendance';
 import MessagesPage from './pages/Messages';
 import TasksPage from './pages/Tasks';
@@ -74,6 +75,7 @@ function App() {
             <Route path="admin/users/:id" element={<EditUser />} />
             <Route path="admin/analysis" element={<AnalysisPage />} />
             <Route path="admin/security" element={<SecurityPanel />} />
+            <Route path="admin/announcements" element={<AnnouncementManager />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" />} />

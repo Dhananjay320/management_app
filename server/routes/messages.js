@@ -48,7 +48,7 @@ router.post('/channels', protect, async (req, res) => {
     }
 
     const memberIds = members || [];
-    if (!memberIds.includes(req.user._id.toString())) {
+    if (!memberIds.map(m => m.toString()).includes(req.user._id.toString())) {
       memberIds.push(req.user._id);
     }
 
@@ -112,7 +112,7 @@ router.get('/:channelId', protect, async (req, res) => {
     const { before, limit = 50 } = req.query;
 
     const channel = await Channel.findById(req.params.channelId);
-    if (!channel || !channel.members.includes(req.user._id)) {
+    if (!channel || !channel.members.some(m => m.toString() === req.user._id.toString())) {
       return res.status(403).json({ error: 'Not a member of this channel.' });
     }
 
@@ -142,7 +142,7 @@ router.post('/:channelId', protect, async (req, res) => {
     const { content, type, file, parentMessage, mentions } = req.body;
 
     const channel = await Channel.findById(req.params.channelId);
-    if (!channel || !channel.members.includes(req.user._id)) {
+    if (!channel || !channel.members.some(m => m.toString() === req.user._id.toString())) {
       return res.status(403).json({ error: 'Not a member of this channel.' });
     }
 
@@ -210,7 +210,7 @@ router.post('/:channelId/:messageId/react', protect, async (req, res) => {
 
     const existing = message.reactions.find(r => r.emoji === emoji);
     if (existing) {
-      if (existing.users.includes(req.user._id)) {
+      if (existing.users.some(u => u.toString() === req.user._id.toString())) {
         existing.users = existing.users.filter(u => u.toString() !== req.user._id.toString());
         if (existing.users.length === 0) {
           message.reactions = message.reactions.filter(r => r.emoji !== emoji);
@@ -485,7 +485,7 @@ router.post('/:channelId/upload', protect, chatUpload.single('file'), async (req
     if (!req.file) return res.status(400).json({ error: 'No file.' });
 
     const channel = await Channel.findById(req.params.channelId);
-    if (!channel || !channel.members.includes(req.user._id)) {
+    if (!channel || !channel.members.some(m => m.toString() === req.user._id.toString())) {
       return res.status(403).json({ error: 'Not a member.' });
     }
 

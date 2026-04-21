@@ -91,6 +91,9 @@ const emailSchema = new mongoose.Schema({
   linkedTask: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
   linkedWorkspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
 
+  // Whether the email was actually delivered via SMTP
+  smtpDelivered: { type: Boolean, default: false },
+
   isDeleted: { type: Boolean, default: false },
   deletedAt: { type: Date },
 

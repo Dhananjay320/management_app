@@ -203,7 +203,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
             <div className="mtg-meet-link" onClick={() => window.open(meeting.googleMeetLink, '_blank')}>
               <span style={{ fontSize: 18 }}>📹</span>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#10B981' }}>Join Google Meet</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#10B981' }}>Join Meeting</div>
                 <div style={{ fontSize: 10, color: '#94A3B8' }}>{meeting.googleMeetLink}</div>
               </div>
             </div>
@@ -360,7 +360,7 @@ function MomEditor({ mom, onBack }) {
 }
 
 function CreateMeeting({ users, userId, onBack, onCreated }) {
-  const [form, setForm] = useState({ title: '', agenda: '', type: 'online', date: '', startTime: '', endTime: '', duration: '', location: '', attendeeIds: [] });
+  const [form, setForm] = useState({ title: '', agenda: '', type: 'online', date: '', startTime: '', endTime: '', duration: '', location: '', meetingLink: '', attendeeIds: [] });
   const [loading, setLoading] = useState(false);
 
   const toggleAttendee = (id) => {
@@ -416,12 +416,10 @@ function CreateMeeting({ users, userId, onBack, onCreated }) {
         )}
 
         {form.type === 'online' && (
-          <div className="info-box green" style={{ marginBottom: 14 }}>
-            <span>📹</span>
-            <div>
-              <div style={{ fontWeight: 600 }}>Google Meet link will be auto-generated</div>
-              <div style={{ fontSize: 10, color: '#94A3B8' }}>All attendees will receive the link</div>
-            </div>
+          <div className="form-field" style={{ marginBottom: 14 }}>
+            <label>Meeting Link (Google Meet / Zoom / Teams)</label>
+            <input value={form.meetingLink} onChange={e => setForm(p => ({ ...p, meetingLink: e.target.value }))} placeholder="Paste your meeting link here, e.g. https://meet.google.com/abc-defg-hij" />
+            <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 4 }}>Paste the link from your video conferencing provider. Attendees will see this link on the meeting page.</div>
           </div>
         )}
 

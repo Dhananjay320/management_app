@@ -42,8 +42,9 @@ export default function ActivityPage() {
   const [filter, setFilter] = useState('all');
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
-    title: '', type: 'reading', description: '', audience: 'company', date: '', time: ''
+    title: '', type: 'reading', description: '', audience: 'company', team: '', date: '', time: ''
   });
+  const [teams, setTeams] = useState([]);
 
   const loadActivities = useCallback(async () => {
     try {
@@ -56,6 +57,11 @@ export default function ActivityPage() {
 
   useEffect(() => { loadActivities(); }, [loadActivities]);
 
+  // Load teams for team picker
+  useEffect(() => {
+    api.get('/teams').then(res => setTeams(res.data)).catch(() => {});
+  }, []);
+
   const createActivity = async () => {
     if (!form.title.trim() || !form.date) return;
     try {
@@ -65,10 +71,11 @@ export default function ActivityPage() {
         type: form.type,
         description: form.description,
         audience: form.audience,
+        team: form.audience === 'team' ? form.team : undefined,
         date: dateTime.toISOString()
       });
       setCreating(false);
-      setForm({ title: '', type: 'reading', description: '', audience: 'company', date: '', time: '' });
+      setForm({ title: '', type: 'reading', description: '', audience: 'company', team: '', date: '', time: '' });
       loadActivities();
     } catch {}
   };
@@ -202,9 +209,18 @@ export default function ActivityPage() {
                 <label>Audience *</label>
                 <select value={form.audience} onChange={e => setForm(prev => ({ ...prev, audience: e.target.value }))}>
                   <option value="company">Company</option>
-                  <option value="team">My Team</option>
+                  <option value="team">Team</option>
                 </select>
               </div>
+              {form.audience === 'team' && (
+                <div className="act-form-group">
+                  <label>Team *</label>
+                  <select value={form.team} onChange={e => setForm(prev => ({ ...prev, team: e.target.value }))}>
+                    <option value="">Select a team...</option>
+                    {teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10 }}>
                 <div className="act-form-group" style={{ flex: 1 }}>
                   <label>Date *</label>

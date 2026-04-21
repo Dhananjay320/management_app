@@ -1,7 +1,32 @@
 const router = require('express').Router();
+const nodemailer = require('nodemailer');
 const { EmailAccount, Email, EmailDraft, EmailTemplate, EmailCategory } = require('../models/Email');
 const User = require('../models/User');
 const { protect, requireRole, requirePower } = require('../middleware/auth');
+
+// ── SMTP helper: attempts real send if account has SMTP configured ──
+async function sendViaSMTP(account, emailData) {
+  if (!account.smtp?.host) return { sent: false, reason: 'No SMTP configured' };
+  try {
+    const transporter = nodemailer.createTransport({
+      host: account.smtp.host,
+      port: account.smtp.port || 587,
+      secure: account.smtp.port === 465,
+      auth: { user: account.smtp.user, pass: account.smtp.pass }
+    });
+    await transporter.sendMail({
+      from: `"${emailData.fromName}" <${emailData.from}>`,
+      to: emailData.to.join(', '),
+      cc: emailData.cc?.join(', '),
+      subject: emailData.subject,
+      html: emailData.bodyHtml || emailData.bodyText
+    });
+    return { sent: true };
+  } catch (err) {
+    console.error('[SMTP] Send failed:', err.message);
+    return { sent: false, reason: err.message };
+  }
+}
 
 // ══════════════════════════════════════
 //  EMAIL ACCOUNTS
@@ -205,6 +230,16 @@ router.post('/send', protect, async (req, res) => {
       (account.type === 'shared' && account.accessList.some(id => id.toString() === req.user._id.toString()));
     if (!hasAccess) return res.status(403).json({ error: 'No access to this email account.' });
 
+    // When replying, preserve the original email's threadId
+    let resolvedThreadId = threadId;
+    if (!resolvedThreadId && inReplyTo) {
+      const originalEmail = await Email.findOne({ messageId: inReplyTo });
+      resolvedThreadId = originalEmail?.threadId;
+    }
+    if (!resolvedThreadId) {
+      resolvedThreadId = `thread_${Date.now()}`;
+    }
+
     // Store in sent folder
     const sentEmail = await Email.create({
       account: account._id,
@@ -218,12 +253,27 @@ router.post('/send', protect, async (req, res) => {
       bodyHtml: bodyHtml || '',
       bodyText: bodyText || '',
       inReplyTo: inReplyTo || undefined,
-      threadId: threadId || `thread_${Date.now()}`,
+      threadId: resolvedThreadId,
       folder: 'sent',
       isRead: true,
       user: req.user._id,
       receivedAt: new Date()
     });
+
+    // Attempt real SMTP delivery if account has SMTP config
+    const smtpResult = await sendViaSMTP(account, {
+      fromName: account.displayName || req.user.name,
+      from: account.address,
+      to: sentEmail.to,
+      cc: sentEmail.cc,
+      subject: sentEmail.subject,
+      bodyHtml: sentEmail.bodyHtml,
+      bodyText: sentEmail.bodyText
+    });
+    if (smtpResult.sent) {
+      sentEmail.smtpDelivered = true;
+      await sentEmail.save();
+    }
 
     // If shared inbox, mark as replied
     if (account.type === 'shared' && inReplyTo) {
@@ -572,3 +622,5 @@ router.delete('/categories/:id', protect, async (req, res) => {
 });
 
 module.exports = router;
+
+// TODO: IMAP polling - requires background worker with imapflow

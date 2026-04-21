@@ -19,6 +19,9 @@ async function recalcParentProgress(parentId) {
   await Task.findByIdAndUpdate(parentId, { progress });
 }
 
+// Priority numeric ordering (alphabetical sort of strings gives wrong order)
+const PRIORITY_ORDER = { top: 0, high: 1, medium: 2, low: 3 };
+
 // ─── TASKS ───
 
 // GET /api/v1/tasks — list tasks
@@ -39,7 +42,14 @@ router.get('/', protect, async (req, res) => {
       .populate('team', 'name')
       .populate('labels', 'name color type')
       .populate('createdBy', 'name')
-      .sort({ priority: 1, calendarOrder: 1, deadline: 1 });
+      .sort({ calendarOrder: 1, deadline: 1 });
+
+    // Sort by numeric priority order instead of alphabetical
+    tasks.sort((a, b) => {
+      const pa = PRIORITY_ORDER[a.priority] ?? 99;
+      const pb = PRIORITY_ORDER[b.priority] ?? 99;
+      return pa - pb;
+    });
 
     res.json(tasks);
   } catch (err) {

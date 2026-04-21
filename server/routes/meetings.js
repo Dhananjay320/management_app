@@ -11,8 +11,15 @@ router.get('/', protect, async (req, res) => {
     const now = new Date();
 
     let filter = { 'attendees.user': req.user._id, isActive: true };
-    if (tab === 'upcoming') filter.date = { $gte: new Date(now.toDateString()) };
-    else filter.status = { $in: ['completed', 'cancelled'] };
+    if (tab === 'upcoming') {
+      filter.date = { $gte: new Date(now.toDateString()) };
+      filter.status = { $ne: 'cancelled' };
+    } else {
+      filter.$or = [
+        { date: { $lt: new Date(now.toDateString()) } },
+        { status: 'completed' }
+      ];
+    }
 
     const meetings = await Meeting.find(filter)
       .populate('attendees.user', 'name email avatar')
@@ -59,7 +66,7 @@ router.get('/:id', protect, async (req, res) => {
 // POST /api/v1/meetings — create meeting
 router.post('/', protect, async (req, res) => {
   try {
-    const { title, agenda, type, date, startTime, endTime, duration, location, attendeeIds, isRecurring, recurringPattern } = req.body;
+    const { title, agenda, type, date, startTime, endTime, duration, location, attendeeIds, meetingLink, isRecurring, recurringPattern } = req.body;
 
     if (!title || !agenda || !type || !date || !startTime) {
       return res.status(400).json({ error: 'Title, agenda, type, date, and start time are required.' });
@@ -71,12 +78,9 @@ router.post('/', protect, async (req, res) => {
       attendees.push({ user: req.user._id, response: 'confirmed', hasSeen: true });
     }
 
-    // Generate a mock Google Meet link for online meetings
-    let googleMeetLink = null;
-    if (type === 'online') {
-      const meetId = require('crypto').randomBytes(5).toString('hex');
-      googleMeetLink = `https://meet.google.com/${meetId.slice(0,3)}-${meetId.slice(3,7)}-${meetId.slice(7)}`;
-    }
+    // Use creator-provided meeting link (Google Meet / Zoom / Teams)
+    // TODO: Real Google Calendar sync requires Service Account setup — for now the creator pastes their own link
+    const googleMeetLink = (type === 'online' && meetingLink) ? meetingLink.trim() : null;
 
     const meeting = await Meeting.create({
       title, agenda, type, date: new Date(date), startTime, endTime, duration,
@@ -490,3 +494,5 @@ function extractPlainText(json) {
 }
 
 module.exports = router;
+
+// TODO: Google Calendar sync requires Service Account setup

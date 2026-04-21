@@ -43,6 +43,8 @@ export default function TeamFeedPage() {
   const [commentInputs, setCommentInputs] = useState({});
   const [showComments, setShowComments] = useState({});
   const [mediaFile, setMediaFile] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState('');
 
   const loadPosts = useCallback(async () => {
     try {
@@ -55,6 +57,11 @@ export default function TeamFeedPage() {
   }, [tab]);
 
   useEffect(() => { loadPosts(); }, [loadPosts]);
+
+  // Load teams for team picker
+  useEffect(() => {
+    api.get('/teams').then(res => setTeams(res.data)).catch(() => {});
+  }, []);
 
   // Socket: new feed post
   useEffect(() => {
@@ -74,7 +81,7 @@ export default function TeamFeedPage() {
         formData.append('audience', audience);
         await api.post('/feed/with-media', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       } else {
-        await api.post('/feed', { content: newPost.trim(), audience });
+        await api.post('/feed', { content: newPost.trim(), audience, team: audience === 'team' ? selectedTeam : undefined });
       }
       setNewPost('');
       setMediaFile(null);
@@ -176,8 +183,14 @@ export default function TeamFeedPage() {
             )}
             <select className="feed-create-audience" value={audience} onChange={e => setAudience(e.target.value)}>
               <option value="company">Company</option>
-              <option value="team">My Team</option>
+              <option value="team">Team</option>
             </select>
+            {audience === 'team' && (
+              <select className="feed-create-audience" value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)}>
+                <option value="">Select team...</option>
+                {teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+              </select>
+            )}
           </div>
           <button className="feed-post-btn" onClick={createPost} disabled={!newPost.trim()}>Post</button>
         </div>

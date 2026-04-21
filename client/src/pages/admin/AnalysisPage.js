@@ -106,9 +106,9 @@ export default function AnalysisPage() {
       const range = getDateRange();
 
       const [statsRes, histRes, leavesRes, tasksRes] = await Promise.all([
-        api.get('/attendance/stats').catch(() => ({ data: { week: { present: 0, total: 0 }, month: { present: 0, total: 0 }, pendingLeaves: 0 } })),
+        api.get('/attendance/stats', { params: { userId: selectedUser } }).catch(() => ({ data: { week: { present: 0, total: 0 }, month: { present: 0, total: 0 }, pendingLeaves: 0 } })),
         api.get('/attendance/history', { params: { userId: selectedUser, month: range.month } }).catch(() => ({ data: [] })),
-        api.get('/attendance/leaves').catch(() => ({ data: [] })),
+        api.get('/attendance/leaves', { params: { userId: selectedUser } }).catch(() => ({ data: [] })),
         api.get('/tasks', { params: { assignee: selectedUser } }).catch(() => ({ data: { tasks: [], total: 0 } })),
       ]);
 
