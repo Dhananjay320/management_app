@@ -214,7 +214,7 @@ export default function AppLayout() {
       <NotificationToast />
 
       {/* Click outside to close user menu */}
-      {showUserMenu && <div style={{ position: 'fixed', inset: 0, zIndex: 50 }} onClick={() => setShowUserMenu(false)} />}
+      {showUserMenu && <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setShowUserMenu(false)} />}
     </div>
   );
 }
