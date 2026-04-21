@@ -464,7 +464,9 @@ router.post('/disputes', protect, async (req, res) => {
         type: 'salary_dispute',
         title: 'New Salary Dispute',
         message: `${req.user.name} raised a dispute for ${month}/${year}`,
-        disputeId: dispute._id
+        disputeId: dispute._id,
+        entityType: 'dispute',
+        entityId: dispute._id
       });
     }
 
@@ -503,7 +505,9 @@ router.put('/disputes/:id', protect, requirePower('salary', 'resolveDisputes'), 
       io.to(`user:${dispute.user._id}`).emit('notification:new', {
         type: 'salary_dispute_update',
         title: `Dispute ${status}`,
-        message: status === 'resolved' ? resolution : rejectionReason || `Your dispute has been ${status}.`
+        message: status === 'resolved' ? resolution : rejectionReason || `Your dispute has been ${status}.`,
+        entityType: 'dispute',
+        entityId: dispute._id
       });
     }
 

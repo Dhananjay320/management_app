@@ -86,7 +86,7 @@ router.get('/normal', protect, async (req, res) => {
       query.isActive = true;
       // Privacy filter: only documents from workspaces the user is a member of
       const { Workspace } = require('../models/Workspace');
-      const userWorkspaces = await Workspace.find({ members: req.user._id, isActive: true }).select('_id').lean();
+      const userWorkspaces = await Workspace.find({ 'members.user': req.user._id, isActive: true }).select('_id').lean();
       const wsIds = userWorkspaces.map(w => w._id);
       query.workspace = { $in: wsIds };
     }

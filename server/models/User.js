@@ -96,6 +96,13 @@ const userSchema = new mongoose.Schema({
   office: { type: mongoose.Schema.Types.ObjectId, ref: 'Office' },
   manager: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
+  // Multi-admin assignment per employee (Gap 28 — C4)
+  admins: {
+    hr: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    tasks: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    salary: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  },
+
   // Work type
   workType: { type: String, enum: ['full_office', 'full_remote', 'hybrid'], default: 'full_office' },
   hybridOfficeDays: [{ type: String, enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] }],

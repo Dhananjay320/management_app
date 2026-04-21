@@ -18,6 +18,9 @@ router.get('/', protect, requirePower('users', 'create'), async (req, res) => {
       .populate('teams', 'name')
       .populate('office', 'name')
       .populate('manager', 'name email')
+      .populate('admins.hr', 'name email')
+      .populate('admins.tasks', 'name email')
+      .populate('admins.salary', 'name email')
       .sort({ name: 1 });
     res.json(users);
   } catch (err) {
@@ -45,7 +48,10 @@ router.get('/:id', protect, async (req, res) => {
       .select('-password -refreshToken -emailConfig')
       .populate('teams', 'name')
       .populate('office', 'name')
-      .populate('manager', 'name email');
+      .populate('manager', 'name email')
+      .populate('admins.hr', 'name email')
+      .populate('admins.tasks', 'name email')
+      .populate('admins.salary', 'name email');
 
     if (!user) return res.status(404).json({ error: 'User not found.' });
 
@@ -67,7 +73,7 @@ router.post('/', protect, requirePower('users', 'create'), async (req, res) => {
   try {
     const {
       name, email, phone, jobTitle, role, adminTitle,
-      teams, office, manager, workType, hybridOfficeDays,
+      teams, office, manager, admins, workType, hybridOfficeDays,
       powers, salary, calendarId
     } = req.body;
 
@@ -99,6 +105,7 @@ router.post('/', protect, requirePower('users', 'create'), async (req, res) => {
       teams: teams || [],
       office,
       manager,
+      admins: admins || {},
       workType: workType || 'full_office',
       hybridOfficeDays: hybridOfficeDays || [],
       powers: powers || {},

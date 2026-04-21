@@ -188,7 +188,9 @@ router.post('/:channelId', protect, async (req, res) => {
             type: 'mention',
             title: `${req.user.name} mentioned you`,
             message: content.substring(0, 100),
-            channelId: req.params.channelId
+            channelId: req.params.channelId,
+            entityType: 'channel',
+            entityId: req.params.channelId
           });
         });
       }
@@ -340,7 +342,8 @@ router.post('/:channelId/task', protect, async (req, res) => {
         if (uid !== req.user._id.toString()) {
           io.to(`user:${uid}`).emit('notification:new', {
             type: 'task', title: 'New Task from Chat',
-            message: `${req.user.name} assigned you "${title}"`
+            message: `${req.user.name} assigned you "${title}"`,
+            entityType: 'task', entityId: task._id
           });
         }
       });
@@ -617,7 +620,8 @@ router.post('/:channelId/:messageId/create-task', protect, async (req, res) => {
         if (uid.toString() !== req.user._id.toString()) {
           io.to(`user:${uid}`).emit('notification:new', {
             type: 'task', title: 'New task from chat',
-            message: `${req.user.name} created task: "${task.title}"`
+            message: `${req.user.name} created task: "${task.title}"`,
+            entityType: 'task', entityId: task._id
           });
         }
       });

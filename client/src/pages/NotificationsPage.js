@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import api from '../services/api';
@@ -28,6 +29,27 @@ export default function NotificationsPage() {
   // eslint-disable-next-line no-unused-vars
   const { user: _user } = useAuth();
   const { socket } = useSocket();
+  const navigate = useNavigate();
+
+  const handleNotifClick = (notif) => {
+    const routes = {
+      task: `/tasks?id=${notif.entityId}`,
+      meeting: `/meetings?id=${notif.entityId}`,
+      channel: `/messages?channel=${notif.entityId}`,
+      mention: `/messages?channel=${notif.entityId}`,
+      leave: '/attendance',
+      attendance: '/attendance',
+      dispute: '/salary',
+      salary_dispute: '/salary',
+      salary_dispute_update: '/salary',
+      announcement: '/',
+      workspace: '/workspace',
+      security: '/admin/security',
+    };
+    const path = routes[notif.entityType] || routes[notif.type] || '/';
+    if (!notif.isRead) markRead(notif._id);
+    navigate(path);
+  };
 
   const [notifications, setNotifications] = useState([]);
   const [tab, setTab] = useState('all');
@@ -151,7 +173,8 @@ export default function NotificationsPage() {
             <div
               key={n._id}
               className={`notif-item ${!n.isRead ? 'unread' : ''} ${n.isEmergency ? 'emergency' : ''}`}
-              onClick={() => !n.isRead && markRead(n._id)}
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleNotifClick(n)}
             >
               <div className={`notif-icon notif-icon-${n.type}`}>
                 {TYPE_ICONS[n.type] || '🔔'}

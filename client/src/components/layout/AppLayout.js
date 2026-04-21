@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NotificationToast from '../NotificationToast';
+import FloatingStickyNote from '../FloatingStickyNote';
 import '../../styles/layout.css';
 
 const NAV_ITEMS = [
@@ -33,6 +34,32 @@ export default function AppLayout() {
   const location = useLocation();
   const [adminMode, setAdminMode] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [floatingNotes, setFloatingNotes] = useState(() => {
+    try {
+      const stored = localStorage.getItem('floating-notes');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+
+  const saveFloatingNotes = useCallback((notes) => {
+    setFloatingNotes(notes);
+    try { localStorage.setItem('floating-notes', JSON.stringify(notes)); } catch {}
+  }, []);
+
+  const addFloatingNote = useCallback(() => {
+    const newNote = { id: 'fn-' + Date.now(), title: '', content: '', color: '#FEF3C7' };
+    saveFloatingNotes([...floatingNotes, newNote]);
+  }, [floatingNotes, saveFloatingNotes]);
+
+  const closeFloatingNote = useCallback((noteId) => {
+    saveFloatingNotes(floatingNotes.filter(n => n.id !== noteId));
+    try { localStorage.removeItem(`floating-note-pos-${noteId}`); } catch {}
+  }, [floatingNotes, saveFloatingNotes]);
+
+  const saveFloatingNote = useCallback((updatedNote) => {
+    saveFloatingNotes(floatingNotes.map(n => n.id === updatedNote.id ? updatedNote : n));
+  }, [floatingNotes, saveFloatingNotes]);
 
   const hasAdminPowers = user?.role === 'main_admin' || user?.role === 'admin';
   const isActive = (path) => {
@@ -91,6 +118,21 @@ export default function AppLayout() {
           <div className="topbar-left">
             <span className="topbar-title">{pageTitle}</span>
           </div>
+          <div style={{ flex: 1, maxWidth: 360, margin: '0 16px' }}>
+            <input
+              type="text"
+              placeholder="Search everything..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                  setSearchQuery('');
+                }
+              }}
+              style={{ width: '100%', padding: '6px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, fontFamily: 'Inter,sans-serif', outline: 'none', background: '#F8FAFC', color: '#1E293B' }}
+            />
+          </div>
           <div className="topbar-right">
             {hasAdminPowers && (
               <div
@@ -102,11 +144,11 @@ export default function AppLayout() {
               </div>
             )}
 
-            {/* Sticky Notes persistent icon — per spec Section 11, accessible from every screen */}
+            {/* Sticky Notes persistent icon — opens floating note, or navigate with shift+click */}
             <div
               className="topbar-sticky-icon"
-              onClick={() => navigate('/sticky-notes')}
-              title="Sticky Notes"
+              onClick={(e) => e.shiftKey ? navigate('/sticky-notes') : addFloatingNote()}
+              title="New Floating Sticky Note (Shift+click for full page)"
               style={{ cursor: 'pointer', fontSize: 16, padding: '4px 8px', borderRadius: 6, background: 'rgba(99,102,241,0.06)', marginRight: 4 }}
             >
               📝
@@ -154,6 +196,16 @@ export default function AppLayout() {
           <Outlet context={{ adminMode, setAdminMode }} />
         </div>
       </div>
+
+      {/* Floating Sticky Notes */}
+      {floatingNotes.map(note => (
+        <FloatingStickyNote
+          key={note.id}
+          note={note}
+          onClose={closeFloatingNote}
+          onSave={saveFloatingNote}
+        />
+      ))}
 
       {/* Toast Notifications */}
       <NotificationToast />

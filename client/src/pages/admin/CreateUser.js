@@ -47,6 +47,7 @@ export default function CreateUser() {
     name: '', email: '', phone: '', jobTitle: '',
     role: 'employee', adminTitle: '',
     teams: [], office: '', manager: '',
+    admins: { hr: '', tasks: '', salary: '' },
     workType: 'full_office', hybridOfficeDays: [],
     salary: { base: '', tds: '', pf: '', esi: '', fixedBonus: '' },
     powers: {}
@@ -66,6 +67,7 @@ export default function CreateUser() {
 
   const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
   const updateSalary = (field, value) => setForm(prev => ({ ...prev, salary: { ...prev.salary, [field]: value } }));
+  const updateAdmin = (field, value) => setForm(prev => ({ ...prev, admins: { ...prev.admins, [field]: value } }));
 
   const togglePower = (group, power) => {
     setForm(prev => {
@@ -144,7 +146,7 @@ export default function CreateUser() {
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
             <button className="btn btn-secondary" onClick={() => navigate('/admin/users')}>View All Users</button>
-            <button className="btn btn-primary-sm" onClick={() => { setSuccess(null); setForm({ name:'',email:'',phone:'',jobTitle:'',role:'employee',adminTitle:'',teams:[],office:'',manager:'',workType:'full_office',hybridOfficeDays:[],salary:{base:'',tds:'',pf:'',esi:'',fixedBonus:''},powers:{} }); }}>Create Another</button>
+            <button className="btn btn-primary-sm" onClick={() => { setSuccess(null); setForm({ name:'',email:'',phone:'',jobTitle:'',role:'employee',adminTitle:'',teams:[],office:'',manager:'',admins:{hr:'',tasks:'',salary:''},workType:'full_office',hybridOfficeDays:[],salary:{base:'',tds:'',pf:'',esi:'',fixedBonus:''},powers:{} }); }}>Create Another</button>
           </div>
         </div>
       </div>
@@ -213,6 +215,35 @@ export default function CreateUser() {
               <select value={form.office} onChange={e => updateField('office', e.target.value)}>
                 <option value="">Select office...</option>
                 {offices.map(o => <option key={o._id} value={o._id}>{o.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="form-grid-3" style={{ marginTop: 12 }}>
+            <div className="form-field">
+              <label>HR Admin</label>
+              <select value={form.admins.hr} onChange={e => updateAdmin('hr', e.target.value)}>
+                <option value="">Select HR admin...</option>
+                {users.filter(u => u.role !== 'employee').map(u => (
+                  <option key={u._id} value={u._id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Task Admin</label>
+              <select value={form.admins.tasks} onChange={e => updateAdmin('tasks', e.target.value)}>
+                <option value="">Select task admin...</option>
+                {users.filter(u => u.role !== 'employee').map(u => (
+                  <option key={u._id} value={u._id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Salary Admin</label>
+              <select value={form.admins.salary} onChange={e => updateAdmin('salary', e.target.value)}>
+                <option value="">Select salary admin...</option>
+                {users.filter(u => u.role !== 'employee').map(u => (
+                  <option key={u._id} value={u._id}>{u.name}</option>
+                ))}
               </select>
             </div>
           </div>

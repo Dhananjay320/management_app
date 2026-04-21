@@ -42,7 +42,9 @@ router.post('/login', async (req, res) => {
             io.to(`user:${admin._id}`).emit('notification:new', {
               type: 'security',
               title: 'Account Locked',
-              message: `${user.name}'s account has been locked after 5 failed login attempts.`
+              message: `${user.name}'s account has been locked after 5 failed login attempts.`,
+              entityType: 'security',
+              entityId: user._id
             });
           });
         }

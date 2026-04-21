@@ -113,7 +113,8 @@ router.post('/', protect, async (req, res) => {
         if (a.user.toString() !== req.user._id.toString()) {
           io.to(`user:${a.user}`).emit('notification:new', {
             type: 'meeting', title: 'New Meeting Invite',
-            message: `${req.user.name} invited you to "${title}" on ${new Date(date).toLocaleDateString()}`
+            message: `${req.user.name} invited you to "${title}" on ${new Date(date).toLocaleDateString()}`,
+            entityType: 'meeting', entityId: meeting._id
           });
         }
       });
@@ -164,13 +165,15 @@ router.put('/:id', protect, async (req, res) => {
           // Time change → notification + DM to all attendees
           io.to(`user:${a.user._id}`).emit('notification:new', {
             type: 'meeting', title: 'Meeting Time Changed',
-            message: `"${meeting.title}" time has been changed by ${req.user.name}`
+            message: `"${meeting.title}" time has been changed by ${req.user.name}`,
+            entityType: 'meeting', entityId: meeting._id
           });
         } else if (agendaChanged) {
           // Agenda change → notification to all
           io.to(`user:${a.user._id}`).emit('notification:new', {
             type: 'meeting', title: 'Meeting Agenda Updated',
-            message: `"${meeting.title}" agenda was updated by ${req.user.name}`
+            message: `"${meeting.title}" agenda was updated by ${req.user.name}`,
+            entityType: 'meeting', entityId: meeting._id
           });
         }
         // Minor edits → silent (no notification)
@@ -208,7 +211,8 @@ router.post('/:id/start', protect, async (req, res) => {
       if (io) {
         io.to(`user:${a.user._id}`).emit('notification:new', {
           type: 'meeting', title: 'Meeting Started',
-          message: `"${meeting.title}" has started`
+          message: `"${meeting.title}" has started`,
+          entityType: 'meeting', entityId: meeting._id
         });
       }
     }
@@ -284,7 +288,8 @@ router.post('/:id/end', protect, async (req, res) => {
           task.assignees?.forEach(uid => {
             io.to(`user:${uid}`).emit('notification:new', {
               type: 'task', title: 'Task from Meeting',
-              message: `New task from "${meeting.title}": ${task.title}`
+              message: `New task from "${meeting.title}": ${task.title}`,
+              entityType: 'task', entityId: task._id
             });
           });
         });
@@ -318,7 +323,8 @@ router.post('/:id/attendees', protect, async (req, res) => {
         if (io) {
           io.to(`user:${uid}`).emit('notification:new', {
             type: 'meeting', title: 'New Meeting Invite',
-            message: `You've been added to "${meeting.title}" on ${new Date(meeting.date).toLocaleDateString()}`
+            message: `You've been added to "${meeting.title}" on ${new Date(meeting.date).toLocaleDateString()}`,
+            entityType: 'meeting', entityId: meeting._id
           });
         }
       }
@@ -400,7 +406,8 @@ router.delete('/:id', protect, async (req, res) => {
           if (a.user._id.toString() !== req.user._id.toString()) {
             io.to(`user:${a.user._id}`).emit('notification:new', {
               type: 'meeting', title: 'Meeting Cancelled',
-              message: `"${meeting.title}" has been cancelled by ${req.user.name}`
+              message: `"${meeting.title}" has been cancelled by ${req.user.name}`,
+              entityType: 'meeting', entityId: meeting._id
             });
           }
         });

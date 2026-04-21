@@ -132,7 +132,9 @@ router.post('/', protect, async (req, res) => {
           io.to(`user:${uid}`).emit('notification:new', {
             type: 'task',
             title: 'New task assigned',
-            message: `${req.user.name} assigned you: "${task.title}"`
+            message: `${req.user.name} assigned you: "${task.title}"`,
+            entityType: 'task',
+            entityId: task._id
           });
         }
       });

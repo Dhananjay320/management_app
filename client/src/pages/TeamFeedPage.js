@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import api from '../services/api';
 import '../styles/teamfeed.css';
+// TODO: Add FormatSwitcher from '../components/FormatSwitcher' to allow switching feed posts between chat/email/table/calendar/document views
 
 const GRADIENTS = [
   'linear-gradient(135deg,#6366F1,#8B5CF6)',

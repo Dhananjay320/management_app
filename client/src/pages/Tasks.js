@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import '../styles/tasks.css';
+// TODO: Add FormatSwitcher from '../components/FormatSwitcher' to allow switching task comments/activity between chat/email/table/calendar/document views
 
 const PRIORITY_CONFIG = {
   top: { label: '🔴 Top Priority', color: '#EF4444' },

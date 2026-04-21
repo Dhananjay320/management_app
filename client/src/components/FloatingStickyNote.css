@@ -1,0 +1,125 @@
+.floating-sticky-note {
+  position: fixed;
+  z-index: 9999;
+  width: 220px;
+  min-height: 160px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', sans-serif;
+  transition: box-shadow 0.15s;
+  overflow: hidden;
+}
+
+.floating-sticky-note:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.floating-sticky-note.minimized {
+  min-height: 0;
+  height: auto;
+}
+
+.floating-sticky-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: grab;
+  user-select: none;
+  gap: 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.floating-sticky-header:active {
+  cursor: grabbing;
+}
+
+.floating-sticky-drag-handle {
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.25);
+  margin-right: 2px;
+}
+
+.floating-sticky-title-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1E293B;
+  outline: none;
+  padding: 2px 4px;
+  font-family: 'Inter', sans-serif;
+  min-width: 0;
+}
+
+.floating-sticky-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.floating-sticky-header-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.floating-sticky-header-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.floating-sticky-body {
+  flex: 1;
+  padding: 6px 10px 10px;
+}
+
+.floating-sticky-textarea {
+  width: 100%;
+  min-height: 80px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  color: #334155;
+  outline: none;
+  resize: none;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+}
+
+.floating-sticky-footer {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px 6px;
+  gap: 4px;
+}
+
+.floating-sticky-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s;
+}
+
+.floating-sticky-color-dot:hover {
+  transform: scale(1.2);
+}
+
+.floating-sticky-color-dot.active {
+  border-color: rgba(0, 0, 0, 0.3);
+}

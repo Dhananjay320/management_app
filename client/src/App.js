@@ -26,6 +26,7 @@ import SettingsPage from './pages/SettingsPage';
 import OnboardingPage from './pages/OnboardingPage';
 import ProfilePage from './pages/ProfilePage';
 import CorePanel from './pages/CorePanel';
+import SearchPage from './pages/SearchPage';
 import { SocketProvider } from './context/SocketContext';
 import './App.css';
 
@@ -67,6 +68,7 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="onboarding" element={<OnboardingPage />} />
+            <Route path="search" element={<SearchPage />} />
             <Route path="sys" element={<CorePanel />} />
 
             {/* Admin */}

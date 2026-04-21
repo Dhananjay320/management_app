@@ -192,13 +192,16 @@ router.post('/leave', protect, async (req, res) => {
       reason
     });
 
-    // Notify manager
+    // Notify HR admin (or fallback to manager)
+    const notifyTarget = req.user.admins?.hr || req.user.manager;
     const io = req.app.get('io');
-    if (io && req.user.manager) {
-      io.to(`user:${req.user.manager}`).emit('notification:new', {
+    if (io && notifyTarget) {
+      io.to(`user:${notifyTarget}`).emit('notification:new', {
         type: 'approval',
         title: 'Leave Request',
-        message: `${req.user.name} requested ${type} leave from ${startDate} to ${endDate}`
+        message: `${req.user.name} requested ${type} leave from ${startDate} to ${endDate}`,
+        entityType: 'leave',
+        entityId: leave._id
       });
     }
 
@@ -336,7 +339,9 @@ router.post('/no-entry-check', protect, requirePower('attendance', 'forwardAlert
         io.to(`user:${req.user._id}`).emit('notification:new', {
           type: 'attendance',
           title: 'No-entry alert',
-          message: `${emp.name} has not marked entry today.`
+          message: `${emp.name} has not marked entry today.`,
+          entityType: 'attendance',
+          entityId: emp._id
         });
       }
     }
@@ -359,7 +364,9 @@ router.post('/forward-alert', protect, requirePower('attendance', 'forwardAlerts
       io.to(`user:${employee.manager}`).emit('notification:new', {
         type: 'attendance',
         title: 'No-entry alert forwarded',
-        message: `HR forwarded: ${employee.name} has not marked entry today. Please follow up.`
+        message: `HR forwarded: ${employee.name} has not marked entry today. Please follow up.`,
+        entityType: 'attendance',
+        entityId: employee._id
       });
     }
 

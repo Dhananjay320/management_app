@@ -25,7 +25,10 @@ const workspaceSchema = new mongoose.Schema({
   color: { type: String, default: '#6366F1' },
   type: { type: String, enum: ['personal', 'team', 'cross_team'], default: 'personal' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  members: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    role: { type: String, enum: ['viewer', 'editor'], default: 'editor' }
+  }],
   team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
 
   // Cross-team invites
@@ -37,7 +40,7 @@ const workspaceSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 
-workspaceSchema.index({ members: 1 });
+workspaceSchema.index({ 'members.user': 1 });
 
 const documentSchema = new mongoose.Schema({
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },

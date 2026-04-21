@@ -10,23 +10,33 @@ async function requireWorkspaceMember(req, res, next) {
     if (!wsId) return next();
     const ws = await Workspace.findById(wsId);
     if (!ws) return res.status(404).json({ error: 'Workspace not found.' });
-    const isMember = ws.members.some(m => m.toString() === req.user._id.toString());
+    const memberEntry = ws.members.find(m => (m.user || m).toString() === req.user._id.toString());
     const isMainAdmin = req.user.role === 'main_admin';
-    if (!isMember && !isMainAdmin) {
+    const isOwner = ws.createdBy.toString() === req.user._id.toString();
+    if (!memberEntry && !isMainAdmin) {
       return res.status(403).json({ error: 'You are not a member of this workspace.' });
     }
     req.workspace = ws;
+    req.workspaceRole = isOwner || isMainAdmin ? 'editor' : (memberEntry?.role || 'editor');
     next();
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }
 }
 
+// Middleware: require editor role (or owner/main_admin)
+function requireEditor(req, res, next) {
+  if (req.workspaceRole !== 'editor') {
+    return res.status(403).json({ error: 'Viewers cannot create or edit content.' });
+  }
+  next();
+}
+
 // ─── WORKSPACES ───
 
 router.get('/', protect, async (req, res) => {
   try {
-    const workspaces = await Workspace.find({ members: req.user._id, isActive: true })
+    const workspaces = await Workspace.find({ 'members.user': req.user._id, isActive: true })
       .populate('createdBy', 'name')
       .populate('team', 'name')
       .sort({ updatedAt: -1 });
@@ -52,10 +62,11 @@ router.post('/', protect, async (req, res) => {
     const { name, description, icon, color, type, team, members } = req.body;
     const memberIds = members || [];
     if (!memberIds.includes(req.user._id.toString())) memberIds.push(req.user._id);
+    const memberObjs = memberIds.map(id => ({ user: id, role: 'editor' }));
 
     const ws = await Workspace.create({
       name, description, icon, color, type: type || 'personal',
-      createdBy: req.user._id, members: memberIds, team
+      createdBy: req.user._id, members: memberObjs, team
     });
     res.status(201).json(ws);
   } catch (err) {
@@ -66,7 +77,7 @@ router.post('/', protect, async (req, res) => {
 router.get('/:id', protect, requireWorkspaceMember, async (req, res) => {
   try {
     const ws = await Workspace.findById(req.params.id)
-      .populate('members', 'name email avatar')
+      .populate('members.user', 'name email avatar')
       .populate('createdBy', 'name')
       .populate('team', 'name');
     if (!ws) return res.status(404).json({ error: 'Workspace not found.' });
@@ -86,7 +97,7 @@ router.get('/:id', protect, requireWorkspaceMember, async (req, res) => {
 
 // ─── DOCUMENTS ───
 
-router.post('/:id/documents', protect, requireWorkspaceMember, async (req, res) => {
+router.post('/:id/documents', protect, requireWorkspaceMember, requireEditor, async (req, res) => {
   try {
     const doc = await WorkspaceDocument.create({
       workspace: req.params.id,
@@ -140,7 +151,7 @@ router.delete('/documents/:docId', protect, async (req, res) => {
 
 // ─── NOTES ───
 
-router.post('/:id/notes', protect, requireWorkspaceMember, async (req, res) => {
+router.post('/:id/notes', protect, requireWorkspaceMember, requireEditor, async (req, res) => {
   try {
     const note = await WorkspaceNote.create({
       workspace: req.params.id,
@@ -175,7 +186,7 @@ router.delete('/notes/:noteId', protect, async (req, res) => {
 
 // ─── LINKS ───
 
-router.post('/:id/links', protect, requireWorkspaceMember, async (req, res) => {
+router.post('/:id/links', protect, requireWorkspaceMember, requireEditor, async (req, res) => {
   try {
     const link = await WorkspaceLink.create({
       workspace: req.params.id,
@@ -215,7 +226,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
 
-router.post('/:id/files', protect, requireWorkspaceMember, upload.single('file'), async (req, res) => {
+router.post('/:id/files', protect, requireWorkspaceMember, requireEditor, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
 
@@ -235,6 +246,27 @@ router.post('/:id/files', protect, requireWorkspaceMember, upload.single('file')
     res.status(201).json(populated);
   } catch (err) {
     console.error('File upload error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// Import file from chat attachment into workspace (C8)
+router.post('/:id/files/import-from-attachment', protect, requireWorkspaceMember, requireEditor, async (req, res) => {
+  try {
+    const { sourceUrl, fileName, mimeType, size } = req.body;
+    const wsFile = await WorkspaceFile.create({
+      workspace: req.params.id,
+      name: fileName,
+      originalName: fileName,
+      path: sourceUrl,
+      mimeType: mimeType || 'application/octet-stream',
+      originalSize: size || 0,
+      uploadedBy: req.user._id
+    });
+    const populated = await WorkspaceFile.findById(wsFile._id).populate('uploadedBy', 'name');
+    res.status(201).json(populated);
+  } catch (err) {
+    console.error('Import from attachment error:', err);
     res.status(500).json({ error: 'Server error.' });
   }
 });
@@ -263,7 +295,7 @@ router.put('/:id/members', protect, requireWorkspaceMember, async (req, res) => 
     const io = req.app.get('io');
 
     for (const uid of userIds) {
-      if (ws.members.some(m => m.toString() === uid)) continue;
+      if (ws.members.some(m => (m.user || m).toString() === uid)) continue;
 
       if (ws.type === 'cross_team') {
         // Cross-team invite flow per spec Section 8.2:
@@ -300,17 +332,19 @@ router.put('/:id/members', protect, requireWorkspaceMember, async (req, res) => 
             title: 'Workspace Invitation',
             message: `${req.user.name} wants to add you to workspace "${ws.name}"`,
             actionType: 'workspace_invite',
-            actionTarget: ws._id.toString()
+            actionTarget: ws._id.toString(),
+            entityType: 'workspace',
+            entityId: ws._id
           });
         }
       } else {
         // Team/personal — direct add
-        ws.members.push(uid);
+        ws.members.push({ user: uid, role: 'editor' });
       }
     }
     await ws.save();
 
-    const populated = await Workspace.findById(ws._id).populate('members', 'name email avatar');
+    const populated = await Workspace.findById(ws._id).populate('members.user', 'name email avatar');
     res.json(populated);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
@@ -334,8 +368,8 @@ router.post('/:id/invite-respond', protect, async (req, res) => {
     if (response === 'accept') {
       // Accept — silent access granted, appear in members list
       invite.status = 'accepted';
-      if (!ws.members.some(m => m.toString() === req.user._id.toString())) {
-        ws.members.push(req.user._id);
+      if (!ws.members.some(m => (m.user || m).toString() === req.user._id.toString())) {
+        ws.members.push({ user: req.user._id, role: 'editor' });
       }
     } else {
       // Reject — creator notified in the DM thread
@@ -351,7 +385,9 @@ router.post('/:id/invite-respond', protect, async (req, res) => {
         io.to(`user:${invite.invitedBy}`).emit('notification:new', {
           type: 'approval',
           title: 'Workspace Invite Declined',
-          message: `${req.user.name} declined your invite to "${ws.name}"`
+          message: `${req.user.name} declined your invite to "${ws.name}"`,
+          entityType: 'workspace',
+          entityId: ws._id
         });
       }
     }
@@ -416,7 +452,9 @@ router.post('/documents/:docId/request-share', protect, async (req, res) => {
         io.to(`user:${a._id}`).emit('notification:new', {
           type: 'approval',
           title: 'External Sharing Request',
-          message: `${req.user.name} requests to share "${doc.title}" with ${externalEmail}`
+          message: `${req.user.name} requests to share "${doc.title}" with ${externalEmail}`,
+          entityType: 'workspace',
+          entityId: ws._id
         });
       });
     }
@@ -456,7 +494,9 @@ router.put('/:id/external-share/:shareId/approve', protect, requireWorkspaceMemb
         title: approved ? 'Sharing Approved' : 'Sharing Rejected',
         message: approved
           ? `Your request to share externally has been approved. Token: ${share.shareToken}`
-          : 'Your external sharing request was rejected by admin.'
+          : 'Your external sharing request was rejected by admin.',
+        entityType: 'workspace',
+        entityId: ws._id
       });
     }
 
@@ -477,7 +517,7 @@ router.delete('/:id/members/:userId', protect, requireWorkspaceMember, async (re
       return res.status(403).json({ error: 'Only workspace creator can remove members.' });
     }
 
-    ws.members = ws.members.filter(m => m.toString() !== req.params.userId);
+    ws.members = ws.members.filter(m => (m.user || m).toString() !== req.params.userId);
     await ws.save();
     res.json({ ok: true });
   } catch (err) {
@@ -496,7 +536,7 @@ router.put('/:id', protect, requireWorkspaceMember, async (req, res) => {
     if (color !== undefined) update.color = color;
 
     const ws = await Workspace.findByIdAndUpdate(req.params.id, update, { new: true })
-      .populate('members', 'name email avatar');
+      .populate('members.user', 'name email avatar');
     res.json(ws);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });

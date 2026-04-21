@@ -76,6 +76,11 @@ export default function EmailPage() {
   // Drafts
   const [drafts, setDrafts] = useState([]);
 
+  // AI Draft
+  const [aiDraftPrompt, setAiDraftPrompt] = useState('');
+  const [aiDraftLoading, setAiDraftLoading] = useState(false);
+  const [showAiDraft, setShowAiDraft] = useState(false);
+
   // ─── Load Data ───
   const loadAccounts = useCallback(async () => {
     try {
@@ -252,6 +257,18 @@ export default function EmailPage() {
       setComposing(false);
       if (activeFolder === 'drafts') loadEmails();
     } catch {}
+  };
+
+  const handleAiDraft = async () => {
+    if (!aiDraftPrompt.trim() || !user.aiActive) return;
+    setAiDraftLoading(true);
+    try {
+      const { data } = await api.post('/ai/draft-email', { prompt: aiDraftPrompt.trim() });
+      setComposeData(prev => ({ ...prev, body: data.draft || data.result || prev.body }));
+      setShowAiDraft(false);
+      setAiDraftPrompt('');
+    } catch {}
+    finally { setAiDraftLoading(false); }
   };
 
   const applyTemplate = (template) => {
@@ -599,9 +616,34 @@ export default function EmailPage() {
                 </button>
               </div>
               <div className="email-compose-toolbar">
+                <button
+                  disabled={!user.aiActive}
+                  title={user.aiActive ? 'Click to use AI' : 'AI not activated \u2014 go to Settings'}
+                  onClick={() => user.aiActive ? setShowAiDraft(!showAiDraft) : void 0}
+                  style={{ background: 'none', border: 'none', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontSize: 11, color: '#6366F1', fontFamily: 'Inter,sans-serif', padding: '2px 6px' }}
+                >
+                  {'\u2728'} AI Draft
+                </button>
                 <div className="email-compose-tool" onClick={() => setShowTemplates(!showTemplates)} title="Templates">📋</div>
                 <div className="email-compose-tool" title="Attach file">📎</div>
               </div>
+
+              {/* AI Draft input */}
+              {showAiDraft && (
+                <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: 4, display: 'flex', gap: 6 }}>
+                  <input
+                    value={aiDraftPrompt}
+                    onChange={e => setAiDraftPrompt(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAiDraft(); }}
+                    placeholder="Describe the email you want to draft..."
+                    style={{ flex: 1, border: '1px solid #E2E8F0', borderRadius: 6, padding: '6px 10px', fontSize: 11, fontFamily: 'Inter,sans-serif', outline: 'none' }}
+                    autoFocus
+                  />
+                  <button onClick={handleAiDraft} disabled={aiDraftLoading || !aiDraftPrompt.trim()} style={{ padding: '6px 12px', background: '#6366F1', color: '#fff', border: 'none', borderRadius: 6, fontSize: 10, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                    {aiDraftLoading ? '...' : 'Generate'}
+                  </button>
+                </div>
+              )}
 
               {/* Template picker */}
               {showTemplates && templates.length > 0 && (

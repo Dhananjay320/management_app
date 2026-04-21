@@ -7,6 +7,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import '../styles/meetings.css';
+// TODO: Add FormatSwitcher from '../components/FormatSwitcher' to allow switching meeting notes/chat between chat/email/table/calendar/document views
 
 const GRADIENTS = ['linear-gradient(135deg,#6366F1,#8B5CF6)','linear-gradient(135deg,#10B981,#06B6D4)','linear-gradient(135deg,#F59E0B,#F97316)','linear-gradient(135deg,#EC4899,#8B5CF6)','linear-gradient(135deg,#EF4444,#F97316)','linear-gradient(135deg,#06B6D4,#10B981)'];
 function getGrad(id) { return GRADIENTS[((id||'').charCodeAt(0)||0) % GRADIENTS.length]; }
@@ -161,6 +162,28 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
   const myAttendee = meeting.attendees?.find(a => a.user?._id === user._id);
   const isCreator = meeting.createdBy?._id === user._id;
   const isUpcoming = meeting.status === 'scheduled';
+  const [aiResult, setAiResult] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const handleAiMom = async () => {
+    if (!user.aiActive) return;
+    setAiLoading(true);
+    try {
+      const { data } = await api.post('/ai/summarize', { context: 'meeting', meetingId: meeting._id });
+      setAiResult(data.summary || data.result || 'No analysis generated.');
+    } catch { setAiResult('Failed to analyse MoM.'); }
+    finally { setAiLoading(false); }
+  };
+
+  const handleAiSummary = async () => {
+    if (!user.aiActive) return;
+    setAiLoading(true);
+    try {
+      const { data } = await api.post('/ai/summarize', { context: 'meeting_summary', meetingId: meeting._id, agenda: meeting.agenda, title: meeting.title });
+      setAiResult(data.summary || data.result || 'No summary generated.');
+    } catch { setAiResult('Failed to generate summary.'); }
+    finally { setAiLoading(false); }
+  };
 
   const responseColors = { confirmed: '#10B981', declined: '#EF4444', pending: '#F59E0B', reschedule_requested: '#8B5CF6' };
 
@@ -233,6 +256,22 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>Minutes of Meeting</div>
             <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                disabled={!user.aiActive}
+                title={user.aiActive ? 'Click to use AI' : 'AI not activated \u2014 go to Settings'}
+                onClick={() => user.aiActive ? handleAiMom() : void 0}
+                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid #E2E8F0', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+              >
+                {'\u2728'} Analyse MoM
+              </button>
+              <button
+                disabled={!user.aiActive}
+                title={user.aiActive ? 'Click to use AI' : 'AI not activated \u2014 go to Settings'}
+                onClick={() => user.aiActive ? handleAiSummary() : void 0}
+                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid #E2E8F0', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+              >
+                {'\u2728'} Generate Summary
+              </button>
               <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: 10 }} onClick={() => onCreateMom('personal')}>+ Personal MoM</button>
               <button className="btn btn-primary-sm" style={{ padding: '4px 10px', fontSize: 10 }} onClick={() => onCreateMom('team')}>+ Team MoM</button>
             </div>
@@ -246,6 +285,17 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
                 <div className="mtg-mom-title">My Scratchpad</div>
                 <span className="badge-pill" style={{ background: 'rgba(245,158,11,0.08)', color: '#F59E0B' }}>Private</span>
               </div>
+            </div>
+          )}
+
+          {aiLoading && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#6366F1' }}>AI is processing...</div>}
+          {aiResult && (
+            <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: 14, marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#6366F1' }}>AI Result</span>
+                <button onClick={() => setAiResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#94A3B8' }}>&times;</button>
+              </div>
+              <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{aiResult}</div>
             </div>
           )}
 

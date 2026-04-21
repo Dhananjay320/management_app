@@ -7,6 +7,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
 import api from '../services/api';
+import FileViewer from '../components/FileViewer';
 import '../styles/workspace.css';
 
 export default function WorkspacePage() {
@@ -17,6 +18,7 @@ export default function WorkspacePage() {
   const [editingDoc, setEditingDoc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [viewingFile, setViewingFile] = useState(null);
 
   const loadWorkspaces = useCallback(async () => {
     try { const { data } = await api.get('/workspace'); setWorkspaces(data); } catch {} finally { setLoading(false); }
@@ -222,7 +224,7 @@ export default function WorkspacePage() {
             </label>
           </div>
           {wsDetail?.files?.map(file => (
-            <div key={file._id} className="ws-doc-item">
+            <div key={file._id} className="ws-doc-item" style={{ cursor: 'pointer' }} onClick={() => setViewingFile({ url: file.path || file.url, name: file.originalName || file.name, mimeType: file.mimeType, size: file.originalSize })}>
               <div className="ws-doc-icon">📎</div>
               <div style={{ flex: 1 }}>
                 <div className="ws-doc-title">{file.originalName || file.name}</div>
@@ -235,6 +237,17 @@ export default function WorkspacePage() {
           ))}
           {(!wsDetail?.files || wsDetail.files.length === 0) && <div style={{ color: '#CBD5E1', fontSize: 12, padding: 20, textAlign: 'center' }}>No files yet</div>}
         </div>
+      )}
+
+      {/* FileViewer modal */}
+      {viewingFile && (
+        <FileViewer
+          url={viewingFile.url}
+          name={viewingFile.name}
+          mimeType={viewingFile.mimeType}
+          size={viewingFile.size}
+          onClose={() => setViewingFile(null)}
+        />
       )}
     </div>
   );

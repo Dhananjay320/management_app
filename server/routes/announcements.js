@@ -45,7 +45,9 @@ router.post('/', protect, async (req, res) => {
       io.emit('notification:new', {
         type: 'announcement',
         title: 'New Announcement',
-        message: title
+        message: title,
+        entityType: 'announcement',
+        entityId: ann._id
       });
       io.emit('announcement:new', ann);
     }

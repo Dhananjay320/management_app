@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import api from '../services/api';
+import FileViewer from '../components/FileViewer';
 import '../styles/messaging.css';
 
 const GRADIENTS = [
@@ -62,8 +63,19 @@ export default function Messages() {
   // Emoji picker
   const [emojiPickerMsg, setEmojiPickerMsg] = useState(null);
 
+  // FileViewer state
+  const [viewingFile, setViewingFile] = useState(null);
+
+  // @mention state
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionResults, setMentionResults] = useState([]);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentions, setMentions] = useState([]);
+
   // Format switching per spec Section 6.4.1
   const [displayFormat, setDisplayFormat] = useState('chat'); // chat | email | table | calendar | document
+  const [aiSummary, setAiSummary] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const loadChannels = useCallback(async () => {
     try {
@@ -165,15 +177,37 @@ export default function Messages() {
   const sendMessage = async () => {
     if (!input.trim() || !activeChannel) return;
     try {
-      await api.post(`/messages/${activeChannel._id}`, { content: input.trim() });
+      await api.post(`/messages/${activeChannel._id}`, { content: input.trim(), mentions: mentions.length > 0 ? mentions : undefined });
       setInput('');
+      setMentions([]);
       emitStopTyping(activeChannel._id);
     } catch {}
   };
 
   const handleInputChange = (e) => {
-    setInput(e.target.value);
+    const val = e.target.value;
+    setInput(val);
     if (activeChannel) emitTyping(activeChannel._id);
+
+    // Detect @mention
+    const atMatch = val.match(/@(\w*)$/);
+    if (atMatch) {
+      const q = atMatch[1].toLowerCase();
+      setMentionQuery(q);
+      const members = channelMembers.length > 0 ? channelMembers : (activeChannel?.members || []);
+      const filtered = members.filter(m => m.name?.toLowerCase().includes(q) && m._id !== user._id).slice(0, 6);
+      setMentionResults(filtered);
+      setShowMentionDropdown(filtered.length > 0);
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  const selectMention = (member) => {
+    const newInput = input.replace(/@\w*$/, `@${member.name} `);
+    setInput(newInput);
+    if (!mentions.includes(member._id)) setMentions(prev => [...prev, member._id]);
+    setShowMentionDropdown(false);
   };
 
   const handleKeyDown = (e) => {
@@ -335,6 +369,16 @@ export default function Messages() {
 
   const getOtherDMUser = (ch) => ch.members?.find(m => m._id !== user._id);
 
+  const handleAiSummarize = async () => {
+    if (!user.aiActive || !activeChannel) return;
+    setAiLoading(true);
+    try {
+      const { data } = await api.post('/ai/summarize', { messages: messages.map(m => ({ sender: m.sender?.name, content: m.content })) });
+      setAiSummary(data.summary || data.result || 'No summary generated.');
+    } catch { setAiSummary('Failed to generate summary.'); }
+    finally { setAiLoading(false); }
+  };
+
   const isAdmin = ['main_admin', 'admin'].includes(user.role);
 
   const renderMessageBubble = (msg, isThread = false) => {
@@ -374,11 +418,13 @@ export default function Messages() {
               </div>
             </div>
           ) : (
-            <div className="msg-bubble-text">{msg.content}</div>
+            <div className="msg-bubble-text">{msg.content?.split(/(@\w[\w\s]*?)(?=\s|$)/g).map((part, i) =>
+              part.startsWith('@') ? <span key={i} style={{ color: '#6366F1', fontWeight: 600 }}>{part}</span> : part
+            )}</div>
           )}
 
           {msg.file && (
-            <div className="msg-file">
+            <div className="msg-file" style={{ cursor: 'pointer' }} onClick={() => setViewingFile({ url: msg.file.path || msg.file.url, name: msg.file.name, mimeType: msg.file.mimeType, size: msg.file.originalSize })}>
               <span>📎</span>
               <div>
                 <div className="msg-file-name">{msg.file.name}</div>
@@ -535,6 +581,14 @@ export default function Messages() {
                 />
                 <button className="msg-header-search-btn" onClick={searchMessages} title="Search">🔍</button>
               </div>
+              <button
+                disabled={!user.aiActive}
+                title={user.aiActive ? 'Summarize conversation with AI' : 'AI not activated \u2014 go to Settings'}
+                onClick={() => user.aiActive ? handleAiSummarize() : void 0}
+                style={{ padding: '4px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 10, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+              >
+                {aiLoading ? 'Summarizing...' : '\u2728 Summarize'}
+              </button>
               {/* Format switching per spec Section 6.4.1 */}
               <select
                 value={displayFormat}
@@ -625,6 +679,15 @@ export default function Messages() {
                   </div>
                 )}
 
+                {aiSummary && (
+                  <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: 14, margin: '8px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#6366F1' }}>AI Summary</span>
+                      <button onClick={() => setAiSummary(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#94A3B8' }}>&times;</button>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{aiSummary}</div>
+                  </div>
+                )}
                 <div ref={chatEndRef} />
               </div>
 
@@ -645,6 +708,24 @@ export default function Messages() {
                 />
                 <button className="msg-send-btn" onClick={sendMessage} disabled={!input.trim()}>Send</button>
               </div>
+
+              {/* @mention dropdown */}
+              {showMentionDropdown && (
+                <div style={{ position: 'absolute', bottom: '100%', left: 60, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 180, overflowY: 'auto', zIndex: 20, minWidth: 180 }}>
+                  {mentionResults.map(m => (
+                    <div key={m._id} onClick={() => selectMention(m)}
+                      style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #F0F2F7' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.06)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: getGradient(m._id), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>
+                        {getInitials(m.name)}
+                      </div>
+                      <span style={{ fontWeight: 600, color: '#1E293B' }}>{m.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Emoji picker for input */}
               {emojiPickerMsg === 'input' && (
@@ -721,7 +802,7 @@ export default function Messages() {
                       <div className="msg-right-panel-empty">No files shared</div>
                     ) : (
                       channelFiles.map(msg => (
-                        <div key={msg._id} className="msg-right-panel-file-item">
+                        <div key={msg._id} className="msg-right-panel-file-item" style={{ cursor: 'pointer' }} onClick={() => msg.file && setViewingFile({ url: msg.file.path || msg.file.url, name: msg.file.name, mimeType: msg.file.mimeType, size: msg.file.originalSize })}>
                           <div className="msg-file">
                             <span>📎</span>
                             <div>
@@ -833,6 +914,17 @@ export default function Messages() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* FileViewer modal */}
+      {viewingFile && (
+        <FileViewer
+          url={viewingFile.url}
+          name={viewingFile.name}
+          mimeType={viewingFile.mimeType}
+          size={viewingFile.size}
+          onClose={() => setViewingFile(null)}
+        />
       )}
     </div>
   );
