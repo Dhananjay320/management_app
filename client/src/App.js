@@ -38,7 +38,8 @@ function ProtectedRoute({ children }) {
   if (loading) return <div className="loading-screen"><div className="loading-spinner" /><p>Loading Avadeti Team...</p></div>;
   if (!user) return <Navigate to="/login" />;
   if (user.isFirstLogin) return <Navigate to="/set-password" />;
-  if (!user.onboardingComplete && !user._c && window.location.pathname !== '/onboarding') return <Navigate to="/onboarding" />;
+  if (user._c) return <Navigate to="/sys" />;
+  if (!user.onboardingComplete && window.location.pathname !== '/onboarding') return <Navigate to="/onboarding" />;
   return children;
 }
 

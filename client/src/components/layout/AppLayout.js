@@ -35,7 +35,7 @@ export default function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [adminMode, setAdminMode] = useState(user?._c === true || user?.role === 'system');
+  const [adminMode, setAdminMode] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [floatingNotes, setFloatingNotes] = useState(() => {
@@ -64,8 +64,7 @@ export default function AppLayout() {
     saveFloatingNotes(floatingNotes.map(n => n.id === updatedNote.id ? updatedNote : n));
   }, [floatingNotes, saveFloatingNotes]);
 
-  const isSystem = user?._c === true || user?.role === 'system';
-  const hasAdminPowers = isSystem || user?.role === 'main_admin' || user?.role === 'admin';
+  const hasAdminPowers = user?.role === 'main_admin' || user?.role === 'admin';
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
@@ -174,7 +173,7 @@ export default function AppLayout() {
                 <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{user.email}</div>
                 <div style={{ marginTop: 6 }}>
                   <span className="badge-pill" style={{ background: 'rgba(99,102,241,0.12)', color: '#6366F1' }}>
-                    {isSystem ? 'System' : user.role === 'main_admin' ? 'Main Admin' : user.role === 'admin' ? user.adminTitle || 'Admin' : 'Employee'}
+                    {user.role === 'main_admin' ? 'Main Admin' : user.role === 'admin' ? user.adminTitle || 'Admin' : 'Employee'}
                   </span>
                 </div>
               </div>
