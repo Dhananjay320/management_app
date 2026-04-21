@@ -63,6 +63,96 @@ export default function Messages() {
   // Emoji picker
   const [emojiPickerMsg, setEmojiPickerMsg] = useState(null);
 
+  // Compose formats: text (default), task, table, email, checklist, code, poll
+  const [composeMode, setComposeMode] = useState(null); // null | 'task' | 'table' | 'email' | 'checklist' | 'code' | 'poll'
+  const [showComposePicker, setShowComposePicker] = useState(false);
+  const [composeTask, setComposeTask] = useState({ title: '', assignee: '', priority: 'medium', deadline: '', description: '' });
+  const [composeTable, setComposeTable] = useState({ headers: ['Column 1', 'Column 2'], rows: [['', '']] });
+  const [composeEmail, setComposeEmail] = useState({ subject: '', body: '' });
+  const [composeChecklist, setComposeChecklist] = useState([{ text: '', done: false }]);
+  const [composeCode, setComposeCode] = useState({ language: 'javascript', code: '' });
+  const [composePoll, setComposePoll] = useState({ question: '', options: ['', ''] });
+  const [channelUsers, setChannelUsers] = useState([]);
+
+  // Load channel members for task assignee picker
+  useEffect(() => {
+    if (activeChannel) {
+      api.get(`/messages/${activeChannel._id}/members`).then(r => setChannelUsers(r.data || [])).catch(() => {});
+    }
+  }, [activeChannel]);
+
+  const sendStructured = async (type, content) => {
+    if (!activeChannel) return;
+    try {
+      await api.post(`/messages/${activeChannel._id}`, { content, type: 'text' });
+      setComposeMode(null);
+      resetComposeState();
+    } catch {}
+  };
+
+  const resetComposeState = () => {
+    setComposeTask({ title: '', assignee: '', priority: 'medium', deadline: '', description: '' });
+    setComposeTable({ headers: ['Column 1', 'Column 2'], rows: [['', '']] });
+    setComposeEmail({ subject: '', body: '' });
+    setComposeChecklist([{ text: '', done: false }]);
+    setComposeCode({ language: 'javascript', code: '' });
+    setComposePoll({ question: '', options: ['', ''] });
+  };
+
+  const sendTaskCard = async () => {
+    if (!composeTask.title.trim()) return;
+    const content = `📋 **Task Assignment**\n━━━━━━━━━━━━━━━━━━\n📌 Title: ${composeTask.title}\n👤 Assignee: ${composeTask.assignee || 'Unassigned'}\n🔴 Priority: ${composeTask.priority.toUpperCase()}\n📅 Deadline: ${composeTask.deadline || 'No deadline'}\n📝 ${composeTask.description || 'No description'}`;
+    await sendStructured('task_card', content);
+    // Also create actual task
+    try {
+      const assigneeUser = channelUsers.find(u => u.name === composeTask.assignee);
+      await api.post('/tasks', {
+        title: composeTask.title,
+        description: composeTask.description,
+        priority: composeTask.priority,
+        deadline: composeTask.deadline || undefined,
+        assignees: assigneeUser ? [assigneeUser._id] : [user._id],
+        sourceType: 'chat',
+        linkedChat: activeChannel._id
+      });
+    } catch {}
+  };
+
+  const sendTable = () => {
+    const headerLine = '| ' + composeTable.headers.join(' | ') + ' |';
+    const sepLine = '| ' + composeTable.headers.map(() => '---').join(' | ') + ' |';
+    const rowLines = composeTable.rows.map(r => '| ' + r.join(' | ') + ' |').join('\n');
+    const content = `📊 **Table**\n${headerLine}\n${sepLine}\n${rowLines}`;
+    sendStructured('table', content);
+  };
+
+  const sendEmailFormat = () => {
+    if (!composeEmail.subject.trim()) return;
+    const content = `✉️ **${composeEmail.subject}**\n━━━━━━━━━━━━━━━━━━\n${composeEmail.body}`;
+    sendStructured('email', content);
+  };
+
+  const sendChecklist = () => {
+    const items = composeChecklist.filter(i => i.text.trim());
+    if (items.length === 0) return;
+    const content = `☑️ **Checklist**\n${items.map(i => `${i.done ? '✅' : '⬜'} ${i.text}`).join('\n')}`;
+    sendStructured('checklist', content);
+  };
+
+  const sendCodeBlock = () => {
+    if (!composeCode.code.trim()) return;
+    const content = `💻 **Code** (${composeCode.language})\n\`\`\`${composeCode.language}\n${composeCode.code}\n\`\`\``;
+    sendStructured('code', content);
+  };
+
+  const sendPoll = () => {
+    if (!composePoll.question.trim()) return;
+    const opts = composePoll.options.filter(o => o.trim());
+    if (opts.length < 2) return;
+    const content = `📊 **Poll: ${composePoll.question}**\n${opts.map((o, i) => `${['🅰️','🅱️','🅲️','🅳️','🅴️'][i] || '⭕'} ${o}`).join('\n')}\n\n_React with the emoji to vote!_`;
+    sendStructured('poll', content);
+  };
+
   // FileViewer state
   const [viewingFile, setViewingFile] = useState(null);
 
@@ -381,6 +471,112 @@ export default function Messages() {
 
   const isAdmin = ['main_admin', 'admin'].includes(user.role);
 
+  // Rich content renderer — formats task cards, tables, code blocks, checklists, polls
+  const renderRichContent = (content) => {
+    if (!content) return null;
+
+    // Task card
+    if (content.startsWith('📋 **Task Assignment**')) {
+      const lines = content.split('\n').filter(l => l.trim());
+      return (
+        <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 10, padding: 12, borderLeft: '3px solid var(--indigo)' }}>
+          {lines.map((l, i) => {
+            const clean = l.replace(/\*\*/g, '').replace(/━+/g, '');
+            if (i === 0) return <div key={i} style={{ fontWeight: 700, color: 'var(--indigo)', marginBottom: 6 }}>{clean}</div>;
+            if (!clean.trim()) return null;
+            return <div key={i} style={{ fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.8 }}>{clean}</div>;
+          })}
+        </div>
+      );
+    }
+
+    // Table
+    if (content.startsWith('📊 **Table**')) {
+      const lines = content.split('\n').filter(l => l.trim() && l.includes('|'));
+      if (lines.length >= 2) {
+        const headers = lines[0].split('|').map(h => h.trim()).filter(Boolean);
+        const rows = lines.slice(2).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
+        return (
+          <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', background: 'var(--glass-2)', padding: '6px 0' }}>
+              {headers.map((h, i) => <div key={i} style={{ flex: 1, padding: '0 10px', fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase' }}>{h}</div>)}
+            </div>
+            {rows.map((r, ri) => (
+              <div key={ri} style={{ display: 'flex', borderTop: '1px solid var(--line)', padding: '4px 0' }}>
+                {r.map((c, ci) => <div key={ci} style={{ flex: 1, padding: '2px 10px', fontSize: 11, color: 'var(--ink-2)' }}>{c}</div>)}
+              </div>
+            ))}
+          </div>
+        );
+      }
+    }
+
+    // Email format
+    if (content.startsWith('✉️ **')) {
+      const subjectMatch = content.match(/✉️ \*\*(.*?)\*\*/);
+      const body = content.replace(/✉️ \*\*.*?\*\*\n━+\n?/, '');
+      return (
+        <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 10, padding: 12 }}>
+          <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 6, borderBottom: '1px solid var(--line)', paddingBottom: 6 }}>✉️ {subjectMatch?.[1]}</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{body}</div>
+        </div>
+      );
+    }
+
+    // Checklist
+    if (content.startsWith('☑️ **Checklist**')) {
+      const items = content.split('\n').slice(1).filter(l => l.trim());
+      return (
+        <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 10, padding: 12 }}>
+          <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>☑️ Checklist</div>
+          {items.map((item, i) => {
+            const isDone = item.startsWith('✅');
+            const text = item.replace(/^[✅⬜]\s*/, '');
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: 12, color: isDone ? 'var(--ink-3)' : 'var(--ink-2)', textDecoration: isDone ? 'line-through' : 'none' }}>
+                <span>{isDone ? '✅' : '⬜'}</span>{text}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // Code block
+    if (content.includes('```')) {
+      const match = content.match(/💻 \*\*Code\*\* \((\w+)\)\n```\w*\n([\s\S]*?)```/);
+      if (match) {
+        return (
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 4 }}>💻 {match[1]}</div>
+            <pre style={{ background: 'var(--bg-0)', border: '1px solid var(--line)', borderRadius: 8, padding: 12, fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink)', overflow: 'auto', whiteSpace: 'pre-wrap' }}>{match[2]}</pre>
+          </div>
+        );
+      }
+    }
+
+    // Poll
+    if (content.startsWith('📊 **Poll:')) {
+      const lines = content.split('\n').filter(l => l.trim());
+      const question = lines[0].replace(/📊 \*\*Poll: /, '').replace(/\*\*$/, '');
+      const options = lines.slice(1).filter(l => !l.startsWith('_'));
+      return (
+        <div style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 10, padding: 12 }}>
+          <div style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>📊 {question}</div>
+          {options.map((opt, i) => (
+            <div key={i} style={{ padding: '6px 10px', marginBottom: 4, background: 'var(--glass)', borderRadius: 6, fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', border: '1px solid var(--line)' }}>{opt}</div>
+          ))}
+          <div style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 6, fontStyle: 'italic' }}>React with the emoji to vote!</div>
+        </div>
+      );
+    }
+
+    // Default — plain text with @mention highlighting
+    return content.split(/(@\w[\w\s]*?)(?=\s|$)/g).map((part, i) =>
+      part.startsWith('@') ? <span key={i} style={{ color: 'var(--indigo)', fontWeight: 600 }}>{part}</span> : part
+    );
+  };
+
   const renderMessageBubble = (msg, isThread = false) => {
     if (msg.type === 'system') return <div key={msg._id} className="msg-system">{msg.content}</div>;
     const sender = msg.sender;
@@ -418,9 +614,7 @@ export default function Messages() {
               </div>
             </div>
           ) : (
-            <div className="msg-bubble-text">{msg.content?.split(/(@\w[\w\s]*?)(?=\s|$)/g).map((part, i) =>
-              part.startsWith('@') ? <span key={i} style={{ color: '#6366F1', fontWeight: 600 }}>{part}</span> : part
-            )}</div>
+            <div className="msg-bubble-text">{renderRichContent(msg.content)}</div>
           )}
 
           {msg.file && (
@@ -703,20 +897,180 @@ export default function Messages() {
 
               <div className="msg-typing">{typing ? `${typing} is typing...` : ''}</div>
 
+              {/* Compose format panel — shows above input when a format is selected */}
+              {composeMode && (
+                <div style={{ borderTop: '1px solid var(--line)', padding: 12, background: 'var(--glass-2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
+                      {composeMode === 'task' && '📋 Create Task Card'}
+                      {composeMode === 'table' && '📊 Create Table'}
+                      {composeMode === 'email' && '✉️ Email Format'}
+                      {composeMode === 'checklist' && '☑️ Checklist'}
+                      {composeMode === 'code' && '💻 Code Block'}
+                      {composeMode === 'poll' && '📊 Create Poll'}
+                    </span>
+                    <button onClick={() => { setComposeMode(null); resetComposeState(); }} style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                  </div>
+
+                  {/* TASK CARD */}
+                  {composeMode === 'task' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input className="ad-input" placeholder="Task title *" value={composeTask.title} onChange={e => setComposeTask(p => ({ ...p, title: e.target.value }))} />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <select className="ad-select" value={composeTask.assignee} onChange={e => setComposeTask(p => ({ ...p, assignee: e.target.value }))} style={{ flex: 1 }}>
+                          <option value="">Assign to...</option>
+                          {channelUsers.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
+                        </select>
+                        <select className="ad-select" value={composeTask.priority} onChange={e => setComposeTask(p => ({ ...p, priority: e.target.value }))}>
+                          <option value="top">🔴 Top</option>
+                          <option value="high">🟠 High</option>
+                          <option value="medium">🟡 Medium</option>
+                          <option value="low">🟢 Low</option>
+                        </select>
+                        <input className="ad-input" type="date" value={composeTask.deadline} onChange={e => setComposeTask(p => ({ ...p, deadline: e.target.value }))} style={{ width: 140 }} />
+                      </div>
+                      <input className="ad-input" placeholder="Description (optional)" value={composeTask.description} onChange={e => setComposeTask(p => ({ ...p, description: e.target.value }))} />
+                      <button className="msg-send-btn" onClick={sendTaskCard} disabled={!composeTask.title.trim()} style={{ alignSelf: 'flex-end' }}>Send Task Card</button>
+                    </div>
+                  )}
+
+                  {/* TABLE */}
+                  {composeMode === 'table' && (
+                    <div>
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                        {composeTable.headers.map((h, i) => (
+                          <input key={i} className="ad-input" value={h} onChange={e => {
+                            const nh = [...composeTable.headers]; nh[i] = e.target.value;
+                            setComposeTable(p => ({ ...p, headers: nh }));
+                          }} style={{ flex: 1, fontWeight: 700, fontSize: 11 }} />
+                        ))}
+                        <button className="ad-btn-icon" onClick={() => {
+                          setComposeTable(p => ({ headers: [...p.headers, `Col ${p.headers.length + 1}`], rows: p.rows.map(r => [...r, '']) }));
+                        }} title="Add column">+</button>
+                      </div>
+                      {composeTable.rows.map((row, ri) => (
+                        <div key={ri} style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
+                          {row.map((cell, ci) => (
+                            <input key={ci} className="ad-input" value={cell} onChange={e => {
+                              const nr = composeTable.rows.map((r, idx) => idx === ri ? r.map((c, cidx) => cidx === ci ? e.target.value : c) : r);
+                              setComposeTable(p => ({ ...p, rows: nr }));
+                            }} style={{ flex: 1, fontSize: 11 }} />
+                          ))}
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                        <button className="ad-btn ad-btn-ghost ad-btn-sm" onClick={() => setComposeTable(p => ({ ...p, rows: [...p.rows, p.headers.map(() => '')] }))}>+ Row</button>
+                        <button className="msg-send-btn" onClick={sendTable} style={{ marginLeft: 'auto' }}>Send Table</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* EMAIL FORMAT */}
+                  {composeMode === 'email' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input className="ad-input" placeholder="Subject *" value={composeEmail.subject} onChange={e => setComposeEmail(p => ({ ...p, subject: e.target.value }))} style={{ fontWeight: 600 }} />
+                      <textarea className="ad-textarea" placeholder="Email body..." value={composeEmail.body} onChange={e => setComposeEmail(p => ({ ...p, body: e.target.value }))} rows={4} />
+                      <button className="msg-send-btn" onClick={sendEmailFormat} disabled={!composeEmail.subject.trim()} style={{ alignSelf: 'flex-end' }}>Send Email</button>
+                    </div>
+                  )}
+
+                  {/* CHECKLIST */}
+                  {composeMode === 'checklist' && (
+                    <div>
+                      {composeChecklist.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'center' }}>
+                          <input type="checkbox" checked={item.done} onChange={() => {
+                            const nc = [...composeChecklist]; nc[i] = { ...nc[i], done: !nc[i].done };
+                            setComposeChecklist(nc);
+                          }} style={{ accentColor: 'var(--indigo)' }} />
+                          <input className="ad-input" value={item.text} onChange={e => {
+                            const nc = [...composeChecklist]; nc[i] = { ...nc[i], text: e.target.value };
+                            setComposeChecklist(nc);
+                          }} placeholder={`Item ${i + 1}`} style={{ flex: 1 }} />
+                          {composeChecklist.length > 1 && <button onClick={() => setComposeChecklist(composeChecklist.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>✕</button>}
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                        <button className="ad-btn ad-btn-ghost ad-btn-sm" onClick={() => setComposeChecklist([...composeChecklist, { text: '', done: false }])}>+ Item</button>
+                        <button className="msg-send-btn" onClick={sendChecklist} style={{ marginLeft: 'auto' }}>Send Checklist</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* CODE BLOCK */}
+                  {composeMode === 'code' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <select className="ad-select" value={composeCode.language} onChange={e => setComposeCode(p => ({ ...p, language: e.target.value }))}>
+                        {['javascript', 'python', 'html', 'css', 'json', 'bash', 'sql', 'java', 'go', 'rust', 'typescript', 'text'].map(l => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                      <textarea className="ad-textarea" value={composeCode.code} onChange={e => setComposeCode(p => ({ ...p, code: e.target.value }))} placeholder="Paste your code here..." rows={6} style={{ fontFamily: 'var(--mono)', fontSize: 12 }} />
+                      <button className="msg-send-btn" onClick={sendCodeBlock} disabled={!composeCode.code.trim()} style={{ alignSelf: 'flex-end' }}>Send Code</button>
+                    </div>
+                  )}
+
+                  {/* POLL */}
+                  {composeMode === 'poll' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <input className="ad-input" placeholder="Poll question *" value={composePoll.question} onChange={e => setComposePoll(p => ({ ...p, question: e.target.value }))} style={{ fontWeight: 600 }} />
+                      {composePoll.options.map((opt, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <span style={{ fontSize: 14 }}>{['🅰️','🅱️','🅲️','🅳️','🅴️'][i] || '⭕'}</span>
+                          <input className="ad-input" value={opt} onChange={e => {
+                            const no = [...composePoll.options]; no[i] = e.target.value;
+                            setComposePoll(p => ({ ...p, options: no }));
+                          }} placeholder={`Option ${i + 1}`} style={{ flex: 1 }} />
+                          {composePoll.options.length > 2 && <button onClick={() => setComposePoll(p => ({ ...p, options: p.options.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>✕</button>}
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {composePoll.options.length < 5 && <button className="ad-btn ad-btn-ghost ad-btn-sm" onClick={() => setComposePoll(p => ({ ...p, options: [...p.options, ''] }))}>+ Option</button>}
+                        <button className="msg-send-btn" onClick={sendPoll} disabled={!composePoll.question.trim()} style={{ marginLeft: 'auto' }}>Send Poll</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="msg-input-bar">
                 <div className="msg-input-actions">
                   <div className="msg-input-action" onClick={() => setEmojiPickerMsg(emojiPickerMsg === 'input' ? null : 'input')}>😊</div>
                   <div className="msg-input-action" onClick={() => fileInputRef.current?.click()}>📎</div>
+                  {/* Format picker toggle */}
+                  <div className="msg-input-action" onClick={() => setShowComposePicker(!showComposePicker)} style={showComposePicker ? { background: 'rgba(99,102,241,0.15)', color: 'var(--indigo)' } : {}}>➕</div>
                 </div>
                 <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
+
+                {/* Format picker dropdown */}
+                {showComposePicker && (
+                  <div style={{ position: 'absolute', bottom: 52, left: 100, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', padding: 6, zIndex: 20, minWidth: 160 }}>
+                    {[
+                      { key: 'task', icon: '📋', label: 'Task Card' },
+                      { key: 'table', icon: '📊', label: 'Table' },
+                      { key: 'email', icon: '✉️', label: 'Email Format' },
+                      { key: 'checklist', icon: '☑️', label: 'Checklist' },
+                      { key: 'code', icon: '💻', label: 'Code Block' },
+                      { key: 'poll', icon: '📊', label: 'Poll' },
+                    ].map(f => (
+                      <div key={f.key} onClick={() => { setComposeMode(f.key); setShowComposePicker(false); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--ink-2)', transition: 'background 0.1s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--glass-2)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <span style={{ fontSize: 14 }}>{f.icon}</span>
+                        <span style={{ fontWeight: 600 }}>{f.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <input
                   className="msg-input-field"
-                  placeholder="Type a message..."
+                  placeholder={composeMode ? `${composeMode} mode active — use panel above` : 'Type a message...'}
                   value={input}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
+                  disabled={!!composeMode}
                 />
-                <button className="msg-send-btn" onClick={sendMessage} disabled={!input.trim()}>Send</button>
+                <button className="msg-send-btn" onClick={sendMessage} disabled={!input.trim() || !!composeMode}>Send</button>
               </div>
 
               {/* @mention dropdown */}
