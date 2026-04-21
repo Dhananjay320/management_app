@@ -1,0 +1,122 @@
+/* ═══ SETTINGS PAGE ═══ */
+
+.settings-page {
+  max-width: 560px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.settings-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.settings-save-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  transition: opacity 0.3s;
+}
+.settings-save-status.saving { color: var(--ink-3); }
+.settings-save-status.saved { color: var(--emerald); background: rgba(16,185,129,0.12); }
+.settings-save-status.error { color: var(--danger); background: rgba(239,68,68,0.12); }
+
+/* Section Card */
+.settings-section-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.settings-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 14px;
+}
+
+/* Fields */
+.settings-field {
+  margin-bottom: 14px;
+}
+.settings-field:last-child { margin-bottom: 0; }
+
+.settings-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 5px;
+}
+
+.settings-field-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--font);
+  outline: none;
+  color: var(--ink);
+  background: var(--glass);
+  appearance: auto;
+}
+.settings-field-select:focus {
+  border-color: var(--indigo);
+}
+
+/* Toggle Switch */
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.settings-toggle-row:last-child { border-bottom: none; }
+
+.settings-toggle-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.settings-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  background: var(--line);
+  transition: background 0.2s;
+}
+.settings-toggle.on {
+  background: #6366F1;
+}
+.settings-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+  pointer-events: none;
+}
+.settings-toggle.on .settings-toggle-knob {
+  transform: translateX(18px);
+}

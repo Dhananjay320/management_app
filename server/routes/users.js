@@ -41,6 +41,29 @@ router.get('/directory', protect, async (req, res) => {
   }
 });
 
+// PUT /api/v1/users/me/settings — update own settings
+router.put('/me/settings', protect, async (req, res) => {
+  try {
+    const { settings } = req.body;
+    const allowed = [
+      'calendarDefaultView', 'meetingReminder', 'wrapUpFrequency', 'autoWrapUpTime',
+      'notificationSound', 'messagePreview', 'autoDND', 'autoStatusMeeting',
+      'autoStatusLeave', 'autoStatusWFH', 'mentionBreaksDND', 'broadcastDefault'
+    ];
+
+    const update = {};
+    allowed.forEach(key => {
+      if (settings[key] !== undefined) update[`settings.${key}`] = settings[key];
+    });
+
+    const user = await User.findByIdAndUpdate(req.user._id, update, { new: true })
+      .select('settings');
+    res.json(user.settings);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // GET /api/v1/users/:id
 router.get('/:id', protect, async (req, res) => {
   try {
