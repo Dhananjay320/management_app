@@ -110,10 +110,12 @@ router.post('/wrap-up', protect, async (req, res) => {
       return res.status(400).json({ error: 'Already wrapped up for today.' });
     }
 
-    // Check if after 5 PM
+    // Check if after 5 PM (main_admin and system bypass this)
     const now = new Date();
     const hour = now.getHours();
-    if (hour < 17) {
+    const canBypassTime = req.user.role === 'main_admin' || req.user._c ||
+      req.user.powers?.attendance?.bypassGeofence === true;
+    if (hour < 17 && !canBypassTime) {
       return res.status(400).json({ error: 'Wrap up is available after 5:00 PM.' });
     }
 
