@@ -210,6 +210,9 @@ export default function WorkspacePage() {
                   {doc.lastEditedBy?.name && `Edited by ${doc.lastEditedBy.name} · `}
                   {new Date(doc.updatedAt).toLocaleDateString()}
                   {doc.classification !== 'personal' && <span className="badge-pill" style={{ marginLeft: 6, background: doc.classification === 'company' ? 'rgba(99,102,241,0.08)' : 'rgba(16,185,129,0.08)', color: doc.classification === 'company' ? '#6366F1' : '#10B981' }}>{doc.classification}</span>}
+                  {doc.tags?.map((tag, ti) => (
+                    <span key={ti} className="badge-pill" style={{ marginLeft: 4, background: 'rgba(139,92,246,0.08)', color: '#8B5CF6', fontSize: 9 }}>{tag}</span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -304,6 +307,8 @@ function DocumentEditor({ doc, onSave }) {
   const [title, setTitle] = useState(doc.title);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [tags, setTags] = useState(doc.tags || []);
+  const [tagInput, setTagInput] = useState('');
 
   const editor = useEditor({
     extensions: [
@@ -323,7 +328,8 @@ function DocumentEditor({ doc, onSave }) {
     try {
       await api.put(`/workspace/documents/${doc._id}`, {
         title,
-        tiptapJSON: editor.getJSON()
+        tiptapJSON: editor.getJSON(),
+        tags
       });
       setLastSaved(new Date());
       onSave();
@@ -340,13 +346,27 @@ function DocumentEditor({ doc, onSave }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <input value={title} onChange={e => setTitle(e.target.value)} onBlur={save}
           style={{ fontSize: 22, fontWeight: 800, color: '#1E293B', border: 'none', outline: 'none', background: 'transparent', fontFamily: "'Plus Jakarta Sans', sans-serif", flex: 1 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {lastSaved && <span style={{ fontSize: 10, color: '#10B981' }}>✓ Saved {lastSaved.toLocaleTimeString()}</span>}
           <button className="btn btn-primary-sm" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
         </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        {tags.map((tag, i) => (
+          <span key={i} className="badge-pill" style={{ background: 'rgba(139,92,246,0.08)', color: '#8B5CF6', display: 'flex', alignItems: 'center', gap: 4 }}>
+            {tag}
+            <span style={{ cursor: 'pointer', fontSize: 10 }} onClick={() => setTags(prev => prev.filter((_, idx) => idx !== i))}>&times;</span>
+          </span>
+        ))}
+        <input value={tagInput} onChange={e => setTagInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && tagInput.trim()) { e.preventDefault(); setTags(prev => [...prev, tagInput.trim()]); setTagInput(''); }
+          }}
+          placeholder="Add tag..."
+          style={{ padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#F8FAFC', outline: 'none', fontFamily: 'Inter, sans-serif', width: 100 }} />
       </div>
 
       <div className="ws-editor-wrap">

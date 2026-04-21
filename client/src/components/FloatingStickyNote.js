@@ -121,11 +121,24 @@ export default function FloatingStickyNote({ note, onClose, onSave }) {
       {!minimized && (
         <>
           <div className="floating-sticky-body">
-            <textarea
+            <div
               className="floating-sticky-textarea"
-              value={content}
-              onChange={handleContentChange}
-              placeholder="Write something..."
+              contentEditable
+              suppressContentEditableWarning
+              dangerouslySetInnerHTML={{ __html: content }}
+              onBlur={e => {
+                const val = e.currentTarget.innerHTML;
+                setContent(val);
+                handleChange(title, val, color);
+              }}
+              onKeyDown={e => {
+                if (e.ctrlKey || e.metaKey) {
+                  if (e.key === 'b') { e.preventDefault(); document.execCommand('bold'); }
+                  if (e.key === 'i') { e.preventDefault(); document.execCommand('italic'); }
+                }
+              }}
+              style={{ minHeight: 60, outline: 'none', whiteSpace: 'pre-wrap', cursor: 'text' }}
+              data-placeholder="Write something..."
             />
           </div>
           <div className="floating-sticky-footer">

@@ -308,7 +308,27 @@ export default function TeamFeedPage() {
                     <div className="feed-comment-body">
                       <span className="feed-comment-name">{c.author?.name}</span>
                       <div className="feed-comment-text">{c.content}</div>
-                      <div className="feed-comment-time">{timeAgo(c.createdAt)}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <div className="feed-comment-time">{timeAgo(c.createdAt)}</div>
+                        {['👍','❤️','😂'].map(em => (
+                          <span key={em} style={{ cursor: 'pointer', fontSize: 11, padding: '1px 4px', borderRadius: 4, border: '1px solid #E2E8F0', background: '#F8FAFC' }}
+                            onClick={async () => {
+                              try {
+                                const { data } = await api.post(`/feed/${post._id}/comment/${c._id}/react`, { emoji: em });
+                                setPosts(prev => prev.map(p => p._id === post._id ? { ...p, comments: data } : p));
+                              } catch {}
+                            }}>{em}</span>
+                        ))}
+                      </div>
+                      {c.reactions?.length > 0 && (
+                        <div style={{ display: 'flex', gap: 4, marginTop: 3, flexWrap: 'wrap' }}>
+                          {c.reactions.map((r, ri) => (
+                            <span key={ri} style={{ fontSize: 10, padding: '1px 5px', borderRadius: 8, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.12)' }}>
+                              {r.emoji} {r.users?.length || 0}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

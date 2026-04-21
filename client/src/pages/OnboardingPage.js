@@ -194,6 +194,18 @@ export default function OnboardingPage() {
                     <span className="onb-welcome-row-value">{userInfo.office.name}</span>
                   </div>
                 )}
+                {userInfo.workType && (
+                  <div className="onb-welcome-row">
+                    <span className="onb-welcome-row-label">Work Type</span>
+                    <span className="onb-welcome-row-value">{userInfo.workType === 'hybrid' ? 'Hybrid' : userInfo.workType === 'remote' ? 'Remote' : 'On-site'}</span>
+                  </div>
+                )}
+                {userInfo.workType === 'hybrid' && userInfo.hybridDays?.length > 0 && (
+                  <div className="onb-welcome-row">
+                    <span className="onb-welcome-row-label">Hybrid Days</span>
+                    <span className="onb-welcome-row-value">{userInfo.hybridDays.join(', ')}</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="onb-footer">

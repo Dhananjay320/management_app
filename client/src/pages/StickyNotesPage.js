@@ -97,16 +97,20 @@ export default function StickyNotesPage() {
                 onBlur={e => updateNote(note._id, { title: e.target.value })}
                 readOnly={!isOwner(note) && !note.sharedWith?.find(s => s.user?._id === user._id)?.canEdit}
               />
-              <textarea
+              <div
                 className="sn-card-body"
-                placeholder="Write something..."
-                value={note.content || ''}
-                onChange={e => {
-                  const val = e.target.value;
-                  setNotes(prev => prev.map(n => n._id === note._id ? { ...n, content: val } : n));
+                contentEditable={isOwner(note) || !!note.sharedWith?.find(s => s.user?._id === user._id)?.canEdit}
+                suppressContentEditableWarning
+                dangerouslySetInnerHTML={{ __html: note.content || '' }}
+                onBlur={e => updateNote(note._id, { content: e.currentTarget.innerHTML })}
+                onKeyDown={e => {
+                  if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 'b') { e.preventDefault(); document.execCommand('bold'); }
+                    if (e.key === 'i') { e.preventDefault(); document.execCommand('italic'); }
+                  }
                 }}
-                onBlur={e => updateNote(note._id, { content: e.target.value })}
-                readOnly={!isOwner(note) && !note.sharedWith?.find(s => s.user?._id === user._id)?.canEdit}
+                style={{ minHeight: 60, outline: 'none', whiteSpace: 'pre-wrap', cursor: 'text' }}
+                data-placeholder="Write something..."
               />
 
               {/* Attached-to badges */}
@@ -193,19 +197,27 @@ export default function StickyNotesPage() {
               />
               <button onClick={() => setExpandedNote(null)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#64748B', cursor: 'pointer' }}>&times;</button>
             </div>
-            <textarea
-              style={{
-                flex: 1, minHeight: 300, border: 'none', background: 'transparent', outline: 'none',
-                fontSize: 14, lineHeight: 1.8, color: '#334155', fontFamily: 'Inter, sans-serif', resize: 'none'
-              }}
-              value={expandedNote.content || ''}
-              onChange={e => {
-                const val = e.target.value;
+            <div
+              contentEditable
+              suppressContentEditableWarning
+              dangerouslySetInnerHTML={{ __html: expandedNote.content || '' }}
+              onBlur={e => {
+                const val = e.currentTarget.innerHTML;
                 setExpandedNote(prev => ({ ...prev, content: val }));
                 setNotes(prev => prev.map(n => n._id === expandedNote._id ? { ...n, content: val } : n));
+                updateNote(expandedNote._id, { content: val });
               }}
-              onBlur={e => updateNote(expandedNote._id, { content: e.target.value })}
-              placeholder="Write something..."
+              onKeyDown={e => {
+                if (e.ctrlKey || e.metaKey) {
+                  if (e.key === 'b') { e.preventDefault(); document.execCommand('bold'); }
+                  if (e.key === 'i') { e.preventDefault(); document.execCommand('italic'); }
+                }
+              }}
+              style={{
+                flex: 1, minHeight: 300, border: 'none', background: 'transparent', outline: 'none',
+                fontSize: 14, lineHeight: 1.8, color: '#334155', fontFamily: 'Inter, sans-serif', whiteSpace: 'pre-wrap', cursor: 'text'
+              }}
+              data-placeholder="Write something..."
             />
           </div>
         </div>

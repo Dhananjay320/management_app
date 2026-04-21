@@ -679,6 +679,16 @@ export default function Messages() {
                   </div>
                 )}
 
+                {/* Read receipt on last message */}
+                {displayFormat === 'chat' && messages.length > 0 && (() => {
+                  const lastMsg = messages[messages.length - 1];
+                  const memberCount = activeChannel?.members?.length || 0;
+                  if (lastMsg && lastMsg.readBy && memberCount > 0 && lastMsg.readBy.length >= memberCount) {
+                    return <div style={{ textAlign: 'right', fontSize: 10, color: '#10B981', padding: '0 8px 4px' }}>{'\u2713\u2713'} Seen</div>;
+                  }
+                  return null;
+                })()}
+
                 {aiSummary && (
                   <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: 14, margin: '8px 0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>

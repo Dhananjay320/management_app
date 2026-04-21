@@ -42,9 +42,11 @@ export default function ActivityPage() {
   const [filter, setFilter] = useState('all');
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
-    title: '', type: 'reading', description: '', audience: 'company', team: '', date: '', time: ''
+    title: '', type: 'reading', description: '', audience: 'company', team: '', date: '', time: '', attachment: ''
   });
   const [teams, setTeams] = useState([]);
+  const [activityTab, setActivityTab] = useState('upcoming');
+  const [pastActivities, setPastActivities] = useState([]);
 
   const loadActivities = useCallback(async () => {
     try {
@@ -62,6 +64,17 @@ export default function ActivityPage() {
     api.get('/teams').then(res => setTeams(res.data)).catch(() => {});
   }, []);
 
+  const loadPastActivities = useCallback(async () => {
+    try {
+      const params = { past: 'true' };
+      if (filter !== 'all') params.type = filter;
+      const { data } = await api.get('/activities', { params });
+      setPastActivities(data);
+    } catch {}
+  }, [filter]);
+
+  useEffect(() => { if (activityTab === 'past') loadPastActivities(); }, [activityTab, loadPastActivities]);
+
   const createActivity = async () => {
     if (!form.title.trim() || !form.date) return;
     try {
@@ -72,10 +85,11 @@ export default function ActivityPage() {
         description: form.description,
         audience: form.audience,
         team: form.audience === 'team' ? form.team : undefined,
-        date: dateTime.toISOString()
+        date: dateTime.toISOString(),
+        attachment: form.attachment || undefined
       });
       setCreating(false);
-      setForm({ title: '', type: 'reading', description: '', audience: 'company', team: '', date: '', time: '' });
+      setForm({ title: '', type: 'reading', description: '', audience: 'company', team: '', date: '', time: '', attachment: '' });
       loadActivities();
     } catch {}
   };
@@ -117,8 +131,46 @@ export default function ActivityPage() {
         ))}
       </div>
 
+      {/* Upcoming / Past toggle */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        {[['upcoming', 'Upcoming'], ['past', 'Past']].map(([k, l]) => (
+          <button key={k} className={`act-filter ${activityTab === k ? 'active' : ''}`} onClick={() => setActivityTab(k)}>{l}</button>
+        ))}
+      </div>
+
       {/* Activity List */}
-      {activities.length === 0 ? (
+      {activityTab === 'past' && (
+        pastActivities.length === 0 ? (
+          <div className="act-empty">
+            <div className="act-empty-icon">📋</div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>No past activities</h3>
+          </div>
+        ) : (
+          <div className="act-list">
+            {pastActivities.map(act => (
+              <div key={act._id} className="act-card" style={{ opacity: 0.7 }}>
+                <div className={`act-icon act-icon-${act.type}`}>{ACTIVITY_ICONS[act.type] || '\uD83C\uDFAF'}</div>
+                <div className="act-content">
+                  <div className="act-title">{act.title}</div>
+                  {act.description && <div className="act-description">{act.description}</div>}
+                  <div className="act-meta">
+                    <span className="act-meta-item">{'\uD83D\uDCC5'} {formatDate(act.date)}</span>
+                    <span className="act-meta-item">{'\uD83D\uDD50'} {formatTime(act.date)}</span>
+                    <span className="act-meta-item">by {act.createdBy?.name}</span>
+                  </div>
+                  {act.attachment && (
+                    <div style={{ marginTop: 4 }}>
+                      <a href={act.attachment} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: '#6366F1' }}>{'\uD83D\uDD17'} Attachment</a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {activityTab === 'upcoming' && (activities.length === 0 ? (
         <div className="act-empty">
           <div className="act-empty-icon">🎯</div>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>No upcoming activities</h3>
@@ -178,7 +230,7 @@ export default function ActivityPage() {
             </div>
           ))}
         </div>
-      )}
+      ))}
 
       {/* Create Modal */}
       {creating && (
@@ -230,6 +282,10 @@ export default function ActivityPage() {
                   <label>Time</label>
                   <input type="time" value={form.time} onChange={e => setForm(prev => ({ ...prev, time: e.target.value }))} />
                 </div>
+              </div>
+              <div className="act-form-group">
+                <label>Attachment (Link URL)</label>
+                <input value={form.attachment} onChange={e => setForm(prev => ({ ...prev, attachment: e.target.value }))} placeholder="https://..." />
               </div>
             </div>
             <div className="act-modal-footer">

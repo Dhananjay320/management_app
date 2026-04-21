@@ -21,6 +21,9 @@ export default function SalaryPage() {
   const [disputes, setDisputes] = useState([]);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
   const [disputeForm, setDisputeForm] = useState({ month: '', year: 2026, whatIsWrong: '', description: '' });
+  const [showBonusForm, setShowBonusForm] = useState(false);
+  const [bonusForm, setBonusForm] = useState({ employee: '', amount: '', reason: '' });
+  const [allEmployees, setAllEmployees] = useState([]);
 
   const loadRecords = useCallback(async () => {
     try {
@@ -57,6 +60,24 @@ export default function SalaryPage() {
     } catch {}
   };
 
+  const loadEmployees = async () => {
+    try { const { data } = await api.get('/users/directory'); setAllEmployees(data); } catch {}
+  };
+
+  const awardBonus = async () => {
+    if (!bonusForm.employee || !bonusForm.amount || !bonusForm.reason.trim()) return;
+    try {
+      await api.post('/salary/bonus', {
+        userId: bonusForm.employee,
+        amount: parseFloat(bonusForm.amount),
+        reason: bonusForm.reason.trim()
+      });
+      setShowBonusForm(false);
+      setBonusForm({ employee: '', amount: '', reason: '' });
+      loadRecords();
+    } catch {}
+  };
+
   const resolveDispute = async (id, status, text) => {
     try {
       await api.put(`/salary/disputes/${id}`, {
@@ -73,6 +94,11 @@ export default function SalaryPage() {
       <div className="sal-header">
         <h2>Salary Summary</h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {adminMode && user.role !== 'employee' && (
+            <button className="sal-detail-btn primary" onClick={() => { setShowBonusForm(true); loadEmployees(); }}>
+              Award Bonus
+            </button>
+          )}
           <select className="sal-year-select" value={year} onChange={e => setYear(parseInt(e.target.value))}>
             <option value={2026}>2026</option>
             <option value={2025}>2025</option>
@@ -316,6 +342,42 @@ export default function SalaryPage() {
             ))
           )}
         </>
+      )}
+
+      {/* Bonus Award Modal */}
+      {showBonusForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.3)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowBonusForm(false)}>
+          <div className="sal-dispute-form" style={{ width: 420 }} onClick={e => e.stopPropagation()}>
+            <h4>Award Bonus</h4>
+            <div className="sal-form-group">
+              <label>Employee *</label>
+              <select value={bonusForm.employee} onChange={e => setBonusForm(prev => ({ ...prev, employee: e.target.value }))}>
+                <option value="">Select employee...</option>
+                {allEmployees.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+              </select>
+            </div>
+            <div className="sal-form-group">
+              <label>Amount (INR) *</label>
+              <input type="number" min="0" value={bonusForm.amount}
+                onChange={e => setBonusForm(prev => ({ ...prev, amount: e.target.value }))}
+                placeholder="e.g. 5000" />
+            </div>
+            <div className="sal-form-group">
+              <label>Reason *</label>
+              <textarea value={bonusForm.reason}
+                onChange={e => setBonusForm(prev => ({ ...prev, reason: e.target.value }))}
+                placeholder="Reason for the bonus..." />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="sal-detail-btn" onClick={() => setShowBonusForm(false)}>Cancel</button>
+              <button className="sal-form-submit" onClick={awardBonus}
+                disabled={!bonusForm.employee || !bonusForm.amount || !bonusForm.reason.trim()}>
+                Award Bonus
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Dispute Form Modal */}

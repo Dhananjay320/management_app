@@ -47,6 +47,7 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
+  const [showLabelsModal, setShowLabelsModal] = useState(false);
 
   const loadTasks = useCallback(async () => {
     try {
@@ -95,7 +96,10 @@ export default function Tasks() {
               <div key={k} className={`chip ${tab === k ? 'active' : ''}`} onClick={() => { setTab(k); setSelectedTask(null); }}>{l}</div>
             ))}
           </div>
-          {tab === 'tasks' && <button className="btn btn-primary-sm" onClick={() => setTab('create')}>+ New Task</button>}
+          {tab === 'tasks' && <>
+            <button className="btn btn-secondary" style={{ fontSize: 10, padding: '5px 10px' }} onClick={() => setShowLabelsModal(true)}>Manage Labels</button>
+            <button className="btn btn-primary-sm" onClick={() => setTab('create')}>+ New Task</button>
+          </>}
         </div>
       </div>
 
@@ -140,6 +144,8 @@ export default function Tasks() {
           )}
         </>
       )}
+
+      {showLabelsModal && <LabelsModal onClose={() => setShowLabelsModal(false)} />}
 
       {tab === 'detail' && selectedTask && (
         <TaskDetail task={selectedTask} onBack={() => { setTab('tasks'); setSelectedTask(null); }} onUpdate={updateTask} onReload={() => openTask(selectedTask._id)} />
@@ -197,6 +203,8 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
   const [estMins, setEstMins] = useState(task.estimatedTime ? task.estimatedTime % 60 : 0);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const [showWatcherPicker, setShowWatcherPicker] = useState(false);
+  const [watcherUsers, setWatcherUsers] = useState([]);
 
   const handleEstTimeUpdate = () => {
     const totalMins = (parseInt(estHours) || 0) * 60 + (parseInt(estMins) || 0);
@@ -224,6 +232,23 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
 
   const handlePrivateToggle = () => {
     onUpdate(task._id, { isPrivate: !task.isPrivate });
+  };
+
+  const loadWatcherUsers = async () => {
+    try { const { data } = await api.get('/users/directory'); setWatcherUsers(data); } catch {}
+  };
+
+  const addWatcher = (userId) => {
+    const currentIds = (task.watchers || []).map(w => w._id || w);
+    if (!currentIds.includes(userId)) {
+      onUpdate(task._id, { watchers: [...currentIds, userId] });
+    }
+    setShowWatcherPicker(false);
+  };
+
+  const removeWatcher = (userId) => {
+    const currentIds = (task.watchers || []).map(w => w._id || w).filter(id => id !== userId);
+    onUpdate(task._id, { watchers: currentIds });
   };
 
   return (
@@ -423,12 +448,33 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
           )}
 
           {/* Watchers */}
-          <div className="card" style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>Watchers ({task.watchers?.length || 0})</div>
+          <div className="card" style={{ marginBottom: 12, position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>Watchers ({task.watchers?.length || 0})</div>
+              <button className="btn btn-primary-sm" style={{ padding: '3px 8px', fontSize: 9 }}
+                onClick={() => { setShowWatcherPicker(!showWatcherPicker); if (!showWatcherPicker) loadWatcherUsers(); }}>+ Add Watcher</button>
+            </div>
+            {showWatcherPicker && (
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 8, marginBottom: 8, maxHeight: 160, overflowY: 'auto' }}>
+                {watcherUsers.filter(u => !(task.watchers || []).some(w => (w._id || w) === u._id)).map(u => (
+                  <div key={u._id} onClick={() => addWatcher(u._id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#1E293B' }}
+                    onMouseOver={e => e.currentTarget.style.background = '#EEF2FF'}
+                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                    <div className="avatar-sm" style={{ background: getGrad(u._id), width: 18, height: 18, fontSize: 7 }}>{initials(u.name)}</div>
+                    {u.name}
+                  </div>
+                ))}
+                {watcherUsers.filter(u => !(task.watchers || []).some(w => (w._id || w) === u._id)).length === 0 && (
+                  <div style={{ fontSize: 10, color: '#94A3B8', textAlign: 'center', padding: 6 }}>No users to add</div>
+                )}
+              </div>
+            )}
             {task.watchers?.length > 0 ? task.watchers.map(w => (
               <div key={w._id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', fontSize: 11 }}>
                 <div className="avatar-sm" style={{ background: getGrad(w._id), width: 18, height: 18, fontSize: 7 }}>{initials(w.name)}</div>
-                <span style={{ color: '#475569' }}>{w.name}</span>
+                <span style={{ color: '#475569', flex: 1 }}>{w.name}</span>
+                <span style={{ cursor: 'pointer', fontSize: 10, color: '#94A3B8' }} onClick={() => removeWatcher(w._id)} title="Remove watcher">&times;</span>
               </div>
             )) : (
               <div style={{ fontSize: 11, color: '#CBD5E1' }}>No watchers</div>
@@ -693,6 +739,55 @@ function CreateTask({ onBack, onCreated }) {
             <button type="submit" className="btn btn-primary-sm" disabled={loading}>{loading ? 'Creating...' : 'Create Task'}</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function LabelsModal({ onClose }) {
+  const [labels, setLabels] = useState([]);
+  const [newName, setNewName] = useState('');
+  const [newColor, setNewColor] = useState('#6366F1');
+
+  useEffect(() => {
+    api.get('/tasks/labels/list').then(res => setLabels(res.data)).catch(() => {});
+  }, []);
+
+  const createLabel = async () => {
+    if (!newName.trim()) return;
+    try {
+      const { data } = await api.post('/tasks/labels', { name: newName.trim(), color: newColor });
+      setLabels(prev => [...prev, data]);
+      setNewName('');
+      setNewColor('#6366F1');
+    } catch {}
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.3)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={onClose}>
+      <div style={{ background: '#fff', borderRadius: 12, padding: 20, width: 380, maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>Manage Labels</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 18, color: '#94A3B8', cursor: 'pointer' }}>&times;</button>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14, alignItems: 'center' }}>
+          <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Label name..."
+            onKeyDown={e => { if (e.key === 'Enter') createLabel(); }}
+            style={{ flex: 1, padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#F8FAFC', outline: 'none', fontFamily: 'Inter, sans-serif' }} />
+          <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)}
+            style={{ width: 32, height: 32, border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
+          <button className="btn btn-primary-sm" style={{ padding: '7px 12px', fontSize: 10 }} onClick={createLabel}>Add</button>
+        </div>
+        {labels.length === 0 ? (
+          <div style={{ fontSize: 11, color: '#CBD5E1', textAlign: 'center', padding: 16 }}>No labels yet</div>
+        ) : labels.map(l => (
+          <div key={l._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #F0F2F7' }}>
+            <span style={{ width: 10, height: 10, borderRadius: 5, background: l.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: '#1E293B', fontWeight: 500 }}>{l.name}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
