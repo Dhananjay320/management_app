@@ -52,6 +52,7 @@ app.use('/api/v1/search', require('./routes/search'));
 app.use('/api/v1/ai', require('./routes/ai'));
 app.use('/api/v1/onboarding', require('./routes/onboarding'));
 app.use('/api/v1/announcements', require('./routes/announcements'));
+app.use('/api/v1/whiteboards', require('./routes/whiteboards'));
 
 app.use('/api/v1/sys', require('./routes/core'));
 
@@ -96,6 +97,12 @@ io.on('connection', (socket) => {
       channelId: data.channelId
     });
   });
+
+  // Whiteboard real-time events
+  socket.on('whiteboard:join', (boardId) => socket.join(`wb:${boardId}`));
+  socket.on('whiteboard:leave', (boardId) => socket.leave(`wb:${boardId}`));
+  socket.on('whiteboard:shape-update', (data) => socket.to(`wb:${data.boardId}`).emit('whiteboard:shape-update', data));
+  socket.on('whiteboard:cursor', (data) => socket.to(`wb:${data.boardId}`).emit('whiteboard:cursor', data));
 
   socket.on('disconnect', () => {
     if (socket.userId) {

@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { key: 'sticky', icon: '📝', label: 'Sticky Notes', path: '/sticky-notes' },
   { key: 'activity', icon: '🎯', label: 'Activity', path: '/activity' },
   { key: 'feed', icon: '📰', label: 'Team Feed', path: '/feed' },
+  { key: 'whiteboards', icon: '🎨', label: 'Whiteboards', path: '/whiteboards' },
   { key: 'divider2' },
   { key: 'salary', icon: '💰', label: 'Salary', path: '/salary' },
   { key: 'notifications', icon: '🔔', label: 'Notifications', path: '/notifications', badge: true },

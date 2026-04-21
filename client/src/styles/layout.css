@@ -537,3 +537,167 @@
 }
 .user-menu-item:hover { background: #F8FAFC; }
 .user-menu-item.danger { color: #EF4444; }
+
+/* ═══ MOBILE RESPONSIVE ═══ */
+
+/* Tablet and below */
+@media (max-width: 768px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  /* Sidebar becomes bottom tab bar */
+  .sidebar {
+    width: 100%;
+    height: 56px;
+    flex-direction: row;
+    padding: 0 4px;
+    gap: 0;
+    order: 2;
+    overflow-x: auto;
+    overflow-y: hidden;
+    justify-content: center;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .sidebar-logo {
+    display: none;
+  }
+
+  .sidebar-divider {
+    display: none;
+  }
+
+  .sidebar-spacer {
+    display: none;
+  }
+
+  /* Only show key nav items in bottom bar */
+  .sidebar-item {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+
+  /* Main area takes remaining space */
+  .main-area {
+    order: 1;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Top bar compact */
+  .topbar {
+    height: 48px;
+    padding: 0 12px;
+  }
+
+  .topbar-title {
+    font-size: 14px;
+  }
+
+  /* Hide search bar on very small screens */
+  .topbar > div:nth-child(2) {
+    display: none;
+  }
+
+  .admin-toggle {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  .toggle-switch {
+    width: 28px;
+    height: 15px;
+  }
+
+  .toggle-switch::after {
+    width: 11px;
+    height: 11px;
+  }
+
+  .toggle-switch.on::after {
+    left: 15px;
+  }
+
+  /* Content area: less padding on mobile */
+  .content {
+    padding: 12px;
+  }
+
+  /* Stat grid: single column */
+  .stat-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Form grid: single column */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  /* User menu wider on mobile */
+  .user-menu {
+    right: 4px;
+    min-width: 200px;
+  }
+
+  /* Cards: reduce padding */
+  .card {
+    padding: 12px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-card-value {
+    font-size: 20px;
+  }
+
+  /* Sticky notes icon hidden to save space */
+  .topbar-sticky-icon {
+    display: none;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  .topbar {
+    padding: 0 8px;
+  }
+
+  .topbar-title {
+    font-size: 13px;
+  }
+
+  .topbar-right {
+    gap: 6px;
+  }
+
+  .admin-toggle {
+    display: none;
+  }
+
+  .content {
+    padding: 8px;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .page-title {
+    font-size: 17px;
+  }
+}

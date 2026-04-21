@@ -1,7 +1,10 @@
 const mongoose = require('mongoose');
 
 const apiConfigSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+  // Type: 'personal' (default) or 'company' for company-wide key
+  type: { type: String, enum: ['personal', 'company'], default: 'personal' },
 
   // Provider: gemini, openai, claude
   provider: { type: String, enum: ['gemini', 'openai', 'claude'], required: true },
@@ -20,5 +23,6 @@ const apiConfigSchema = new mongoose.Schema({
 });
 
 apiConfigSchema.index({ user: 1 });
+apiConfigSchema.index({ type: 1 });
 
 module.exports = mongoose.model('ApiConfig', apiConfigSchema);

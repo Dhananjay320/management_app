@@ -26,6 +26,13 @@ export default function SettingsPage() {
   const [error, setError] = useState('');
   const [company, setCompany] = useState(null);
 
+  // Company AI key (main_admin only)
+  const [companyKeyConfig, setCompanyKeyConfig] = useState(null);
+  const [companyProvider, setCompanyProvider] = useState('gemini');
+  const [companyApiKey, setCompanyApiKey] = useState('');
+  const [companyMsg, setCompanyMsg] = useState('');
+  const [companyErr, setCompanyErr] = useState('');
+
   const loadConfig = useCallback(async () => {
     try {
       const [aiRes, companyRes] = await Promise.all([
@@ -35,8 +42,17 @@ export default function SettingsPage() {
       setAiConfig(aiRes.data);
       setCompany(companyRes.data);
     } catch {}
+
+    // Load company key status if main_admin
+    if (_user?.role === 'main_admin') {
+      try {
+        const { data } = await api.get('/ai/company-key');
+        setCompanyKeyConfig(data);
+      } catch {}
+    }
+
     setLoading(false);
-  }, []);
+  }, [_user?.role]);
 
   useEffect(() => { loadConfig(); }, [loadConfig]);
 
@@ -204,6 +220,89 @@ export default function SettingsPage() {
         {message && <div style={{ marginTop: 10, fontSize: 12, color: '#10B981', fontWeight: 600 }}>{message}</div>}
         {error && <div style={{ marginTop: 10, fontSize: 12, color: '#EF4444', fontWeight: 600 }}>{error}</div>}
       </div>
+
+      {/* Company AI Key — main_admin only */}
+      {_user?.role === 'main_admin' && (
+        <div className="ai-activate-form" style={{ marginTop: 16 }}>
+          <h3>Company AI Key</h3>
+          <p style={{ fontSize: 11, color: '#94A3B8', marginBottom: 12 }}>
+            Set a company-wide fallback AI key. High-priority features will use this key when a user&apos;s personal key is not configured or fails.
+          </p>
+
+          {companyKeyConfig?.configured && (
+            <div className="ai-status-card" style={{ marginBottom: 12 }}>
+              <div className="ai-status-header">
+                <span className="ai-status-title">Company Key</span>
+                <span className="ai-status-badge active">{companyKeyConfig.provider} Active</span>
+              </div>
+              <div className="ai-status-info">
+                <div className="ai-status-row">
+                  <span className="ai-status-label">Provider</span>
+                  <span className="ai-status-value">{companyKeyConfig.provider?.charAt(0).toUpperCase() + companyKeyConfig.provider?.slice(1)}</span>
+                </div>
+                <div className="ai-status-row">
+                  <span className="ai-status-label">Key</span>
+                  <span className="ai-status-value">••••••••</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="ai-form-group">
+            <label>Provider</label>
+            <select value={companyProvider} onChange={e => setCompanyProvider(e.target.value)}>
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI</option>
+              <option value="claude">Anthropic Claude</option>
+            </select>
+          </div>
+          <div className="ai-form-group">
+            <label>API Key</label>
+            <input
+              type="password"
+              value={companyApiKey}
+              onChange={e => setCompanyApiKey(e.target.value)}
+              placeholder="Company API key"
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="ai-activate-btn"
+              onClick={async () => {
+                setCompanyErr('');
+                setCompanyMsg('');
+                try {
+                  const { data } = await api.post('/ai/company-key', { provider: companyProvider, apiKey: companyApiKey });
+                  setCompanyMsg(data.message);
+                  setCompanyApiKey('');
+                  loadConfig();
+                } catch (err) {
+                  setCompanyErr(err.response?.data?.error || 'Failed to set company key.');
+                }
+              }}
+              disabled={!companyApiKey.trim()}
+            >
+              Activate Company Key
+            </button>
+            {companyKeyConfig?.configured && (
+              <button
+                className="ai-deactivate-btn"
+                onClick={async () => {
+                  try {
+                    await api.delete('/ai/company-key');
+                    setCompanyMsg('Company key deactivated.');
+                    loadConfig();
+                  } catch {}
+                }}
+              >
+                Deactivate
+              </button>
+            )}
+          </div>
+          {companyMsg && <div style={{ marginTop: 10, fontSize: 12, color: '#10B981', fontWeight: 600 }}>{companyMsg}</div>}
+          {companyErr && <div style={{ marginTop: 10, fontSize: 12, color: '#EF4444', fontWeight: 600 }}>{companyErr}</div>}
+        </div>
+      )}
 
       {/* AI Features Info */}
       <div className="ai-features-info">
