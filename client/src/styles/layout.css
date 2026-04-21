@@ -104,6 +104,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  z-index: 50;
   padding: 0 20px;
   flex-shrink: 0;
 }
@@ -546,7 +548,7 @@
   box-shadow: 0 8px 32px rgba(0,0,0,0.40);
   padding: 6px;
   min-width: 180px;
-  z-index: 100;
+  z-index: 9999;
 }
 .user-menu-item {
   padding: 8px 12px;
