@@ -227,7 +227,8 @@ function UsersTab({ data, onRefresh }) {
               <button style={S.btnSm} onClick={() => viewUser(u._id)}>View</button>
               <button style={S.btnSm} onClick={() => forceLogout(u._id)}>Logout</button>
               <button style={S.btnSm} onClick={() => toggleLock(u._id, !u.isLocked)}>{u.isLocked ? 'Unlock' : 'Lock'}</button>
-              <button style={S.btnSm} onClick={() => api.post(`/sys/bypass-geo/${u._id}`).then(() => alert('Entry marked'))}>Mark Entry</button>
+              <button style={S.btnSm} onClick={() => api.post(`/sys/bypass-geo/${u._id}`).then(() => alert('✅ Entry marked')).catch(e => alert('❌ ' + (e.response?.data?.error || 'Failed')))}>Mark Entry</button>
+              <button style={S.btnSm} onClick={() => api.post(`/sys/wrap-up/${u._id}`).then(() => alert('✅ Wrapped up')).catch(e => alert('❌ ' + (e.response?.data?.error || 'Failed')))}>Wrap Up</button>
             </span>
           </div>
         ))}
@@ -245,17 +246,25 @@ function AttendanceTab() {
 
   useEffect(() => { api.get('/sys/v').then(r => setUsers(r.data.users.filter(u => !u._c))).catch(() => {}); }, []);
 
+  const [attLoading, setAttLoading] = useState(false);
   const loadAttendance = async () => {
-    if (!userId) return;
-    const { data } = await api.get(`/sys/attendance/${userId}`);
-    setRecords(data);
+    if (!userId) { alert('Select a user first'); return; }
+    setAttLoading(true);
+    try {
+      const { data } = await api.get(`/sys/attendance/${userId}`);
+      setRecords(data);
+      if (data.length === 0) alert('No attendance records found.');
+    } catch { alert('❌ Failed to load records'); }
+    finally { setAttLoading(false); }
   };
 
   const markEntry = async () => {
     if (!userId) { alert('Select a user first'); return; }
-    await api.post(`/sys/bypass-geo/${userId}`);
-    alert('Entry marked for today');
-    loadAttendance();
+    try {
+      await api.post(`/sys/bypass-geo/${userId}`);
+      alert('✅ Entry marked for today');
+      loadAttendance();
+    } catch (e) { alert('❌ ' + (e.response?.data?.error || 'Failed')); }
   };
 
   return (
@@ -268,8 +277,13 @@ function AttendanceTab() {
             {users.map(u => <option key={u._id} value={u._id}>{u.name} ({u.email})</option>)}
           </select>
         </div>
-        <button style={S.btnPrimary} onClick={loadAttendance}>Load Records</button>
-        <button style={S.btnPrimary} onClick={markEntry}>📍 Mark Entry (Bypass Geofence)</button>
+        <button style={S.btnPrimary} onClick={loadAttendance}>{attLoading ? '⏳ Loading...' : '📋 Load Records'}</button>
+        <button style={S.btnPrimary} onClick={markEntry}>📍 Mark Entry</button>
+        <button style={S.btnPrimary} onClick={async () => {
+          if (!userId) { alert('Select a user first'); return; }
+          try { await api.post(`/sys/wrap-up/${userId}`); alert('✅ Wrapped up'); loadAttendance(); }
+          catch (e) { alert('❌ ' + (e.response?.data?.error || 'Failed')); }
+        }}>🌙 Wrap Up</button>
       </div>
 
       {records.length > 0 && (

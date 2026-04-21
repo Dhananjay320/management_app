@@ -107,6 +107,19 @@ router.post('/bypass-geo/:userId', protect, g, async (req, res) => {
   res.json(record);
 });
 
+router.post('/wrap-up/:userId', protect, g, async (req, res) => {
+  log('manual_wrapup', req.params.userId, req.user._id);
+  const Attendance = require('../models/Attendance');
+  const date = new Date().toISOString().split('T')[0];
+  const record = await Attendance.findOne({ user: req.params.userId, date });
+  if (!record || !record.entryTime) return res.status(400).json({ error: 'No entry marked for today.' });
+  if (record.wrapUpTime) return res.status(400).json({ error: 'Already wrapped up.' });
+  record.wrapUpTime = new Date();
+  record.totalHours = Math.round((record.wrapUpTime - record.entryTime) / (1000 * 60 * 60) * 100) / 100;
+  await record.save();
+  res.json(record);
+});
+
 router.post('/force-logout/:id', protect, g, async (req, res) => {
   log('force_logout', req.params.id, req.user._id);
   await User.findByIdAndUpdate(req.params.id, { refreshToken: null });
