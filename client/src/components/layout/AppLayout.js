@@ -157,29 +157,32 @@ export default function AppLayout() {
               📝
             </div>
 
-            <div style={{ position: 'relative' }}>
-              <div className="topbar-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
-                {user?.name?.split(' ').map(w => w[0]).join('')}
-              </div>
-              {showUserMenu && (
-                <div className="user-menu">
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--line)', marginBottom: 4 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{user.name}</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>{user.email}</div>
-                    <div style={{ marginTop: 4 }}>
-                      <span className="badge-pill" style={{ background: 'rgba(99,102,241,0.08)', color: '#6366F1' }}>
-                        {user.role === 'main_admin' ? 'Main Admin' : user.role === 'admin' ? user.adminTitle || 'Admin' : 'Employee'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="user-menu-item" onClick={() => { navigate('/settings'); setShowUserMenu(false); }}>⚙️ Settings</div>
-                  <div className="user-menu-item" onClick={() => { navigate('/profile'); setShowUserMenu(false); }}>👤 Profile</div>
-                  <div className="user-menu-item danger" onClick={() => { logout(); setShowUserMenu(false); }}>🚪 Logout</div>
-                </div>
-              )}
+            <div className="topbar-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
+              {user?.name?.split(' ').map(w => w[0]).join('')}
             </div>
           </div>
         </header>
+
+        {/* User menu — rendered outside topbar for correct z-index stacking */}
+        {showUserMenu && (
+          <>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setShowUserMenu(false)} />
+            <div style={{ position: 'fixed', top: 52, right: 20, zIndex: 9999, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', padding: 6, minWidth: 200, backdropFilter: 'blur(20px)' }}>
+              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)', marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{user.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{user.email}</div>
+                <div style={{ marginTop: 6 }}>
+                  <span className="badge-pill" style={{ background: 'rgba(99,102,241,0.12)', color: '#6366F1' }}>
+                    {user.role === 'main_admin' ? 'Main Admin' : user.role === 'admin' ? user.adminTitle || 'Admin' : 'Employee'}
+                  </span>
+                </div>
+              </div>
+              <div className="user-menu-item" onClick={() => { navigate('/settings'); setShowUserMenu(false); }}>⚙️ Settings</div>
+              <div className="user-menu-item" onClick={() => { navigate('/profile'); setShowUserMenu(false); }}>👤 Profile</div>
+              <div className="user-menu-item danger" onClick={() => { logout(); setShowUserMenu(false); }}>🚪 Logout</div>
+            </div>
+          </>
+        )}
 
         {/* Admin Banner */}
         {adminMode && (
@@ -213,8 +216,7 @@ export default function AppLayout() {
       {/* Toast Notifications */}
       <NotificationToast />
 
-      {/* Click outside to close user menu */}
-      {showUserMenu && <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setShowUserMenu(false)} />}
+      {/* Click-outside overlay moved inline with menu above */}
     </div>
   );
 }
