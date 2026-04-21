@@ -164,8 +164,8 @@ export default function NotificationsPage() {
       {notifications.length === 0 ? (
         <div className="notif-empty">
           <div className="notif-empty-icon">🔔</div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>All caught up!</h3>
-          <p style={{ fontSize: 12, color: '#94A3B8' }}>No notifications to show. You'll see new ones here as they come in.</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>All caught up!</h3>
+          <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>No notifications to show. You'll see new ones here as they come in.</p>
         </div>
       ) : (
         <div className="notif-list">
@@ -190,7 +190,7 @@ export default function NotificationsPage() {
               <div className="notif-actions" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 {!n.isRead && (
                   <button className="notif-action-btn" onClick={(e) => { e.stopPropagation(); markRead(n._id); }}
-                    style={{ padding: '3px 8px', fontSize: 9, border: '1px solid #E2E8F0', borderRadius: 5, background: '#F8FAFC', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
+                    style={{ padding: '3px 8px', fontSize: 9, border: '1px solid var(--line)', borderRadius: 5, background: 'var(--glass)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
                     Mark as read
                   </button>
                 )}

@@ -14,7 +14,7 @@
 .sn-header h2 {
   font-size: 18px;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--ink);
   margin: 0;
 }
 .sn-create-btn {
@@ -26,7 +26,7 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -48,40 +48,41 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   transition: box-shadow 0.15s, transform 0.15s;
   cursor: default;
+  border: 1px solid rgba(255,255,255,0.06);
 }
 .sn-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   transform: translateY(-1px);
 }
 .sn-card-title {
   font-size: 13px;
   font-weight: 700;
-  color: #1E293B;
+  color: rgba(0,0,0,0.85);
   margin-bottom: 6px;
   border: none;
   background: transparent;
   outline: none;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font);
   width: 100%;
   padding: 0;
 }
-.sn-card-title::placeholder { color: rgba(30,41,59,0.4); }
+.sn-card-title::placeholder { color: rgba(0,0,0,0.3); }
 .sn-card-body {
   flex: 1;
   font-size: 12px;
-  color: #334155;
+  color: rgba(0,0,0,0.7);
   line-height: 1.6;
   border: none;
   background: transparent;
   outline: none;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font);
   width: 100%;
   resize: none;
 }
-.sn-card-body::placeholder { color: rgba(51,65,85,0.4); }
+.sn-card-body::placeholder { color: rgba(0,0,0,0.3); }
 
 .sn-card-footer {
   display: flex;
@@ -89,7 +90,7 @@
   align-items: center;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(0,0,0,0.06);
+  border-top: 1px solid rgba(0,0,0,0.08);
 }
 .sn-card-time {
   font-size: 9px;
@@ -107,7 +108,7 @@
   height: 24px;
   border-radius: 4px;
   border: none;
-  background: rgba(0,0,0,0.06);
+  background: rgba(0,0,0,0.08);
   cursor: pointer;
   font-size: 11px;
   display: flex;
@@ -115,7 +116,7 @@
   justify-content: center;
   transition: background 0.1s;
 }
-.sn-card-action:hover { background: rgba(0,0,0,0.12); }
+.sn-card-action:hover { background: rgba(0,0,0,0.15); }
 
 /* Color Picker */
 .sn-colors {
@@ -132,13 +133,13 @@
   transition: border-color 0.1s, transform 0.1s;
 }
 .sn-color-dot:hover { transform: scale(1.15); }
-.sn-color-dot.active { border-color: #1E293B; }
+.sn-color-dot.active { border-color: var(--ink); }
 
 /* Shared badge */
 .sn-shared-badge {
   font-size: 9px;
-  background: rgba(99,102,241,0.1);
-  color: #6366F1;
+  background: rgba(99,102,241,0.15);
+  color: var(--indigo);
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: 600;
@@ -153,8 +154,8 @@
 }
 .sn-attached-badge {
   font-size: 9px;
-  background: rgba(0,0,0,0.06);
-  color: #64748B;
+  background: rgba(0,0,0,0.08);
+  color: rgba(0,0,0,0.55);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -167,7 +168,7 @@
 .sn-empty-icon {
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.08));
+  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12));
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -176,12 +177,12 @@
   font-size: 28px;
 }
 
-/* Note color palette */
-.sn-color-yellow { background: #FEF3C7; }
-.sn-color-blue { background: #DBEAFE; }
-.sn-color-green { background: #D1FAE5; }
-.sn-color-pink { background: #FCE7F3; }
-.sn-color-purple { background: #EDE9FE; }
-.sn-color-red { background: #FEE2E2; }
-.sn-color-orange { background: #FFEDD5; }
-.sn-color-teal { background: #CCFBF1; }
+/* Note color palette — muted for dark theme */
+.sn-color-yellow { background: rgba(254,243,199,0.35); }
+.sn-color-blue { background: rgba(219,234,254,0.30); }
+.sn-color-green { background: rgba(209,250,229,0.30); }
+.sn-color-pink { background: rgba(252,231,243,0.30); }
+.sn-color-purple { background: rgba(237,233,254,0.30); }
+.sn-color-red { background: rgba(254,226,226,0.30); }
+.sn-color-orange { background: rgba(255,237,213,0.30); }
+.sn-color-teal { background: rgba(204,251,241,0.30); }

@@ -1,31 +1,28 @@
-/* Global Reset */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body, #root { height: 100%; }
-body { font-family: 'Inter', sans-serif; background: #F0F2F7; color: #1E293B; -webkit-font-smoothing: antialiased; }
+/* Import design system */
+@import './styles/design-system.css';
 
+/* Loading screen */
 .loading-screen {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: #F0F2F7;
+  background: var(--bg-0);
   gap: 16px;
 }
 
 .loading-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid #E2E8F0;
-  border-top-color: #6366F1;
+  border: 2px solid var(--line);
+  border-top-color: var(--indigo);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: ad-spin 0.6s linear infinite;
 }
-
-@keyframes spin { to { transform: rotate(360deg); } }
 
 .loading-screen p {
   font-size: 13px;
-  color: #94A3B8;
+  color: var(--ink-3);
   font-weight: 500;
 }

@@ -61,31 +61,31 @@ export default function AnnouncementManager() {
       {creating && (
         <div className="card" style={{ padding: 20, marginBottom: 16 }}>
           <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Title *</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 4 }}>Title *</label>
             <input
               value={form.title}
               onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
               placeholder="Announcement title"
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13 }}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 13 }}
             />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Content *</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 4 }}>Content *</label>
             <textarea
               value={form.content}
               onChange={e => setForm(prev => ({ ...prev, content: e.target.value }))}
               placeholder="Announcement content..."
               rows={4}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, resize: 'vertical' }}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 13, resize: 'vertical' }}
             />
           </div>
           <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Audience *</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 4 }}>Audience *</label>
               <select
                 value={form.audience}
                 onChange={e => setForm(prev => ({ ...prev, audience: e.target.value }))}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13 }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 13 }}
               >
                 <option value="company">Company</option>
                 <option value="team">Team</option>
@@ -93,11 +93,11 @@ export default function AnnouncementManager() {
             </div>
             {form.audience === 'team' && (
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Team *</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 4 }}>Team *</label>
                 <select
                   value={form.team}
                   onChange={e => setForm(prev => ({ ...prev, team: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13 }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 13 }}
                 >
                   <option value="">Select team...</option>
                   {teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
@@ -107,7 +107,7 @@ export default function AnnouncementManager() {
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button onClick={() => setCreating(false)} style={{
-              padding: '8px 16px', fontSize: 12, background: '#F1F5F9', color: '#475569',
+              padding: '8px 16px', fontSize: 12, background: '#F1F5F9', color: 'var(--ink-2)',
               border: 'none', borderRadius: 8, cursor: 'pointer'
             }}>Cancel</button>
             <button onClick={createAnnouncement} disabled={!form.title.trim() || !form.content.trim()} style={{
@@ -119,7 +119,7 @@ export default function AnnouncementManager() {
       )}
 
       {announcements.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)', fontSize: 13 }}>
           No announcements yet. Create one to get started.
         </div>
       ) : (
@@ -127,8 +127,8 @@ export default function AnnouncementManager() {
           <div key={a._id} className="card" style={{ padding: 16, marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B', marginBottom: 4 }}>{a.title}</div>
-                <div style={{ fontSize: 12, color: '#64748B', marginBottom: 8 }}>{a.content}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{a.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 8 }}>{a.content}</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{
                     fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 4,
@@ -137,7 +137,7 @@ export default function AnnouncementManager() {
                   }}>
                     {a.audience === 'company' ? 'Company' : a.team?.name || 'Team'}
                   </span>
-                  <span style={{ fontSize: 10, color: '#94A3B8' }}>
+                  <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>
                     {a.createdBy?.name} - {new Date(a.createdAt).toLocaleDateString()}
                   </span>
                 </div>

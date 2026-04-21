@@ -11,7 +11,7 @@ const PRIORITY_CONFIG = {
   low: { label: '🟢 Low Priority', color: '#10B981' }
 };
 const STATUS_CONFIG = {
-  not_started: { label: 'Not Started', color: '#94A3B8' },
+  not_started: { label: 'Not Started', color: 'var(--ink-3)' },
   in_progress: { label: 'In Progress', color: '#6366F1' },
   on_hold: { label: 'On Hold', color: '#F59E0B' },
   done: { label: 'Done', color: '#10B981' },
@@ -122,7 +122,7 @@ export default function Tasks() {
                 onClick={() => setFilterPriority(k)}>{l}</div>
             ))}
           </div>
-          {loading ? <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading...</div> : (
+          {loading ? <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading...</div> : (
             Object.entries(grouped).map(([pri, items]) => items.length > 0 && (
               <div key={pri} className="task-priority-section">
                 <div className="task-priority-header">
@@ -138,8 +138,8 @@ export default function Tasks() {
           {!loading && tasks.length === 0 && (
             <div className="card" style={{ textAlign: 'center', padding: 40 }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>No tasks yet</div>
-              <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>Create a task to get started</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>No tasks yet</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>Create a task to get started</div>
             </div>
           )}
         </>
@@ -182,10 +182,10 @@ function TaskCard({ task, onClick }) {
         {task.labels?.slice(0, 2).map(l => (
           <span key={l._id} className="badge-pill" style={{ background: l.color + '14', color: l.color, fontSize: 9 }}>{l.name}</span>
         ))}
-        {task.isPrivate && <span style={{ fontSize: 9, color: '#94A3B8' }}>🔒</span>}
+        {task.isPrivate && <span style={{ fontSize: 9, color: 'var(--ink-3)' }}>🔒</span>}
         {task.isRecurring && <span style={{ fontSize: 9, color: '#6366F1' }}>🔄</span>}
       </div>
-      {task.statusNote && <div style={{ fontSize: 10, color: '#64748B', marginBottom: 4, fontStyle: 'italic' }}>{task.statusNote}</div>}
+      {task.statusNote && <div style={{ fontSize: 10, color: 'var(--ink-2)', marginBottom: 4, fontStyle: 'italic' }}>{task.statusNote}</div>}
       <div className="task-card-progress">
         <div className="task-card-progress-bar"><div className="task-card-progress-fill" style={{ width: task.progress + '%', background: pc.color }} /></div>
         <div className="task-card-progress-text">{task.progress}%</div>
@@ -259,9 +259,9 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
           <div className="card" style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>
-                <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
                   {task.title}
-                  {task.isPrivate && <span style={{ fontSize: 12, marginLeft: 8, color: '#94A3B8' }}>🔒 Private</span>}
+                  {task.isPrivate && <span style={{ fontSize: 12, marginLeft: 8, color: 'var(--ink-3)' }}>🔒 Private</span>}
                   {task.isRecurring && <span style={{ fontSize: 12, marginLeft: 8, color: '#6366F1' }}>🔄 Recurring</span>}
                 </h2>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -270,7 +270,7 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
                   {task.team && <span className="badge-pill" style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981' }}>{task.team.name}</span>}
                 </div>
               </div>
-              <select style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 11, color: '#475569' }}
+              <select style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--line)', fontSize: 11, color: 'var(--ink-2)' }}
                 value={task.status} onChange={e => onUpdate(task._id, { status: e.target.value })}>
                 {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
@@ -278,24 +278,24 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
 
             {/* Fields grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
-              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
+              <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
                 <div className="task-field-label">Assignees</div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {task.assignees?.map(a => (
                     <div key={a._id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <div className="avatar-sm" style={{ background: getGrad(a._id), width: 20, height: 20, fontSize: 8 }}>{initials(a.name)}</div>
-                      <span style={{ fontSize: 10, color: '#1E293B' }}>{a.name.split(' ')[0]}</span>
+                      <span style={{ fontSize: 10, color: 'var(--ink)' }}>{a.name.split(' ')[0]}</span>
                     </div>
                   ))}
                 </div>
               </div>
-              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
+              <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
                 <div className="task-field-label">Deadline</div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: task.deadline && new Date(task.deadline) < new Date() ? '#EF4444' : '#1E293B' }}>
                   {task.deadline ? new Date(task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                 </div>
               </div>
-              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
+              <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
                 <div className="task-field-label">Progress</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="range" min="0" max="100" value={progress} onChange={e => setProgress(Number(e.target.value))}
@@ -308,37 +308,37 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
 
             {/* More fields row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
-              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
+              <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
                 <div className="task-field-label">Estimated Time</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <input type="number" min="0" max="999" value={estHours} onChange={e => setEstHours(e.target.value)}
-                    style={{ width: 40, padding: '4px 6px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, textAlign: 'center', background: '#fff' }} />
-                  <span style={{ fontSize: 10, color: '#94A3B8' }}>h</span>
+                    style={{ width: 40, padding: '4px 6px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, textAlign: 'center', background: 'var(--glass)' }} />
+                  <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>h</span>
                   <input type="number" min="0" max="59" value={estMins} onChange={e => setEstMins(e.target.value)}
-                    style={{ width: 40, padding: '4px 6px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, textAlign: 'center', background: '#fff' }} />
-                  <span style={{ fontSize: 10, color: '#94A3B8' }}>m</span>
+                    style={{ width: 40, padding: '4px 6px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, textAlign: 'center', background: 'var(--glass)' }} />
+                  <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>m</span>
                   <button className="btn btn-primary-sm" style={{ padding: '3px 8px', fontSize: 9 }} onClick={handleEstTimeUpdate}>Set</button>
                 </div>
               </div>
-              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
+              <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
                 <div className="task-field-label">Visibility</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div className="task-toggle" onClick={handlePrivateToggle}
                     style={{ width: 36, height: 20, borderRadius: 10, background: task.isPrivate ? '#6366F1' : '#E2E8F0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
-                    <div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', position: 'absolute', top: 2, left: task.isPrivate ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+                    <div style={{ width: 16, height: 16, borderRadius: 8, background: 'var(--glass)', position: 'absolute', top: 2, left: task.isPrivate ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
                   </div>
-                  <span style={{ fontSize: 11, color: '#475569' }}>{task.isPrivate ? '🔒 Private' : '🌐 Public'}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-2)' }}>{task.isPrivate ? '🔒 Private' : '🌐 Public'}</span>
                 </div>
               </div>
-              <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
+              <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
                 <div className="task-field-label">Recurring</div>
-                <div style={{ fontSize: 12, color: '#1E293B' }}>
+                <div style={{ fontSize: 12, color: 'var(--ink)' }}>
                   {task.isRecurring ? (
                     <span className="badge-pill" style={{ background: 'rgba(99,102,241,0.08)', color: '#6366F1' }}>
                       🔄 {task.recurringPattern ? task.recurringPattern.charAt(0).toUpperCase() + task.recurringPattern.slice(1) : 'Yes'}
                     </span>
                   ) : (
-                    <span style={{ fontSize: 11, color: '#CBD5E1' }}>Not recurring</span>
+                    <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>Not recurring</span>
                   )}
                 </div>
               </div>
@@ -350,7 +350,7 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
               <div className="task-field-label">Update Status Note</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input value={statusNote} onChange={e => setStatusNote(e.target.value)} placeholder="What's the current status?"
-                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 11, background: '#F8FAFC', outline: 'none', fontFamily: 'Inter' }} />
+                  style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 11, background: 'var(--glass)', outline: 'none', fontFamily: 'Inter' }} />
                 <button className="btn btn-primary-sm" style={{ padding: '8px 14px' }} onClick={() => onUpdate(task._id, { statusNote })}>Update</button>
               </div>
             </div>
@@ -359,7 +359,7 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
             {task.description && (
               <div className="task-field">
                 <div className="task-field-label">Description</div>
-                <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.7 }}>{task.description}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7 }}>{task.description}</div>
               </div>
             )}
 
@@ -397,28 +397,28 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
           {/* Attachments */}
           <div className="card" style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>Attachments ({task.attachments?.length || 0})</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Attachments ({task.attachments?.length || 0})</div>
               <label className="btn btn-primary-sm" style={{ padding: '4px 10px', fontSize: 10, cursor: 'pointer', margin: 0 }}>
                 {uploading ? 'Uploading...' : '+ Upload'}
                 <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileUpload} disabled={uploading} />
               </label>
             </div>
             {task.attachments?.length > 0 ? task.attachments.map((att, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #F0F2F7', fontSize: 11 }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--line)', fontSize: 11 }}>
                 <span style={{ fontSize: 14 }}>
                   {att.mimeType?.startsWith('image/') ? '🖼️' : att.mimeType === 'application/pdf' ? '📄' : '📎'}
                 </span>
-                <span style={{ flex: 1, color: '#1E293B', fontWeight: 500 }}>{att.name}</span>
-                <span style={{ color: '#CBD5E1', fontSize: 10 }}>{formatFileSize(att.size)}</span>
+                <span style={{ flex: 1, color: 'var(--ink)', fontWeight: 500 }}>{att.name}</span>
+                <span style={{ color: 'var(--ink-4)', fontSize: 10 }}>{formatFileSize(att.size)}</span>
               </div>
             )) : (
-              <div style={{ fontSize: 11, color: '#CBD5E1' }}>No attachments</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>No attachments</div>
             )}
           </div>
 
           {/* Activity */}
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>Activity Log</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Activity Log</div>
             {task.activity?.slice().reverse().map((a, i) => (
               <div key={i} className="task-activity-item">
                 <div className="task-activity-text">{a.user?.name || 'System'} — {a.detail}</div>
@@ -437,11 +437,11 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
           {/* Dependencies */}
           {task.preTasks?.length > 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>Dependencies</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Dependencies</div>
               {task.preTasks.map(pt => (
                 <div key={pt._id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', fontSize: 11 }}>
                   <span style={{ color: pt.status === 'done' ? '#10B981' : '#F59E0B' }}>{pt.status === 'done' ? '✅' : '⏳'}</span>
-                  <span style={{ color: '#475569' }}>{pt.title}</span>
+                  <span style={{ color: 'var(--ink-2)' }}>{pt.title}</span>
                 </div>
               ))}
             </div>
@@ -450,15 +450,15 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
           {/* Watchers */}
           <div className="card" style={{ marginBottom: 12, position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>Watchers ({task.watchers?.length || 0})</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Watchers ({task.watchers?.length || 0})</div>
               <button className="btn btn-primary-sm" style={{ padding: '3px 8px', fontSize: 9 }}
                 onClick={() => { setShowWatcherPicker(!showWatcherPicker); if (!showWatcherPicker) loadWatcherUsers(); }}>+ Add Watcher</button>
             </div>
             {showWatcherPicker && (
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 8, marginBottom: 8, maxHeight: 160, overflowY: 'auto' }}>
+              <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 8, marginBottom: 8, maxHeight: 160, overflowY: 'auto' }}>
                 {watcherUsers.filter(u => !(task.watchers || []).some(w => (w._id || w) === u._id)).map(u => (
                   <div key={u._id} onClick={() => addWatcher(u._id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#1E293B' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: 'var(--ink)' }}
                     onMouseOver={e => e.currentTarget.style.background = '#EEF2FF'}
                     onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                     <div className="avatar-sm" style={{ background: getGrad(u._id), width: 18, height: 18, fontSize: 7 }}>{initials(u.name)}</div>
@@ -466,27 +466,27 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
                   </div>
                 ))}
                 {watcherUsers.filter(u => !(task.watchers || []).some(w => (w._id || w) === u._id)).length === 0 && (
-                  <div style={{ fontSize: 10, color: '#94A3B8', textAlign: 'center', padding: 6 }}>No users to add</div>
+                  <div style={{ fontSize: 10, color: 'var(--ink-3)', textAlign: 'center', padding: 6 }}>No users to add</div>
                 )}
               </div>
             )}
             {task.watchers?.length > 0 ? task.watchers.map(w => (
               <div key={w._id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', fontSize: 11 }}>
                 <div className="avatar-sm" style={{ background: getGrad(w._id), width: 18, height: 18, fontSize: 7 }}>{initials(w.name)}</div>
-                <span style={{ color: '#475569', flex: 1 }}>{w.name}</span>
-                <span style={{ cursor: 'pointer', fontSize: 10, color: '#94A3B8' }} onClick={() => removeWatcher(w._id)} title="Remove watcher">&times;</span>
+                <span style={{ color: 'var(--ink-2)', flex: 1 }}>{w.name}</span>
+                <span style={{ cursor: 'pointer', fontSize: 10, color: 'var(--ink-3)' }} onClick={() => removeWatcher(w._id)} title="Remove watcher">&times;</span>
               </div>
             )) : (
-              <div style={{ fontSize: 11, color: '#CBD5E1' }}>No watchers</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>No watchers</div>
             )}
           </div>
 
           {/* Created info */}
           <div className="card">
-            <div style={{ fontSize: 10, color: '#94A3B8' }}>Created by {task.createdBy?.name}</div>
-            <div style={{ fontSize: 10, color: '#CBD5E1' }}>{new Date(task.createdAt).toLocaleDateString()}</div>
+            <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>Created by {task.createdBy?.name}</div>
+            <div style={{ fontSize: 10, color: 'var(--ink-4)' }}>{new Date(task.createdAt).toLocaleDateString()}</div>
             {task.estimatedTime > 0 && (
-              <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 6 }}>Est. time: {formatMinutes(task.estimatedTime)}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 6 }}>Est. time: {formatMinutes(task.estimatedTime)}</div>
             )}
           </div>
         </div>
@@ -513,7 +513,7 @@ function SubtaskSection({ task, onUpdate, onReload }) {
 
   return (
     <div className="card" style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>Subtasks ({task.subtasks?.length || 0})</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Subtasks ({task.subtasks?.length || 0})</div>
       {task.subtasks?.map(st => (
         <div key={st._id} className="subtask-item">
           <div className={`subtask-check ${st.status === 'done' ? 'done' : ''}`} onClick={() => onUpdate(st._id, { status: st.status === 'done' ? 'not_started' : 'done' })}>
@@ -522,14 +522,14 @@ function SubtaskSection({ task, onUpdate, onReload }) {
           <span className={`subtask-text ${st.status === 'done' ? 'done' : ''}`}>{st.title}</span>
         </div>
       ))}
-      {(!task.subtasks || task.subtasks.length === 0) && <div style={{ fontSize: 11, color: '#CBD5E1', marginBottom: 8 }}>No subtasks</div>}
+      {(!task.subtasks || task.subtasks.length === 0) && <div style={{ fontSize: 11, color: 'var(--ink-4)', marginBottom: 8 }}>No subtasks</div>}
       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
         <input
           value={newSubtask}
           onChange={e => setNewSubtask(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') addSubtask(); }}
           placeholder="Add a subtask..."
-          style={{ flex: 1, padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#F8FAFC', outline: 'none', fontFamily: 'Inter, sans-serif' }}
+          style={{ flex: 1, padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, background: 'var(--glass)', outline: 'none', fontFamily: 'Inter, sans-serif' }}
         />
         <button className="btn btn-primary-sm" style={{ padding: '6px 12px', fontSize: 10 }} onClick={addSubtask} disabled={adding || !newSubtask.trim()}>
           {adding ? '...' : '+ Add'}
@@ -655,17 +655,17 @@ function CreateTask({ onBack, onCreated }) {
               </button>
             </div>
             {showAssigneePicker && (
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 8, maxHeight: 180, overflowY: 'auto' }}>
+              <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 8, maxHeight: 180, overflowY: 'auto' }}>
                 {allUsers.length > 0 ? allUsers.map(u => (
-                  <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', fontSize: 11, color: '#1E293B' }}>
+                  <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', fontSize: 11, color: 'var(--ink)' }}>
                     <input type="checkbox" checked={form.assignees.includes(u._id)} onChange={() => toggleAssignee(u._id)}
                       style={{ accentColor: '#6366F1' }} />
                     <div className="avatar-sm" style={{ background: getGrad(u._id), width: 18, height: 18, fontSize: 7 }}>{initials(u.name)}</div>
                     {u.name}
-                    <span style={{ color: '#CBD5E1', fontSize: 9, marginLeft: 'auto' }}>{u.email}</span>
+                    <span style={{ color: 'var(--ink-4)', fontSize: 9, marginLeft: 'auto' }}>{u.email}</span>
                   </label>
                 )) : (
-                  <div style={{ fontSize: 11, color: '#94A3B8', textAlign: 'center', padding: 8 }}>No users available</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-3)', textAlign: 'center', padding: 8 }}>No users available</div>
                 )}
               </div>
             )}
@@ -676,7 +676,7 @@ function CreateTask({ onBack, onCreated }) {
             <div className="form-field">
               <label>Team</label>
               <select value={form.team} onChange={e => setForm(p => ({ ...p, team: e.target.value }))}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, background: '#F8FAFC', color: '#475569', fontFamily: 'Inter' }}>
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 12, background: 'var(--glass)', color: 'var(--ink-2)', fontFamily: 'Inter' }}>
                 <option value="">No team</option>
                 {allTeams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
               </select>
@@ -693,7 +693,7 @@ function CreateTask({ onBack, onCreated }) {
                     {l.name}
                   </div>
                 ))}
-                {allLabels.length === 0 && <span style={{ fontSize: 11, color: '#CBD5E1' }}>No labels available</span>}
+                {allLabels.length === 0 && <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>No labels available</span>}
               </div>
             </div>
           </div>
@@ -705,17 +705,17 @@ function CreateTask({ onBack, onCreated }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div onClick={() => setForm(p => ({ ...p, isRecurring: !p.isRecurring }))}
                   style={{ width: 36, height: 20, borderRadius: 10, background: form.isRecurring ? '#6366F1' : '#E2E8F0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', position: 'absolute', top: 2, left: form.isRecurring ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+                  <div style={{ width: 16, height: 16, borderRadius: 8, background: 'var(--glass)', position: 'absolute', top: 2, left: form.isRecurring ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
                 </div>
                 {form.isRecurring && (
                   <select value={form.recurringPattern} onChange={e => setForm(p => ({ ...p, recurringPattern: e.target.value }))}
-                    style={{ padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, color: '#475569', background: '#F8FAFC' }}>
+                    style={{ padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, color: 'var(--ink-2)', background: 'var(--glass)' }}>
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
                     <option value="monthly">Monthly</option>
                   </select>
                 )}
-                {!form.isRecurring && <span style={{ fontSize: 11, color: '#94A3B8' }}>Off</span>}
+                {!form.isRecurring && <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>Off</span>}
               </div>
             </div>
             <div className="form-field">
@@ -723,9 +723,9 @@ function CreateTask({ onBack, onCreated }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div onClick={() => setForm(p => ({ ...p, isPrivate: !p.isPrivate }))}
                   style={{ width: 36, height: 20, borderRadius: 10, background: form.isPrivate ? '#6366F1' : '#E2E8F0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', position: 'absolute', top: 2, left: form.isPrivate ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
+                  <div style={{ width: 16, height: 16, borderRadius: 8, background: 'var(--glass)', position: 'absolute', top: 2, left: form.isPrivate ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
                 </div>
-                <span style={{ fontSize: 11, color: '#475569' }}>{form.isPrivate ? '🔒 Private' : '🌐 Public'}</span>
+                <span style={{ fontSize: 11, color: 'var(--ink-2)' }}>{form.isPrivate ? '🔒 Private' : '🌐 Public'}</span>
               </div>
             </div>
           </div>
@@ -766,26 +766,26 @@ function LabelsModal({ onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.3)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={onClose}>
-      <div style={{ background: '#fff', borderRadius: 12, padding: 20, width: 380, maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
+      <div style={{ background: 'var(--glass)', borderRadius: 12, padding: 20, width: 380, maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
         onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>Manage Labels</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 18, color: '#94A3B8', cursor: 'pointer' }}>&times;</button>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Manage Labels</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 18, color: 'var(--ink-3)', cursor: 'pointer' }}>&times;</button>
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, alignItems: 'center' }}>
           <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Label name..."
             onKeyDown={e => { if (e.key === 'Enter') createLabel(); }}
-            style={{ flex: 1, padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#F8FAFC', outline: 'none', fontFamily: 'Inter, sans-serif' }} />
+            style={{ flex: 1, padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, background: 'var(--glass)', outline: 'none', fontFamily: 'Inter, sans-serif' }} />
           <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)}
-            style={{ width: 32, height: 32, border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
+            style={{ width: 32, height: 32, border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
           <button className="btn btn-primary-sm" style={{ padding: '7px 12px', fontSize: 10 }} onClick={createLabel}>Add</button>
         </div>
         {labels.length === 0 ? (
-          <div style={{ fontSize: 11, color: '#CBD5E1', textAlign: 'center', padding: 16 }}>No labels yet</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-4)', textAlign: 'center', padding: 16 }}>No labels yet</div>
         ) : labels.map(l => (
-          <div key={l._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #F0F2F7' }}>
+          <div key={l._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
             <span style={{ width: 10, height: 10, borderRadius: 5, background: l.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: '#1E293B', fontWeight: 500 }}>{l.name}</span>
+            <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{l.name}</span>
           </div>
         ))}
       </div>
@@ -850,7 +850,7 @@ function TodoList() {
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="todo-input-row">
           <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !showMore && addTodo()}
-            placeholder="Add a new to-do..." style={{ flex: 1, padding: '9px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, background: '#F8FAFC', outline: 'none', fontFamily: 'Inter' }} />
+            placeholder="Add a new to-do..." style={{ flex: 1, padding: '9px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 12, background: 'var(--glass)', outline: 'none', fontFamily: 'Inter' }} />
           <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px', fontSize: 10 }}
             onClick={() => setShowMore(!showMore)} title="More options">
             {showMore ? '▲' : '▼'}
@@ -860,15 +860,15 @@ function TodoList() {
 
         {/* Expanded form fields */}
         {showMore && (
-          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 10, marginBottom: 12 }}>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, marginBottom: 12 }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Deadline</div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Deadline</div>
                 <input type="date" value={todoDeadline} onChange={e => setTodoDeadline(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#fff', fontFamily: 'Inter' }} />
+                  style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, background: 'var(--glass)', fontFamily: 'Inter' }} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Priority</div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Priority</div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {[['high', '🟠 High'], ['medium', '🟡 Med'], ['low', '🟢 Low']].map(([k, l]) => (
                     <div key={k} className={`chip ${todoPriority === k ? 'active' : ''}`}
@@ -881,14 +881,14 @@ function TodoList() {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Notes</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Notes</div>
               <textarea value={todoNotes} onChange={e => setTodoNotes(e.target.value)} rows={2} placeholder="Additional notes..."
-                style={{ width: '100%', padding: '6px 8px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#fff', fontFamily: 'Inter', resize: 'vertical', outline: 'none' }} />
+                style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, background: 'var(--glass)', fontFamily: 'Inter', resize: 'vertical', outline: 'none' }} />
             </div>
           </div>
         )}
 
-        {loading ? <div style={{ color: '#94A3B8', fontSize: 12 }}>Loading...</div> : (
+        {loading ? <div style={{ color: 'var(--ink-3)', fontSize: 12 }}>Loading...</div> : (
           todos.map(todo => (
             <div key={todo._id} className={`todo-item ${todo.isDone ? 'done' : ''}`}>
               <div className={`todo-check ${todo.isDone ? 'done' : ''}`} onClick={() => toggleTodo(todo._id, todo.isDone)}>
@@ -903,7 +903,7 @@ function TodoList() {
                         📅 {new Date(todo.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     )}
-                    {todo.notes && <span style={{ fontSize: 9, color: '#CBD5E1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {todo.notes}</span>}
+                    {todo.notes && <span style={{ fontSize: 9, color: 'var(--ink-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {todo.notes}</span>}
                   </div>
                 )}
               </div>
@@ -915,7 +915,7 @@ function TodoList() {
             </div>
           ))
         )}
-        {!loading && todos.length === 0 && <div style={{ textAlign: 'center', padding: 20, color: '#CBD5E1', fontSize: 12 }}>No to-dos yet. Add one above!</div>}
+        {!loading && todos.length === 0 && <div style={{ textAlign: 'center', padding: 20, color: 'var(--ink-4)', fontSize: 12 }}>No to-dos yet. Add one above!</div>}
       </div>
     </div>
   );

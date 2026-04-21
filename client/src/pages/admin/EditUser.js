@@ -198,7 +198,7 @@ export default function EditUser() {
     }
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading user...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading user...</div>;
 
   return (
     <div>
@@ -269,7 +269,7 @@ export default function EditUser() {
 
           {/* Teams multi-select */}
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 8 }}>Teams</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 8 }}>Teams</div>
             <div className="chip-group">
               {teams.map(team => (
                 <div
@@ -281,7 +281,7 @@ export default function EditUser() {
                 </div>
               ))}
             </div>
-            {teams.length === 0 && <div style={{ fontSize: 11, color: '#94A3B8' }}>No teams available.</div>}
+            {teams.length === 0 && <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>No teams available.</div>}
           </div>
 
           {form.workType === 'hybrid' && (
@@ -345,7 +345,7 @@ export default function EditUser() {
 
           {/* Power checkboxes — shown for both admin and employee roles */}
           <div>
-            <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 12 }}>
               {form.role === 'admin'
                 ? 'Tick individual powers or select a title template above'
                 : 'Additional powers for this employee (optional)'}

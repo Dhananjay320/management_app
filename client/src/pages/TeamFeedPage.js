@@ -201,10 +201,10 @@ export default function TeamFeedPage() {
       {posts.length === 0 ? (
         <div className="feed-empty">
           <div className="feed-empty-icon">📰</div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
             {tab === 'pinned' ? 'No pinned posts' : 'No posts yet'}
           </h3>
-          <p style={{ fontSize: 12, color: '#94A3B8' }}>
+          <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>
             {tab === 'pinned' ? 'Pin posts to bookmark them here.' : 'Be the first to share something fun, a learning, or a shoutout!'}
           </p>
         </div>
@@ -252,7 +252,7 @@ export default function TeamFeedPage() {
                 <video src={post.media.url} controls style={{ maxWidth: '100%', borderRadius: 8, marginTop: 8 }} />
               )}
               {post.media?.url && post.contentType === 'file' && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6, marginTop: 8, fontSize: 11 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 6, marginTop: 8, fontSize: 11 }}>
                   📎 <span style={{ fontWeight: 600 }}>{post.media.name}</span>
                 </div>
               )}
@@ -311,7 +311,7 @@ export default function TeamFeedPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                         <div className="feed-comment-time">{timeAgo(c.createdAt)}</div>
                         {['👍','❤️','😂'].map(em => (
-                          <span key={em} style={{ cursor: 'pointer', fontSize: 11, padding: '1px 4px', borderRadius: 4, border: '1px solid #E2E8F0', background: '#F8FAFC' }}
+                          <span key={em} style={{ cursor: 'pointer', fontSize: 11, padding: '1px 4px', borderRadius: 4, border: '1px solid var(--line)', background: 'var(--glass)' }}
                             onClick={async () => {
                               try {
                                 const { data } = await api.post(`/feed/${post._id}/comment/${c._id}/react`, { emoji: em });

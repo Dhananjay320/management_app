@@ -1,0 +1,794 @@
+<!--
+  Avadeti Team — Screen 3: Messages
+
+  Design Notes
+  ────────────
+  • Same system as Screens 1 & 2 (orbs, glass, gradient accents, Inter). 3-pane layout:
+    Channel list · message feed · thread/info panel.
+  • Active channel pill uses full gradient bg with left-edge glow (matches sidebar style).
+    Unread pill gradient purple→pink, pulsing when > 0.
+  • Message bubbles: glass tint. Own messages skew slightly warmer (indigo→violet halo) and
+    align right; others align left. Hover reveals quick-action rail (react / reply / more).
+  • Typing indicator: 3 dots with staggered bounce. Appears with scale/fade.
+  • AI (✨) button: gradient purple→pink with orbiting sparkle particles on hover.
+  • Reactions: small gradient pills; expand on hover to show who reacted.
+  • Thread panel slides in from the right; "↳ replies" trigger.
+  • Channel switch: fade-out, fade-in with 40ms stagger on message rows.
+  • Attachment tile: glass card with gradient file-type icon.
+  • Format switcher [Chat|Table|Calendar|Document] — underline ink morphs with FLIP.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Avadeti — Messages</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --bg-0:#0A0B1A; --bg-1:#14162E;
+    --ink:#F8FAFC; --ink-2:rgba(248,250,252,0.62); --ink-3:rgba(248,250,252,0.40);
+    --line:rgba(255,255,255,0.08); --line-2:rgba(255,255,255,0.14);
+    --glass:rgba(255,255,255,0.04);
+  }
+  *{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  html,body{ background:var(--bg-0); color:var(--ink); font-family:'Inter',system-ui,sans-serif; letter-spacing:-0.01em; height:100%; }
+  body{
+    background:
+      radial-gradient(1200px 800px at 85% -10%, rgba(139,92,246,0.18), transparent 60%),
+      radial-gradient(900px 700px at -10% 30%, rgba(99,102,241,0.14), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, rgba(236,72,153,0.10), transparent 60%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+    min-height:100vh; overflow:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity:.5; mix-blend-mode:overlay;
+  }
+  .orb{ position:fixed; border-radius:9999px; filter:blur(80px); opacity:.5; pointer-events:none; z-index:0; animation:drift 24s cubic-bezier(0.4,0,0.2,1) infinite alternate; }
+  .orb.a{ width:520px; height:520px; left:-140px; top:-120px; background:radial-gradient(circle,#6366F1 0%,transparent 60%); }
+  .orb.b{ width:620px; height:620px; right:-180px; top:20%; background:radial-gradient(circle,#8B5CF6 0%,transparent 60%); animation-delay:-6s; }
+  .orb.c{ width:440px; height:440px; left:40%; bottom:-160px; background:radial-gradient(circle,#EC4899 0%,transparent 60%); animation-delay:-12s; opacity:.4; }
+  @keyframes drift{ 0%{ transform:translate3d(0,0,0) scale(1);} 50%{ transform:translate3d(40px,30px,0) scale(1.08);} 100%{ transform:translate3d(-30px,60px,0) scale(.96);} }
+
+  .glass{ background:var(--glass); backdrop-filter:blur(20px) saturate(140%); -webkit-backdrop-filter:blur(20px) saturate(140%); border:1px solid var(--line); border-radius:16px; }
+  .glass-strong{ background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); backdrop-filter:blur(28px) saturate(160%); border:1px solid var(--line-2); border-radius:16px; }
+  .soft-shadow{ box-shadow:0 8px 32px rgba(0,0,0,0.30); }
+
+  .grad-text{ background:linear-gradient(90deg,#A5B4FC,#C4B5FD,#F0ABFC,#A5B4FC); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:shimmer 5s ease-in-out infinite; }
+  @keyframes shimmer{ 0%,100%{ background-position:0% 50%;} 50%{ background-position:100% 50%;} }
+
+  .enter{ opacity:0; transform:translateY(10px); animation:enterUp .5s cubic-bezier(0.4,0,0.2,1) forwards; }
+  @keyframes enterUp{ to{ opacity:1; transform:translateY(0);} }
+
+  /* Topbar (same as other screens) */
+  .icon-btn{ width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--ink-2); background:rgba(255,255,255,0.04); border:1px solid var(--line); transition: all .22s; }
+  .icon-btn:hover{ background:rgba(255,255,255,0.08); color:var(--ink); }
+  .icon-btn.sm{ width:28px; height:28px; border-radius:8px; }
+  .search{ display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid var(--line); color:var(--ink-2); width:320px; transition: all .22s; }
+  .search:focus-within{ border-color:rgba(139,92,246,0.55); box-shadow:0 0 0 4px rgba(139,92,246,0.12); }
+  .search input{ background:transparent; outline:none; color:var(--ink); width:100%; font-size:13px; }
+  .search .kbd{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-3); border:1px solid var(--line-2); padding:1px 6px; border-radius:6px; }
+  .avatar{ width:28px; height:28px; border-radius:9999px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:white; border:1.5px solid rgba(255,255,255,0.12); box-shadow:0 4px 10px rgba(0,0,0,0.3); flex-shrink:0; position:relative; }
+  .avatar.sm{ width:22px; height:22px; font-size:9px; border-width:1.25px; }
+  .avatar.lg{ width:36px; height:36px; font-size:13px; }
+  .avatar .status{ position:absolute; right:-2px; bottom:-2px; width:10px; height:10px; border-radius:9999px; border:2px solid #0A0B1A; }
+  .s-online{ background:#10B981; animation: live 2s cubic-bezier(0.4,0,0.2,1) infinite; }
+  .s-away{ background:#F59E0B; }
+  .s-offline{ background:#64748B; }
+  @keyframes live{ 0%{ box-shadow:0 0 0 0 rgba(16,185,129,0.55);} 70%{ box-shadow:0 0 0 7px rgba(16,185,129,0);} 100%{ box-shadow:0 0 0 0 rgba(16,185,129,0);} }
+  .live-dot{ width:8px; height:8px; border-radius:9999px; background:#10B981; animation: live 2s cubic-bezier(0.4,0,0.2,1) infinite; }
+
+  .badge-pulse{ position:absolute; top:-2px; right:-2px; min-width:16px; height:16px; padding:0 4px; border-radius:9999px; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; color:white; background:linear-gradient(135deg,#EF4444,#EC4899); animation: badgePulse 2s infinite; }
+  @keyframes badgePulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(236,72,153,0.45);} 50%{ box-shadow:0 0 0 8px rgba(236,72,153,0);} }
+
+  .logo-mark{ width:28px; height:28px; border-radius:9px; background:conic-gradient(from 140deg, #6366F1, #8B5CF6, #EC4899, #F59E0B, #6366F1); position:relative; }
+  .logo-mark::after{ content:""; position:absolute; inset:3px; border-radius:6px; background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.9), rgba(255,255,255,0) 60%), #0A0B1A; }
+  .logo-mark::before{ content:""; position:absolute; inset:0; border-radius:9px; box-shadow:0 0 22px rgba(139,92,246,0.55); pointer-events:none; }
+
+  /* Layout */
+  .app-grid{
+    height: calc(100vh - 84px);
+    display:grid; grid-template-columns: 68px 280px 1fr 340px; gap:12px;
+    padding: 12px 16px 16px; position:relative; z-index:1;
+  }
+  @media (max-width: 1280px){ .app-grid{ grid-template-columns: 68px 260px 1fr 320px; } }
+
+  /* Slim nav */
+  .slim-nav{ display:flex; flex-direction:column; align-items:center; padding:10px 8px; gap:6px; border-radius:16px; }
+  .slim-item{ width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--ink-2); transition: all .22s; position:relative; }
+  .slim-item:hover{ background:rgba(255,255,255,0.06); color:var(--ink); }
+  .slim-item.active{ color:white; background:linear-gradient(135deg, rgba(99,102,241,0.4), rgba(139,92,246,0.4)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 8px 20px rgba(99,102,241,0.25); }
+  .slim-item.active::before{ content:""; position:absolute; left:-10px; top:10px; bottom:10px; width:3px; border-radius:3px; background:linear-gradient(180deg,#6366F1,#8B5CF6,#EC4899); box-shadow:0 0 12px rgba(139,92,246,0.8); }
+
+  /* Channel list */
+  .ch-head{ padding:14px 14px 10px; display:flex; align-items:center; justify-content:space-between; }
+  .ch-search{ padding: 0 10px 10px; }
+  .ch-group{ padding: 0 6px 6px; }
+  .lbl{ font-size:10px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3); padding: 10px 10px 6px; display:flex; align-items:center; justify-content:space-between; }
+  .ch-row{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px;
+    color:var(--ink-2); font-size:13px; cursor:pointer; transition: all .22s; position:relative;
+  }
+  .ch-row:hover{ background:rgba(255,255,255,0.05); color:var(--ink); }
+  .ch-row.active{
+    color:white; font-weight:600;
+    background: linear-gradient(90deg, rgba(99,102,241,0.22), rgba(139,92,246,0.08) 70%, transparent);
+  }
+  .ch-row.active::before{
+    content:""; position:absolute; left:-6px; top:6px; bottom:6px; width:3px; border-radius:3px;
+    background:linear-gradient(180deg,#6366F1,#8B5CF6,#EC4899);
+    box-shadow:0 0 12px rgba(139,92,246,0.8);
+  }
+  .ch-row .hash{ width:16px; text-align:center; color:var(--ink-3); font-weight:500; }
+  .ch-row.active .hash{ color:#C4B5FD; }
+  .unread{
+    margin-left:auto; min-width:20px; height:18px; padding:0 6px; border-radius:999px;
+    font-size:10px; font-weight:700; display:inline-flex; align-items:center; justify-content:center;
+    color:white; background:linear-gradient(135deg,#8B5CF6,#EC4899);
+    animation: badgePulse 2.2s infinite;
+  }
+
+  /* Feed */
+  .feed{ display:flex; flex-direction:column; min-height:0; }
+  .feed-head{ padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .feed-body{ padding: 8px 18px 12px; overflow-y:auto; flex:1; }
+  .feed-input{ padding: 10px 12px 14px; }
+
+  /* Format switcher */
+  .tab-track{ position:relative; display:inline-flex; gap:2px; padding:4px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid var(--line); }
+  .tab-track button{ padding:6px 12px; border-radius:8px; font-size:12px; color:var(--ink-2); transition: color .2s; display:inline-flex; align-items:center; gap:6px; position:relative; z-index:1; font-weight:500; }
+  .tab-track button.on{ color:white; }
+  .tab-ink{
+    position:absolute; top:4px; bottom:4px; border-radius:8px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.45), rgba(139,92,246,0.45));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 6px 18px rgba(99,102,241,0.25);
+    transition: transform .38s cubic-bezier(0.4,0,0.2,1), width .38s cubic-bezier(0.4,0,0.2,1);
+    z-index:0;
+  }
+
+  /* Message row */
+  .msg-row{ display:grid; grid-template-columns: 36px 1fr; gap:12px; padding:10px 8px; border-radius:12px; transition: background .2s; position:relative; }
+  .msg-row:hover{ background:rgba(255,255,255,0.03); }
+  .msg-row.own{ grid-template-columns: 1fr 36px; }
+  .msg-row.own .av-wrap{ order:2; }
+  .msg-row.own .msg-col{ order:1; text-align:right; }
+  .msg-head{ display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
+  .msg-row.own .msg-head{ justify-content:flex-end; }
+  .msg-name{ font-size:13px; font-weight:600; letter-spacing:-0.01em; }
+  .msg-time{ font-size:11px; color:var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  .bubble{
+    display:inline-block; max-width: 78%;
+    padding:10px 14px; border-radius:14px;
+    background: rgba(255,255,255,0.045);
+    border:1px solid var(--line);
+    font-size:13.5px; line-height:1.55; color:var(--ink);
+    position:relative;
+    backdrop-filter: blur(8px);
+  }
+  .msg-row.own .bubble{
+    background: linear-gradient(135deg, rgba(99,102,241,0.20), rgba(139,92,246,0.16));
+    border-color: rgba(139,92,246,0.30);
+    box-shadow: 0 8px 24px rgba(99,102,241,0.18);
+  }
+
+  /* Hover actions */
+  .actions{
+    position:absolute; top:-14px; right:10px;
+    display:flex; gap:2px; padding:2px;
+    border-radius:10px; background: rgba(10,11,26,0.85); border:1px solid var(--line-2);
+    opacity:0; transform: translateY(4px);
+    transition: all .2s cubic-bezier(0.4,0,0.2,1);
+    backdrop-filter:blur(12px);
+  }
+  .msg-row:hover .actions{ opacity:1; transform: translateY(0); }
+  .actions button{ width:26px; height:26px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; color:var(--ink-2); transition:all .18s; font-size:11px; }
+  .actions button:hover{ background:rgba(255,255,255,0.08); color:white; }
+
+  /* Reactions */
+  .rxns{ display:flex; gap:4px; margin-top:6px; }
+  .msg-row.own .rxns{ justify-content:flex-end; }
+  .rxn{
+    display:inline-flex; align-items:center; gap:4px;
+    padding:2px 8px; border-radius:999px;
+    font-size:11px; font-weight:500;
+    background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.12));
+    border: 1px solid rgba(139,92,246,0.3);
+    color:#E9D5FF;
+    transition: all .2s;
+    cursor:pointer;
+    position:relative;
+  }
+  .rxn:hover{ transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139,92,246,0.25); }
+  .rxn .who{
+    position:absolute; bottom:calc(100% + 6px); left:50%; transform: translateX(-50%) translateY(4px);
+    white-space:nowrap; font-size:10px; padding:4px 8px; border-radius:8px;
+    background: rgba(10,11,26,0.92); border:1px solid var(--line-2); color:var(--ink);
+    opacity:0; pointer-events:none; transition: all .2s;
+  }
+  .rxn:hover .who{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  /* Mention */
+  .mention{
+    display:inline-block; padding:0 6px; border-radius:6px; font-weight:600; color:#E9D5FF;
+    background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(236,72,153,0.20));
+    border:1px solid rgba(139,92,246,0.4);
+    box-shadow: 0 0 12px rgba(139,92,246,0.25);
+    animation: mentionGlow 3s ease-in-out infinite;
+  }
+  @keyframes mentionGlow{ 0%,100%{ box-shadow: 0 0 10px rgba(139,92,246,0.2);} 50%{ box-shadow: 0 0 18px rgba(139,92,246,0.45);} }
+
+  /* Thread link */
+  .threadlink{
+    margin-top:6px; display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:8px; font-size:11px; color:var(--ink-2);
+    background: rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.14);
+    cursor:pointer; transition: all .22s;
+  }
+  .threadlink:hover{ background:rgba(255,255,255,0.07); color:white; border-style:solid; border-color: rgba(139,92,246,0.45); }
+
+  /* Attachment */
+  .attach{
+    display:inline-flex; align-items:center; gap:10px; margin-top:8px;
+    padding:10px 12px; border-radius:12px;
+    background: rgba(255,255,255,0.03); border:1px solid var(--line);
+    transition:all .22s; cursor:pointer;
+  }
+  .attach:hover{ background:rgba(255,255,255,0.055); border-color: var(--line-2); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+  .attach .icon{
+    width:34px; height:34px; border-radius:9px;
+    display:flex; align-items:center; justify-content:center;
+    color:white; background: linear-gradient(135deg, #EC4899, #F59E0B); box-shadow: 0 4px 14px rgba(236,72,153,0.3);
+  }
+
+  /* Divider */
+  .day-sep{ display:flex; align-items:center; gap:12px; padding: 14px 0 10px; color: var(--ink-3); font-size:11px; text-transform:uppercase; letter-spacing:0.2em; }
+  .day-sep::before, .day-sep::after{ content:""; flex:1; height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); }
+
+  /* Input */
+  .composer{
+    border-radius:16px; padding:10px 10px 10px 14px;
+    background: rgba(255,255,255,0.045);
+    border:1px solid var(--line-2);
+    transition: border-color .25s, box-shadow .25s;
+  }
+  .composer:focus-within{ border-color: rgba(139,92,246,0.55); box-shadow: 0 0 0 4px rgba(139,92,246,0.12), 0 10px 30px rgba(99,102,241,0.15); }
+  .composer textarea{
+    width:100%; resize:none; outline:none; background:transparent; color:var(--ink);
+    font-size:14px; line-height:1.45; min-height:44px; max-height:140px;
+  }
+  .composer .tools{ display:flex; align-items:center; gap:4px; }
+
+  /* AI button */
+  .btn-ai{
+    position:relative; padding:8px 12px; border-radius:10px; font-size:12px; font-weight:600; color:white;
+    background:linear-gradient(135deg, #8B5CF6, #EC4899);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16), 0 6px 18px rgba(236,72,153,0.3);
+    display:inline-flex; align-items:center; gap:6px; overflow:visible;
+    transition: transform .22s, box-shadow .22s, filter .22s;
+  }
+  .btn-ai:hover{ filter:brightness(1.1); transform: translateY(-1px); box-shadow: 0 10px 28px rgba(236,72,153,0.45), inset 0 0 0 1px rgba(255,255,255,0.22); }
+  .btn-ai .spark{
+    position:absolute; width:4px; height:4px; border-radius:99px; background:#fff;
+    opacity:0; pointer-events:none;
+  }
+  .btn-ai:hover .spark.s1{ animation: sp1 1.4s ease-in-out infinite; }
+  .btn-ai:hover .spark.s2{ animation: sp2 1.8s ease-in-out .2s infinite; }
+  .btn-ai:hover .spark.s3{ animation: sp3 2.0s ease-in-out .4s infinite; }
+  @keyframes sp1{ 0%{ top:50%; left:10%; opacity:0; transform:scale(.5);} 50%{ top:-10%; left:30%; opacity:1; transform:scale(1);} 100%{ top:-40%; left:50%; opacity:0;} }
+  @keyframes sp2{ 0%{ top:60%; left:60%; opacity:0; transform:scale(.5);} 50%{ top:-5%; left:70%; opacity:1; transform:scale(1);} 100%{ top:-40%; left:90%; opacity:0;} }
+  @keyframes sp3{ 0%{ top:30%; left:90%; opacity:0; transform:scale(.5);} 50%{ top:-15%; left:80%; opacity:1; transform:scale(1);} 100%{ top:-45%; left:60%; opacity:0;} }
+
+  .btn-send{
+    padding:8px 14px; border-radius:10px; color:white; font-weight:600; font-size:12px;
+    background:linear-gradient(135deg,#6366F1,#8B5CF6);
+    box-shadow: 0 6px 18px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+    display:inline-flex; align-items:center; gap:6px; transition: all .22s;
+  }
+  .btn-send:hover{ filter:brightness(1.08); transform: translateY(-1px); }
+
+  /* Typing */
+  .typing{
+    display:inline-flex; align-items:center; gap:4px;
+    padding:10px 14px; border-radius:14px;
+    background: rgba(255,255,255,0.045); border:1px solid var(--line);
+  }
+  .typing .d{ width:6px; height:6px; border-radius:99px; background:#C4B5FD; opacity:.6; animation: bop 1.2s cubic-bezier(0.4,0,0.2,1) infinite; }
+  .typing .d:nth-child(2){ animation-delay:.15s; }
+  .typing .d:nth-child(3){ animation-delay:.3s; }
+  @keyframes bop{ 0%,60%,100%{ transform:translateY(0); opacity:.55;} 30%{ transform:translateY(-4px); opacity:1;} }
+
+  /* Thread panel */
+  .thread-head{ padding:14px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; }
+  .thread-body{ padding: 10px 14px; overflow-y:auto; flex:1; }
+
+  /* Scrollbar */
+  *::-webkit-scrollbar{ width:10px; height:10px; }
+  *::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.08); border-radius:10px; }
+  *::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,0.16); }
+
+  /* Focus room special row */
+  .focus-room{
+    display:flex; align-items:center; gap:10px; padding:10px; border-radius:12px;
+    background: linear-gradient(135deg, rgba(236,72,153,0.14), rgba(245,158,11,0.10));
+    border:1px solid rgba(245,158,11,0.28);
+    cursor:pointer; transition: all .22s;
+  }
+  .focus-room:hover{ transform: translateY(-1px); box-shadow: 0 10px 24px rgba(236,72,153,0.2); }
+  .focus-room .pulse{ width:6px; height:6px; border-radius:99px; background:#F59E0B; animation: live 2s infinite; }
+
+  /* Chip for members */
+  .member-chip{ display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:10px; transition:all .2s; }
+  .member-chip:hover{ background:rgba(255,255,255,0.04); }
+
+  /* Enter animations for message rows */
+  .msg-enter{ opacity:0; transform: translateY(8px); animation: enterUp .4s cubic-bezier(0.4,0,0.2,1) forwards; }
+
+  /* New-message slide-in */
+  .slide-in{ animation: slideInUp .45s cubic-bezier(0.4,0,0.2,1); }
+  @keyframes slideInUp{
+    0%{ opacity:0; transform: translateY(18px) scale(.98); }
+    60%{ opacity:1; transform: translateY(-2px) scale(1.005); }
+    100%{ opacity:1; transform: translateY(0) scale(1); }
+  }
+</style>
+</head>
+<body>
+  <div class="orb a"></div>
+  <div class="orb b"></div>
+  <div class="orb c"></div>
+
+  <!-- Topbar -->
+  <header class="relative z-10">
+    <div class="px-4 pt-4">
+      <div class="glass-strong soft-shadow flex items-center justify-between px-4 py-3 rounded-2xl">
+        <div class="flex items-center gap-3">
+          <div class="logo-mark"></div>
+          <div class="leading-tight">
+            <div class="text-[14px] font-semibold tracking-tight">Avadeti</div>
+            <div class="text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">Team OS</div>
+          </div>
+          <div class="w-px h-6 bg-white/10 mx-3"></div>
+          <div class="search">
+            <i data-lucide="search" class="w-4 h-4"></i>
+            <input placeholder="Search people, tasks, messages…" />
+            <span class="kbd">⌘K</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="icon-btn relative"><i data-lucide="bell" class="w-4 h-4"></i><span class="badge-pulse">4</span></button>
+          <button class="icon-btn"><i data-lucide="notebook-pen" class="w-4 h-4"></i></button>
+          <button class="icon-btn"><i data-lucide="settings-2" class="w-4 h-4"></i></button>
+          <div class="w-px h-6 bg-white/10 mx-2"></div>
+          <div class="flex items-center gap-2 pr-1">
+            <div class="avatar" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">RK</div>
+            <div class="hidden md:block leading-tight">
+              <div class="text-[12px] font-semibold">Ravi Kulkarni</div>
+              <div class="text-[10px] text-[color:var(--ink-3)] flex items-center gap-1"><span class="live-dot"></span> Active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- App grid -->
+  <div class="app-grid">
+
+    <!-- Slim workspace nav -->
+    <aside class="glass soft-shadow slim-nav enter" style="animation-delay:40ms">
+      <a class="slim-item" href="01-calendar.html" title="Home"><i data-lucide="calendar-days" class="w-4 h-4"></i></a>
+      <a class="slim-item" href="02-tasks.html" title="Tasks"><i data-lucide="check-circle-2" class="w-4 h-4"></i></a>
+      <a class="slim-item active" title="Messages"><i data-lucide="message-square" class="w-4 h-4"></i></a>
+      <a class="slim-item" title="Analytics"><i data-lucide="bar-chart-3" class="w-4 h-4"></i></a>
+      <a class="slim-item" title="Team"><i data-lucide="users" class="w-4 h-4"></i></a>
+      <a class="slim-item" title="Spaces"><i data-lucide="folder" class="w-4 h-4"></i></a>
+      <a class="slim-item" title="Email"><i data-lucide="mail" class="w-4 h-4"></i></a>
+      <div class="mt-auto"></div>
+      <a class="slim-item" title="More"><i data-lucide="more-horizontal" class="w-4 h-4"></i></a>
+    </aside>
+
+    <!-- Channel list -->
+    <aside class="glass soft-shadow flex flex-col overflow-hidden enter" style="animation-delay:80ms">
+      <div class="ch-head">
+        <div class="text-[15px] font-semibold tracking-tight">Inbox</div>
+        <button class="icon-btn sm"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+      </div>
+      <div class="ch-search">
+        <div class="search" style="width:100%; padding:7px 10px">
+          <i data-lucide="search" class="w-3.5 h-3.5"></i>
+          <input placeholder="Search channels, DMs…" style="font-size:12.5px"/>
+        </div>
+      </div>
+
+      <div class="overflow-y-auto flex-1">
+        <div class="ch-group">
+          <div class="lbl"><span>Channels</span><button class="icon-btn sm" style="width:20px;height:20px"><i data-lucide="plus" class="w-3 h-3"></i></button></div>
+          <div id="channels"></div>
+        </div>
+
+        <div class="ch-group">
+          <div class="lbl"><span>Direct</span><button class="icon-btn sm" style="width:20px;height:20px"><i data-lucide="plus" class="w-3 h-3"></i></button></div>
+          <div id="dms"></div>
+        </div>
+
+        <div class="ch-group">
+          <div class="lbl">Rooms</div>
+          <div class="focus-room">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#EC4899,#F59E0B)"><i data-lucide="mic" class="w-4 h-4 text-white"></i></div>
+            <div class="leading-tight flex-1">
+              <div class="text-[12.5px] font-semibold flex items-center gap-1.5"><span class="pulse"></span>Focus Room</div>
+              <div class="text-[10.5px] text-[color:var(--ink-3)]">Priya, Arjun · 2 live</div>
+            </div>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-[color:var(--ink-3)]"></i>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Feed -->
+    <section class="glass soft-shadow feed overflow-hidden enter" style="animation-delay:120ms">
+      <!-- Feed head -->
+      <div class="feed-head">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center text-[15px] font-semibold" style="background:linear-gradient(135deg, rgba(99,102,241,0.28), rgba(139,92,246,0.18)); border:1px solid rgba(139,92,246,0.3)">#</div>
+          <div class="leading-tight">
+            <div class="text-[15px] font-semibold tracking-tight" id="chanTitle">engineering</div>
+            <div class="text-[11px] text-[color:var(--ink-3)] flex items-center gap-2"><span class="live-dot"></span><span id="chanSub">12 members · 3 active now</span></div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Format switcher -->
+          <div class="tab-track" id="formatTabs">
+            <button data-fmt="chat" class="on"><i data-lucide="message-square" class="w-3.5 h-3.5"></i>Chat</button>
+            <button data-fmt="table"><i data-lucide="table" class="w-3.5 h-3.5"></i>Table</button>
+            <button data-fmt="cal"><i data-lucide="calendar" class="w-3.5 h-3.5"></i>Calendar</button>
+            <button data-fmt="doc"><i data-lucide="file-text" class="w-3.5 h-3.5"></i>Document</button>
+            <span class="tab-ink" id="fmtInk"></span>
+          </div>
+          <div class="w-px h-6 bg-white/10 mx-1"></div>
+          <button class="icon-btn sm"><i data-lucide="phone" class="w-3.5 h-3.5"></i></button>
+          <button class="icon-btn sm"><i data-lucide="video" class="w-3.5 h-3.5"></i></button>
+          <button class="icon-btn sm"><i data-lucide="pin" class="w-3.5 h-3.5"></i></button>
+        </div>
+      </div>
+
+      <!-- Feed body -->
+      <div class="feed-body" id="feed">
+        <!-- messages injected -->
+      </div>
+
+      <!-- Composer -->
+      <div class="feed-input">
+        <div class="composer">
+          <textarea id="msgInput" placeholder="Message #engineering — @ to mention"></textarea>
+          <div class="flex items-center justify-between mt-1">
+            <div class="tools">
+              <button class="icon-btn sm"><i data-lucide="paperclip" class="w-3.5 h-3.5"></i></button>
+              <button class="icon-btn sm"><i data-lucide="smile" class="w-3.5 h-3.5"></i></button>
+              <button class="icon-btn sm"><i data-lucide="at-sign" class="w-3.5 h-3.5"></i></button>
+              <button class="btn-ai">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>AI
+                <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10.5px] text-[color:var(--ink-3)]" id="charCount">0 / 2000</span>
+              <button class="btn-send" id="sendBtn"><i data-lucide="send" class="w-3.5 h-3.5"></i>Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Thread / Info -->
+    <aside class="glass soft-shadow flex flex-col overflow-hidden enter" style="animation-delay:160ms">
+      <div class="thread-head">
+        <div>
+          <div class="lbl" style="padding:0; margin-bottom:2px">Thread</div>
+          <div class="text-[13px] font-semibold">#engineering · 3 replies</div>
+        </div>
+        <button class="icon-btn sm"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+      </div>
+
+      <div class="thread-body">
+        <!-- Parent -->
+        <div class="msg-row">
+          <div class="av-wrap"><div class="avatar" style="background:linear-gradient(135deg,#10B981,#06B6D4)">PM<span class="status s-online"></span></div></div>
+          <div class="msg-col">
+            <div class="msg-head"><span class="msg-name">Priya M.</span><span class="msg-time">10:24 AM</span></div>
+            <div class="bubble">Hey team, can we push the release to <b>Friday</b>? I need to verify one more edge case with GST on partial refunds.</div>
+          </div>
+        </div>
+
+        <div class="day-sep">3 replies</div>
+
+        <div class="msg-row msg-enter" style="animation-delay:40ms">
+          <div class="av-wrap"><div class="avatar" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">RK<span class="status s-online"></span></div></div>
+          <div class="msg-col">
+            <div class="msg-head"><span class="msg-name">Ravi</span><span class="msg-time">10:25 AM</span></div>
+            <div class="bubble">Agree — +1 for Friday. I'll move the calendar block.</div>
+          </div>
+        </div>
+
+        <div class="msg-row msg-enter" style="animation-delay:90ms">
+          <div class="av-wrap"><div class="avatar" style="background:linear-gradient(135deg,#F59E0B,#FBBF24)">MV<span class="status s-away"></span></div></div>
+          <div class="msg-col">
+            <div class="msg-head"><span class="msg-name">Meera</span><span class="msg-time">10:27 AM</span></div>
+            <div class="bubble">Works for me. Do we need to notify support? 🙌</div>
+          </div>
+        </div>
+
+        <div class="msg-row msg-enter" style="animation-delay:140ms">
+          <div class="av-wrap"><div class="avatar" style="background:linear-gradient(135deg,#10B981,#06B6D4)">PM<span class="status s-online"></span></div></div>
+          <div class="msg-col">
+            <div class="msg-head"><span class="msg-name">Priya M.</span><span class="msg-time">10:29 AM</span></div>
+            <div class="bubble">I'll ping <span class="mention">@arjun</span> to coordinate with the support rota.</div>
+          </div>
+        </div>
+
+        <div class="day-sep" style="padding-top:8px">typing</div>
+        <div class="msg-row">
+          <div class="av-wrap"><div class="avatar" style="background:linear-gradient(135deg,#EC4899,#F472B6)">AS<span class="status s-online"></span></div></div>
+          <div class="msg-col">
+            <div class="typing"><span class="d"></span><span class="d"></span><span class="d"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reply -->
+      <div class="p-3 border-t border-white/5">
+        <div class="composer" style="padding:8px 10px">
+          <textarea placeholder="Reply to thread…" style="min-height:36px; font-size:13px"></textarea>
+          <div class="flex items-center justify-between mt-1">
+            <div class="tools">
+              <button class="icon-btn sm"><i data-lucide="paperclip" class="w-3.5 h-3.5"></i></button>
+              <button class="icon-btn sm"><i data-lucide="smile" class="w-3.5 h-3.5"></i></button>
+            </div>
+            <button class="btn-send"><i data-lucide="send" class="w-3.5 h-3.5"></i>Reply</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+<script>
+/* ----- Team ----- */
+const TEAM = {
+  RK:{ n:'Ravi',  g:'linear-gradient(135deg,#6366F1,#8B5CF6)', status:'online' },
+  PM:{ n:'Priya M.', g:'linear-gradient(135deg,#10B981,#06B6D4)', status:'online' },
+  AS:{ n:'Aisha S.', g:'linear-gradient(135deg,#EC4899,#F472B6)', status:'online' },
+  MV:{ n:'Meera V.', g:'linear-gradient(135deg,#F59E0B,#FBBF24)', status:'away' },
+  AV:{ n:'Arjun V.', g:'linear-gradient(135deg,#06B6D4,#6366F1)', status:'offline' },
+};
+
+/* ----- Channels & DMs ----- */
+const CHANNELS = [
+  { id:'general',    name:'general',     unread:3 },
+  { id:'engineering',name:'engineering', unread:12, active:true, dot:true },
+  { id:'design',     name:'design',      unread:0 },
+  { id:'random',     name:'random',      unread:0 },
+  { id:'all-hands-qna', name:'all-hands-qna', unread:2 },
+];
+const DMS = [
+  { id:'priya', who:'PM' },
+  { id:'ravi',  who:'RK' },
+  { id:'meera', who:'MV' },
+  { id:'arjun', who:'AV' },
+];
+
+const chEl = document.getElementById('channels');
+chEl.innerHTML = CHANNELS.map(c => `
+  <div class="ch-row ${c.active?'active':''}" data-channel="${c.id}">
+    <span class="hash">#</span>
+    <span class="flex-1 truncate">${c.name}</span>
+    ${c.unread ? `<span class="unread">${c.unread}</span>` : ''}
+  </div>
+`).join('');
+const dmEl = document.getElementById('dms');
+dmEl.innerHTML = DMS.map(d => {
+  const t = TEAM[d.who];
+  return `
+    <div class="ch-row" data-channel="${d.id}">
+      <div class="avatar sm" style="background:${t.g}">${d.who}<span class="status s-${t.status}"></span></div>
+      <span class="flex-1 truncate">${t.n}</span>
+    </div>
+  `;
+}).join('');
+
+/* ----- Messages feed (per-channel) ----- */
+const FEEDS = {
+  engineering: [
+    { day:'Today' },
+    { who:'PM', time:'10:24 AM', text:'Hey team, can we push the release to <b>Friday</b>? I need to verify one more edge case with GST on partial refunds.', rxns:[{e:'👍',n:3,who:'Ravi, Meera, Arjun'},{e:'🎉',n:1,who:'Aisha'}] },
+    { who:'RK', time:'10:25 AM', own:true, text:'Agree — +1 for Friday. I\'ll move the calendar block.', thread:'3 replies' },
+    { who:'MV', time:'10:27 AM', text:'Works for me 🙌', attach:{name:'invoicing-flow-v2.pdf', size:'2.4 MB'} },
+    { who:'AV', time:'10:31 AM', text:'Cool, I\'ll kick off the migration dry-run on staging at 4pm. <span class="mention">@ravi</span> heads-up.' },
+    { who:'AS', time:'10:33 AM', text:'Design review moved to Mon 2pm so it doesn\'t block you all.', rxns:[{e:'🙏',n:2,who:'Priya, Ravi'}] },
+    { who:'PM', time:'10:40 AM', text:'Great. I\'ll post the release notes draft in <span class="mention">@all-hands-qna</span> tonight.' },
+  ],
+  general: [
+    { day:'Today' },
+    { who:'MV', time:'9:02 AM', text:'Morning team — reminder: Q2 All-Hands on Friday 4 PM IST. Drop questions in <span class="mention">@all-hands-qna</span>.' },
+    { who:'AV', time:'9:05 AM', text:'Will the recording be shared after?' },
+    { who:'MV', time:'9:06 AM', text:'Yes — same place as last quarter.', rxns:[{e:'👍',n:4,who:'Ravi, Priya, Aisha, Arjun'}] },
+  ],
+  design:[
+    { day:'Today' },
+    { who:'AS', time:'11:12 AM', text:'New home illustrations going live tomorrow. Screens in Figma · tag me for feedback.', attach:{name:'home_v7.fig', size:'18 MB'} },
+  ],
+  random:[
+    { day:'Today' },
+    { who:'AV', time:'1:20 PM', text:'Anyone joining the run at 6:30? Cubbon Park 5K loop 🏃' },
+    { who:'RK', time:'1:22 PM', own:true, text:'Count me in.', rxns:[{e:'🔥',n:2,who:'Priya, Arjun'}] },
+  ],
+  'all-hands-qna':[
+    { day:'Today' },
+    { who:'PM', time:'2:05 PM', text:'Q: What\'s the status of the new onboarding funnel numbers?' },
+    { who:'AS', time:'2:08 PM', text:'Q: Any updates on the hiring plan for design?' },
+  ],
+  priya:[{ day:'Today' }, { who:'PM', time:'10:11 AM', text:'Got a sec later? Quick Q on the OTP flow.' }],
+  ravi:[{ day:'Today' }, { who:'RK', time:'9:45 AM', own:true, text:'Testing my own DM preview 😅' }],
+  meera:[{ day:'Today' }, { who:'MV', time:'8:30 AM', text:'Slides for All-Hands are in the shared drive.' }],
+  arjun:[{ day:'Today' }, { who:'AV', time:'7:15 AM', text:'Headed out for the morning run; back online by 9.' }],
+};
+
+const feed = document.getElementById('feed');
+function renderFeed(chan, {stagger=true}={}){
+  const data = FEEDS[chan] || [];
+  feed.innerHTML = data.map((m, i) => {
+    if (m.day){
+      return `<div class="day-sep msg-enter" style="animation-delay:${stagger? i*30 : 0}ms">${m.day}</div>`;
+    }
+    const t = TEAM[m.who];
+    const rxns = (m.rxns||[]).map(r => `<span class="rxn">${r.e}<b>${r.n}</b><span class="who">${r.who}</span></span>`).join('');
+    const attach = m.attach ? `
+      <div class="attach">
+        <div class="icon"><i data-lucide="file-text" class="w-4 h-4"></i></div>
+        <div class="leading-tight">
+          <div class="text-[12.5px] font-semibold">${m.attach.name}</div>
+          <div class="text-[10.5px] text-[color:var(--ink-3)]">${m.attach.size} · preview</div>
+        </div>
+        <i data-lucide="download" class="w-4 h-4 text-[color:var(--ink-3)] ml-3"></i>
+      </div>` : '';
+    const thread = m.thread ? `<div class="threadlink"><i data-lucide="corner-down-right" class="w-3 h-3"></i>${m.thread}</div>` : '';
+
+    return `
+      <div class="msg-row ${m.own?'own':''} msg-enter" style="animation-delay:${stagger? i*30 : 0}ms">
+        ${m.own ? `
+          <div class="msg-col">
+            <div class="msg-head"><span class="msg-time">${m.time}</span><span class="msg-name">${t.n}</span></div>
+            <div class="bubble">${m.text}${attach}${thread}</div>
+            ${rxns?`<div class="rxns">${rxns}</div>`:''}
+          </div>
+          <div class="av-wrap"><div class="avatar" style="background:${t.g}">${m.who}<span class="status s-${t.status}"></span></div></div>
+          <div class="actions"><button title="React"><i data-lucide="smile" class="w-3.5 h-3.5"></i></button><button title="Reply"><i data-lucide="corner-down-right" class="w-3.5 h-3.5"></i></button><button title="More"><i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i></button></div>
+        ` : `
+          <div class="av-wrap"><div class="avatar" style="background:${t.g}">${m.who}<span class="status s-${t.status}"></span></div></div>
+          <div class="msg-col">
+            <div class="msg-head"><span class="msg-name">${t.n}</span><span class="msg-time">${m.time}</span></div>
+            <div class="bubble">${m.text}${attach}${thread}</div>
+            ${rxns?`<div class="rxns">${rxns}</div>`:''}
+          </div>
+          <div class="actions"><button title="React"><i data-lucide="smile" class="w-3.5 h-3.5"></i></button><button title="Reply"><i data-lucide="corner-down-right" class="w-3.5 h-3.5"></i></button><button title="More"><i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i></button></div>
+        `}
+      </div>
+    `;
+  }).join('');
+  lucide.createIcons();
+  feed.scrollTop = feed.scrollHeight;
+}
+renderFeed('engineering');
+
+/* ----- Channel switching ----- */
+document.querySelectorAll('.ch-row').forEach(row => {
+  row.addEventListener('click', () => {
+    document.querySelectorAll('.ch-row').forEach(r => r.classList.remove('active'));
+    row.classList.add('active');
+    const id = row.dataset.channel;
+    const ch = CHANNELS.find(c=>c.id===id);
+    if (ch){
+      document.getElementById('chanTitle').textContent = ch.name;
+      document.getElementById('chanSub').textContent = `${3+Math.floor(Math.random()*9)} members · ${1+Math.floor(Math.random()*4)} active now`;
+    } else {
+      const dm = DMS.find(d=>d.id===id);
+      if (dm){
+        document.getElementById('chanTitle').textContent = TEAM[dm.who].n;
+        document.getElementById('chanSub').textContent = 'Direct message';
+      }
+    }
+    // fade out then render
+    feed.animate([{opacity:1},{opacity:0}], {duration:160, easing:'cubic-bezier(0.4,0,0.2,1)'}).onfinish = () => {
+      renderFeed(id);
+      feed.animate([{opacity:0},{opacity:1}], {duration:240, easing:'cubic-bezier(0.4,0,0.2,1)'});
+    };
+  });
+});
+
+/* ----- Format tabs ink ----- */
+const fmtWrap = document.getElementById('formatTabs');
+const fmtInk = document.getElementById('fmtInk');
+function moveInk(btn){
+  const r = btn.getBoundingClientRect();
+  const pr = fmtWrap.getBoundingClientRect();
+  fmtInk.style.width = r.width + 'px';
+  fmtInk.style.transform = `translateX(${r.left - pr.left - 4}px)`;
+}
+let fmtActive = fmtWrap.querySelector('.on');
+requestAnimationFrame(()=>moveInk(fmtActive));
+fmtWrap.querySelectorAll('button').forEach(b => {
+  b.addEventListener('click', () => {
+    fmtActive.classList.remove('on'); b.classList.add('on'); fmtActive = b; moveInk(b);
+  });
+});
+window.addEventListener('resize', ()=> moveInk(fmtActive));
+
+/* ----- Composer: char count + send ----- */
+const input = document.getElementById('msgInput');
+const charCount = document.getElementById('charCount');
+const sendBtn = document.getElementById('sendBtn');
+
+input.addEventListener('input', ()=>{
+  charCount.textContent = `${input.value.length} / 2000`;
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+});
+
+function sendMsg(){
+  const txt = input.value.trim();
+  if (!txt) return;
+  // Append to current channel
+  const active = document.querySelector('.ch-row.active');
+  const chan = active ? active.dataset.channel : 'engineering';
+  const now = new Date();
+  const hh = now.getHours(); const mm = String(now.getMinutes()).padStart(2,'0');
+  const ampm = hh >= 12 ? 'PM' : 'AM';
+  const h12 = ((hh+11)%12)+1;
+  FEEDS[chan] = FEEDS[chan] || [{day:'Today'}];
+  FEEDS[chan].push({ who:'RK', own:true, time:`${h12}:${mm} ${ampm}`, text: escapeHtml(txt) });
+
+  // Clear input with blur-out
+  input.animate([{filter:'blur(0)', opacity:1},{filter:'blur(4px)', opacity:0},{filter:'blur(0)', opacity:1}], {duration:360, easing:'cubic-bezier(0.4,0,0.2,1)'});
+  input.value = ''; input.style.height = 'auto'; charCount.textContent = '0 / 2000';
+
+  // Render + slide-in on last
+  renderFeed(chan, {stagger:false});
+  const last = feed.querySelector('.msg-row:last-child');
+  if (last) last.classList.add('slide-in');
+
+  // Fake incoming reply after 1.6s
+  setTimeout(()=>{
+    const replies = [
+      {who:'PM', text:'Got it 👍'},
+      {who:'MV', text:'Nice — thanks for the update!'},
+      {who:'AV', text:'On it.'},
+      {who:'AS', text:'💜'},
+    ];
+    const r = replies[Math.floor(Math.random()*replies.length)];
+    const now2 = new Date(); const h2 = ((now2.getHours()+11)%12)+1; const m2 = String(now2.getMinutes()).padStart(2,'0'); const a2 = now2.getHours() >= 12 ? 'PM' : 'AM';
+    FEEDS[chan].push({ who:r.who, time:`${h2}:${m2} ${a2}`, text:r.text });
+    renderFeed(chan, {stagger:false});
+    const last2 = feed.querySelector('.msg-row:last-child');
+    if (last2) last2.classList.add('slide-in');
+  }, 1600);
+}
+
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+sendBtn.addEventListener('click', sendMsg);
+input.addEventListener('keydown', e => {
+  if (e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }
+});
+
+lucide.createIcons();
+</script>
+</body>
+</html>

@@ -404,7 +404,7 @@ export default function WhiteboardPage() {
                 onChange={e => setEditingTextValue(e.target.value)}
                 onBlur={finishTextEdit}
                 onKeyDown={e => { if (e.key === 'Enter') finishTextEdit(); }}
-                style={{ fontSize: 14, border: '1px solid #6366F1', borderRadius: 4, padding: '2px 4px', width: '100%', outline: 'none', fontFamily: 'Inter, sans-serif', background: '#fff' }}
+                style={{ fontSize: 14, border: '1px solid #6366F1', borderRadius: 4, padding: '2px 4px', width: '100%', outline: 'none', fontFamily: 'Inter, sans-serif', background: 'var(--glass)' }}
               />
             </foreignObject>
           ) : (
@@ -454,7 +454,7 @@ export default function WhiteboardPage() {
                 value={editingTextValue}
                 onChange={e => setEditingTextValue(e.target.value)}
                 onBlur={finishTextEdit}
-                style={{ fontSize: 11, border: 'none', borderRadius: 2, padding: 2, width: '100%', height: '100%', outline: 'none', fontFamily: 'Inter, sans-serif', background: 'transparent', resize: 'none', color: '#92400E' }}
+                style={{ fontSize: 11, border: 'none', borderRadius: 2, padding: 2, width: '100%', height: '100%', outline: 'none', fontFamily: 'Inter, sans-serif', background: 'transparent', resize: 'none', color: 'var(--amber)' }}
               />
             </foreignObject>
           ) : (
@@ -497,7 +497,7 @@ export default function WhiteboardPage() {
     return null;
   };
 
-  if (loading) return <div style={{ padding: 20, color: '#94A3B8' }}>Loading whiteboard...</div>;
+  if (loading) return <div style={{ padding: 20, color: 'var(--ink-3)' }}>Loading whiteboard...</div>;
 
   const toolClass = tool === 'select' ? 'tool-select' : '';
 

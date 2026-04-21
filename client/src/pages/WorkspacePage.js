@@ -97,18 +97,18 @@ export default function WorkspacePage() {
 
         {showCreate && <CreateWorkspaceForm onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadWorkspaces(); }} />}
 
-        {loading ? <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading...</div> : (
+        {loading ? <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading...</div> : (
           <div className="ws-grid">
             {workspaces.map(ws => (
               <div key={ws._id} className="ws-card" onClick={() => openWorkspace(ws._id)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                   <div className="ws-card-icon" style={{ background: ws.color + '14' }}>{ws.icon}</div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>{ws.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{ws.name}</div>
                     <span className="badge-pill" style={{ background: ws.color + '14', color: ws.color }}>{ws.type.replace('_', ' ')}</span>
                   </div>
                 </div>
-                {ws.description && <div style={{ fontSize: 11, color: '#64748B', marginBottom: 8 }}>{ws.description}</div>}
+                {ws.description && <div style={{ fontSize: 11, color: 'var(--ink-2)', marginBottom: 8 }}>{ws.description}</div>}
                 <div className="ws-card-stats">
                   <span>📄 {ws.docCount} docs</span>
                   <span>📝 {ws.noteCount} notes</span>
@@ -121,7 +121,7 @@ export default function WorkspacePage() {
               <div className="card" style={{ textAlign: 'center', padding: 40, gridColumn: '1/-1' }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>📁</div>
                 <div style={{ fontSize: 14, fontWeight: 700 }}>No workspaces yet</div>
-                <div style={{ fontSize: 12, color: '#94A3B8' }}>Create one to organize your documents, files, and notes</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Create one to organize your documents, files, and notes</div>
               </div>
             )}
           </div>
@@ -159,15 +159,15 @@ export default function WorkspacePage() {
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', position: 'relative' }}>
           <span className="badge-pill" style={{ background: (wsDetail?.color || '#6366F1') + '14', color: wsDetail?.color }}>{wsDetail?.type?.replace('_', ' ')}</span>
-          <span className="badge-pill" style={{ background: '#F0F2F7', color: '#64748B' }}>{wsDetail?.members?.length} members</span>
+          <span className="badge-pill" style={{ background: 'var(--glass-2)', color: 'var(--ink-2)' }}>{wsDetail?.members?.length} members</span>
           <button className="btn btn-primary-sm" style={{ padding: '5px 10px', fontSize: 10 }} onClick={() => { setShowAddMember(!showAddMember); if (!showAddMember) loadMemberUsers(); }}>+ Add Member</button>
           {showAddMember && (
-            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10, padding: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', width: 260, zIndex: 20 }}>
+            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 10, padding: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', width: 260, zIndex: 20 }}>
               <input
                 value={memberSearch}
                 onChange={e => setMemberSearch(e.target.value)}
                 placeholder="Search users..."
-                style={{ width: '100%', padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, marginBottom: 6, outline: 'none', fontFamily: 'Inter, sans-serif' }}
+                style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, marginBottom: 6, outline: 'none', fontFamily: 'Inter, sans-serif' }}
                 autoFocus
               />
               <div style={{ maxHeight: 180, overflowY: 'auto' }}>
@@ -176,15 +176,15 @@ export default function WorkspacePage() {
                   .filter(u => u.name.toLowerCase().includes(memberSearch.toLowerCase()) || u.email.toLowerCase().includes(memberSearch.toLowerCase()))
                   .map(u => (
                     <div key={u._id} onClick={() => addMember(u._id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#1E293B' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: 'var(--ink)' }}
                       onMouseOver={e => e.currentTarget.style.background = '#F8FAFC'}
                       onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                       <span style={{ fontWeight: 600 }}>{u.name}</span>
-                      <span style={{ color: '#94A3B8', fontSize: 10, marginLeft: 'auto' }}>{u.email}</span>
+                      <span style={{ color: 'var(--ink-3)', fontSize: 10, marginLeft: 'auto' }}>{u.email}</span>
                     </div>
                   ))}
                 {memberUsers.filter(u => !wsDetail?.members?.some(m => (m._id || m) === u._id)).length === 0 && (
-                  <div style={{ fontSize: 11, color: '#94A3B8', textAlign: 'center', padding: 8 }}>No users to add</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-3)', textAlign: 'center', padding: 8 }}>No users to add</div>
                 )}
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function WorkspacePage() {
               </div>
             </div>
           ))}
-          {(!wsDetail?.documents || wsDetail.documents.length === 0) && <div style={{ color: '#CBD5E1', fontSize: 12, padding: 20, textAlign: 'center' }}>No documents yet</div>}
+          {(!wsDetail?.documents || wsDetail.documents.length === 0) && <div style={{ color: 'var(--ink-4)', fontSize: 12, padding: 20, textAlign: 'center' }}>No documents yet</div>}
         </div>
       )}
 
@@ -232,7 +232,7 @@ export default function WorkspacePage() {
               </div>
             ))}
           </div>
-          {(!wsDetail?.notes || wsDetail.notes.length === 0) && <div style={{ color: '#CBD5E1', fontSize: 12, padding: 20, textAlign: 'center' }}>No notes yet</div>}
+          {(!wsDetail?.notes || wsDetail.notes.length === 0) && <div style={{ color: 'var(--ink-4)', fontSize: 12, padding: 20, textAlign: 'center' }}>No notes yet</div>}
         </div>
       )}
 
@@ -249,7 +249,7 @@ export default function WorkspacePage() {
               </div>
             </div>
           ))}
-          {(!wsDetail?.links || wsDetail.links.length === 0) && <div style={{ color: '#CBD5E1', fontSize: 12, padding: 20, textAlign: 'center' }}>No links yet</div>}
+          {(!wsDetail?.links || wsDetail.links.length === 0) && <div style={{ color: 'var(--ink-4)', fontSize: 12, padding: 20, textAlign: 'center' }}>No links yet</div>}
         </div>
       )}
 
@@ -285,7 +285,7 @@ export default function WorkspacePage() {
               </div>
             </div>
           ))}
-          {(!wsDetail?.files || wsDetail.files.length === 0) && <div style={{ color: '#CBD5E1', fontSize: 12, padding: 20, textAlign: 'center' }}>No files yet</div>}
+          {(!wsDetail?.files || wsDetail.files.length === 0) && <div style={{ color: 'var(--ink-4)', fontSize: 12, padding: 20, textAlign: 'center' }}>No files yet</div>}
         </div>
       )}
 
@@ -348,7 +348,7 @@ function DocumentEditor({ doc, onSave }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <input value={title} onChange={e => setTitle(e.target.value)} onBlur={save}
-          style={{ fontSize: 22, fontWeight: 800, color: '#1E293B', border: 'none', outline: 'none', background: 'transparent', fontFamily: "'Plus Jakarta Sans', sans-serif", flex: 1 }} />
+          style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', border: 'none', outline: 'none', background: 'transparent', fontFamily: "'Plus Jakarta Sans', sans-serif", flex: 1 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {lastSaved && <span style={{ fontSize: 10, color: '#10B981' }}>✓ Saved {lastSaved.toLocaleTimeString()}</span>}
           <button className="btn btn-primary-sm" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
@@ -366,7 +366,7 @@ function DocumentEditor({ doc, onSave }) {
             if (e.key === 'Enter' && tagInput.trim()) { e.preventDefault(); setTags(prev => [...prev, tagInput.trim()]); setTagInput(''); }
           }}
           placeholder="Add tag..."
-          style={{ padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#F8FAFC', outline: 'none', fontFamily: 'Inter, sans-serif', width: 100 }} />
+          style={{ padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, background: 'var(--glass)', outline: 'none', fontFamily: 'Inter, sans-serif', width: 100 }} />
       </div>
 
       <div className="ws-editor-wrap">

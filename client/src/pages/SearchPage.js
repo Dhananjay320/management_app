@@ -66,18 +66,18 @@ export default function SearchPage() {
           onChange={e => setLocalQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
           placeholder="Search tasks, messages, meetings, workspace, email..."
-          style={{ flex: 1, padding: '10px 14px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, fontFamily: 'Inter,sans-serif', outline: 'none' }}
+          style={{ flex: 1, padding: '10px 14px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 13, fontFamily: 'Inter,sans-serif', outline: 'none' }}
         />
         <button onClick={handleSearch} className="btn btn-primary-sm">Search</button>
       </div>
 
-      {loading && <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8', fontSize: 13 }}>Searching...</div>}
+      {loading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)', fontSize: 13 }}>Searching...</div>}
 
       {!loading && query && totalResults === 0 && (
         <div style={{ textAlign: 'center', padding: 40 }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B', marginBottom: 4 }}>No results found</div>
-          <div style={{ fontSize: 12, color: '#94A3B8' }}>Try different keywords or check your spelling</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>No results found</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Try different keywords or check your spelling</div>
         </div>
       )}
 
@@ -86,24 +86,24 @@ export default function SearchPage() {
         if (!items || items.length === 0) return null;
         return (
           <div key={scope.key} style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>{scope.icon}</span> {scope.label}
-              <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400 }}>({items.length})</span>
+              <span style={{ fontSize: 10, color: 'var(--ink-3)', fontWeight: 400 }}>({items.length})</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {items.map(item => (
                 <div
                   key={item.entityId}
                   onClick={() => navigate(`${scope.linkPrefix}${item.entityId}`)}
-                  style={{ padding: '10px 14px', background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, cursor: 'pointer', transition: 'border-color 0.15s' }}
+                  style={{ padding: '10px 14px', background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', transition: 'border-color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = '#6366F1'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = '#E2E8F0'}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', marginBottom: 2 }}>{item.title}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>{item.title}</div>
                   {item.snippet && item.snippet !== item.title && (
-                    <div style={{ fontSize: 11, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.snippet}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.snippet}</div>
                   )}
-                  <div style={{ fontSize: 9, color: '#CBD5E1', marginTop: 2 }}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}</div>
+                  <div style={{ fontSize: 9, color: 'var(--ink-4)', marginTop: 2 }}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}</div>
                 </div>
               ))}
             </div>

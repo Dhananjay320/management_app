@@ -143,7 +143,7 @@ export default function ActivityPage() {
         pastActivities.length === 0 ? (
           <div className="act-empty">
             <div className="act-empty-icon">📋</div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>No past activities</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>No past activities</h3>
           </div>
         ) : (
           <div className="act-list">
@@ -173,8 +173,8 @@ export default function ActivityPage() {
       {activityTab === 'upcoming' && (activities.length === 0 ? (
         <div className="act-empty">
           <div className="act-empty-icon">🎯</div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>No upcoming activities</h3>
-          <p style={{ fontSize: 12, color: '#94A3B8' }}>Create an activity for reading, fun, wellness, learning, or team bonding.</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>No upcoming activities</h3>
+          <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>Create an activity for reading, fun, wellness, learning, or team bonding.</p>
         </div>
       ) : (
         <div className="act-list">

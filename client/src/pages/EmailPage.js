@@ -432,7 +432,7 @@ export default function EmailPage() {
           {activeFolder === 'drafts' ? (
             // Draft list
             drafts.length === 0 ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>No drafts</div>
+              <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink-3)', fontSize: 12 }}>No drafts</div>
             ) : (
               drafts.map(draft => (
                 <div key={draft._id} className="email-list-item" onClick={() => openDraft(draft)}>
@@ -450,9 +450,9 @@ export default function EmailPage() {
           ) : (
             // Email list
             loading ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>Loading...</div>
+              <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink-3)', fontSize: 12 }}>Loading...</div>
             ) : filteredEmails.length === 0 ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
+              <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink-3)', fontSize: 12 }}>
                 No emails in {activeFolder}
               </div>
             ) : (
@@ -587,7 +587,7 @@ export default function EmailPage() {
               <div className="email-compose-field">
                 <label>From</label>
                 <select
-                  style={{ flex: 1, border: 'none', outline: 'none', fontSize: 12, fontFamily: 'Inter, sans-serif', background: 'transparent', color: '#1E293B' }}
+                  style={{ flex: 1, border: 'none', outline: 'none', fontSize: 12, fontFamily: 'Inter, sans-serif', background: 'transparent', color: 'var(--ink)' }}
                   value={composeData.accountId}
                   onChange={e => setComposeData(prev => ({ ...prev, accountId: e.target.value }))}
                 >
@@ -607,14 +607,14 @@ export default function EmailPage() {
                   placeholder="recipient@example.com"
                 />
                 {showContactSuggestions && (
-                  <div style={{ position: 'absolute', top: '100%', left: 30, right: 0, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 180, overflowY: 'auto' }}>
+                  <div style={{ position: 'absolute', top: '100%', left: 30, right: 0, background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 180, overflowY: 'auto' }}>
                     {contactSuggestions.map(c => (
                       <div key={c._id} onMouseDown={() => selectContact(c)}
-                        style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 11, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F0F2F7' }}
+                        style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 11, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)' }}
                         onMouseOver={e => e.currentTarget.style.background = '#F8FAFC'}
                         onMouseOut={e => e.currentTarget.style.background = '#fff'}>
-                        <span style={{ fontWeight: 600, color: '#1E293B' }}>{c.name}</span>
-                        <span style={{ color: '#94A3B8' }}>{c.email}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{c.name}</span>
+                        <span style={{ color: 'var(--ink-3)' }}>{c.email}</span>
                       </div>
                     ))}
                   </div>
@@ -675,13 +675,13 @@ export default function EmailPage() {
 
               {/* AI Draft input */}
               {showAiDraft && (
-                <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: 4, display: 'flex', gap: 6 }}>
+                <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: 4, display: 'flex', gap: 6 }}>
                   <input
                     value={aiDraftPrompt}
                     onChange={e => setAiDraftPrompt(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handleAiDraft(); }}
                     placeholder="Describe the email you want to draft..."
-                    style={{ flex: 1, border: '1px solid #E2E8F0', borderRadius: 6, padding: '6px 10px', fontSize: 11, fontFamily: 'Inter,sans-serif', outline: 'none' }}
+                    style={{ flex: 1, border: '1px solid var(--line)', borderRadius: 6, padding: '6px 10px', fontSize: 11, fontFamily: 'Inter,sans-serif', outline: 'none' }}
                     autoFocus
                   />
                   <button onClick={handleAiDraft} disabled={aiDraftLoading || !aiDraftPrompt.trim()} style={{ padding: '6px 12px', background: '#6366F1', color: '#fff', border: 'none', borderRadius: 6, fontSize: 10, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>

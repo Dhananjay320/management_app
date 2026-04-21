@@ -44,7 +44,7 @@ export default function ProfilePage() {
     } catch {}
   };
 
-  if (!profile) return <div style={{ padding: 20, color: '#94A3B8' }}>Loading...</div>;
+  if (!profile) return <div style={{ padding: 20, color: 'var(--ink-3)' }}>Loading...</div>;
 
   const roleName = profile.role === 'main_admin' ? 'Main Admin' :
     profile.role === 'admin' ? (profile.adminTitle || 'Admin') : 'Employee';

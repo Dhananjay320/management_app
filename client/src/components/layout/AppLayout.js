@@ -131,7 +131,7 @@ export default function AppLayout() {
                   setSearchQuery('');
                 }
               }}
-              style={{ width: '100%', padding: '6px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, fontFamily: 'Inter,sans-serif', outline: 'none', background: '#F8FAFC', color: '#1E293B' }}
+              style={{ width: '100%', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 12, fontFamily: 'Inter,sans-serif', outline: 'none', background: 'var(--glass)', color: 'var(--ink)' }}
             />
           </div>
           <div className="topbar-right">
@@ -161,9 +161,9 @@ export default function AppLayout() {
               </div>
               {showUserMenu && (
                 <div className="user-menu">
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #F0F2F7', marginBottom: 4 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>{user.name}</div>
-                    <div style={{ fontSize: 10, color: '#94A3B8' }}>{user.email}</div>
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--line)', marginBottom: 4 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{user.name}</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>{user.email}</div>
                     <div style={{ marginTop: 4 }}>
                       <span className="badge-pill" style={{ background: 'rgba(99,102,241,0.08)', color: '#6366F1' }}>
                         {user.role === 'main_admin' ? 'Main Admin' : user.role === 'admin' ? user.adminTitle || 'Admin' : 'Employee'}

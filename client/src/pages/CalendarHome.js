@@ -127,12 +127,12 @@ export default function CalendarHome() {
         }}>
           <span style={{ fontSize: 18 }}>📢</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>{ann.title}</div>
-            <div style={{ fontSize: 11, color: '#64748B' }}>{ann.content}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{ann.title}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink-2)' }}>{ann.content}</div>
           </div>
-          <span style={{ fontSize: 9, color: '#94A3B8' }}>by {ann.createdBy?.name}</span>
+          <span style={{ fontSize: 9, color: 'var(--ink-3)' }}>by {ann.createdBy?.name}</span>
           <button onClick={() => dismissAnnouncement(ann._id)} style={{
-            background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: 16, padding: 2
+            background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', fontSize: 16, padding: 2
           }}>&times;</button>
         </div>
       ))}
@@ -182,7 +182,7 @@ export default function CalendarHome() {
         if (todayEvents.length === 0) return null;
         return (
           <div className="card" style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>Today's Events</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Today's Events</div>
             {todayEvents.map((ev, i) => {
               const col = EVENT_COLORS[ev.type] || '#3B82F6';
               return (
@@ -193,8 +193,8 @@ export default function CalendarHome() {
                 }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, marginBottom: 4, background: col + '08', cursor: 'pointer' }}>
                   <div style={{ width: 4, height: 28, borderRadius: 2, background: col }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>{ev.title}</div>
-                    <div style={{ fontSize: 10, color: '#94A3B8' }}>{ev.startTime || ev.type}{ev.endTime ? ` - ${ev.endTime}` : ''}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{ev.title}</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>{ev.startTime || ev.type}{ev.endTime ? ` - ${ev.endTime}` : ''}</div>
                   </div>
                   <span className="badge-pill" style={{ background: col + '14', color: col, fontSize: 9 }}>{ev.type}</span>
                 </div>
@@ -245,7 +245,7 @@ function WeeklyView({ dates, getEvents, navigate }) {
               );
             })}
             {evts.length === 0 && today && (
-              <div style={{ fontSize: 10, color: '#CBD5E1', textAlign: 'center', marginTop: 20 }}>No events</div>
+              <div style={{ fontSize: 10, color: 'var(--ink-4)', textAlign: 'center', marginTop: 20 }}>No events</div>
             )}
           </div>
         );
@@ -323,7 +323,7 @@ function DailyView({ date, events, todayAtt, navigate }) {
     <div className="cal-daily">
       <div className="cal-daily-timeline">
         <div style={{ marginBottom: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
             {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </span>
           {isToday(date) && <span className="badge-pill" style={{ marginLeft: 8, background: 'rgba(99,102,241,0.08)', color: '#6366F1' }}>Today</span>}
@@ -344,8 +344,8 @@ function DailyView({ date, events, todayAtt, navigate }) {
                   const col = EVENT_COLORS[ev.type] || '#3B82F6';
                   return (
                     <div key={i} className="cal-time-event" style={{ background: col + '0A', borderLeft: `3px solid ${col}`, cursor: 'pointer' }} onClick={() => handleEventClick(ev, navigate)}>
-                      <div className="cal-time-event-title" style={{ color: '#1E293B' }}>{ev.title}</div>
-                      <div className="cal-time-event-sub" style={{ color: '#94A3B8' }}>
+                      <div className="cal-time-event-title" style={{ color: 'var(--ink)' }}>{ev.title}</div>
+                      <div className="cal-time-event-sub" style={{ color: 'var(--ink-3)' }}>
                         {ev.startTime}{ev.endTime ? ` – ${ev.endTime}` : ''} · {ev.type}
                       </div>
                     </div>
@@ -359,7 +359,7 @@ function DailyView({ date, events, todayAtt, navigate }) {
         {/* Tasks grouped by priority (per spec Section 5.3) */}
         {tasks.length > 0 && (
           <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 8 }}>Tasks by Priority</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Tasks by Priority</div>
             {priorityGroups.map(p => {
               const groupTasks = tasks.filter(t => t.priority === p);
               if (groupTasks.length === 0) return null;
@@ -371,11 +371,11 @@ function DailyView({ date, events, todayAtt, navigate }) {
                   </div>
                   {groupTasks.map((t, i) => (
                     <div key={i} className="cal-time-event" style={{ background: '#3B82F60A', borderLeft: `3px solid #3B82F6`, marginBottom: 4 }}>
-                      <div className="cal-time-event-title" style={{ color: '#1E293B' }}>
+                      <div className="cal-time-event-title" style={{ color: 'var(--ink)' }}>
                         <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: pCol, marginRight: 6 }} />
                         {t.title}
                       </div>
-                      {t.deadline && <div className="cal-time-event-sub" style={{ color: '#94A3B8' }}>Due: {t.deadline}</div>}
+                      {t.deadline && <div className="cal-time-event-sub" style={{ color: 'var(--ink-3)' }}>Due: {t.deadline}</div>}
                     </div>
                   ))}
                 </div>
@@ -386,7 +386,7 @@ function DailyView({ date, events, todayAtt, navigate }) {
       </div>
       <div className="cal-daily-sidebar">
         <div className="card" style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: '#1E293B' }}>Today's Summary</div>
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--ink)' }}>Today's Summary</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SummaryItem label="Events" value={events.length} color="#6366F1" />
             <SummaryItem label="Tasks" value={events.filter(e => e.type === 'task').length} color="#EF4444" />
@@ -395,10 +395,10 @@ function DailyView({ date, events, todayAtt, navigate }) {
         </div>
         {todayAtt?.entryTime && (
           <div className="card">
-            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: '#1E293B' }}>Attendance</div>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--ink)' }}>Attendance</div>
             <div style={{ fontSize: 11, color: '#10B981', marginBottom: 4 }}>✓ Entry: {new Date(todayAtt.entryTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
             {todayAtt.wrapUpTime && <div style={{ fontSize: 11, color: '#8B5CF6' }}>✓ Wrap Up: {new Date(todayAtt.wrapUpTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>}
-            {todayAtt.totalHours > 0 && <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>Total: {todayAtt.totalHours}h</div>}
+            {todayAtt.totalHours > 0 && <div style={{ fontSize: 11, color: 'var(--ink-2)', marginTop: 4 }}>Total: {todayAtt.totalHours}h</div>}
           </div>
         )}
       </div>
@@ -409,7 +409,7 @@ function DailyView({ date, events, todayAtt, navigate }) {
 function SummaryItem({ label, value, color }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span style={{ fontSize: 11, color: '#64748B' }}>{label}</span>
+      <span style={{ fontSize: 11, color: 'var(--ink-2)' }}>{label}</span>
       <span style={{ fontSize: 16, fontWeight: 700, color }}>{value}</span>
     </div>
   );

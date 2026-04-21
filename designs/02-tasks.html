@@ -1,0 +1,755 @@
+<!--
+  Avadeti Team — Screen 2: Tasks
+
+  Design Notes
+  ────────────
+  • Reuses the Calendar screen's design system (orbs, glass, gradient text, Inter,
+    indigo→purple accent). Keeps sidebar + topbar identical so the nav feels cohesive.
+  • Kanban board is the default view. Each card is a glass tile with a left-edge gradient
+    priority rail (red=TOP pulses, purple=HIGH, green=MED, blue=LOW). Cards lift on hover
+    with a subtle 1° rotation for playfulness.
+  • Drag & drop: native HTML5 DnD. Dragged card fades to 50%; destination column pulses
+    its gradient border; count badges animate with a count-up when cards move.
+  • View toggle morphs between Board and List. List view uses FLIP-like animation by
+    fading/translating rows in on switch.
+  • Create-task modal is a full-glass sheet that scales + fades in.
+  • Filter tabs — active is gradient-filled; underline removed in favor of full pill for
+    a more tactile "selected" feel. Pills animate width as counts change.
+  • Due "Today!" uses the animated gradient-amber text from screen 1.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Avadeti — Tasks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --bg-0:#0A0B1A; --bg-1:#14162E;
+    --ink:#F8FAFC; --ink-2:rgba(248,250,252,0.62); --ink-3:rgba(248,250,252,0.40);
+    --line:rgba(255,255,255,0.08); --line-2:rgba(255,255,255,0.14);
+    --glass:rgba(255,255,255,0.04); --glass-2:rgba(255,255,255,0.06);
+  }
+  *{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  html,body{ background:var(--bg-0); color:var(--ink); font-family:'Inter',system-ui,sans-serif; letter-spacing:-0.01em; }
+  body{
+    background:
+      radial-gradient(1200px 800px at 85% -10%, rgba(139,92,246,0.18), transparent 60%),
+      radial-gradient(900px 700px at -10% 30%, rgba(99,102,241,0.14), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, rgba(236,72,153,0.10), transparent 60%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+    min-height:100vh;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity:.5; mix-blend-mode:overlay;
+  }
+  .orb{ position:fixed; border-radius:9999px; filter:blur(80px); opacity:.55; pointer-events:none; z-index:0;
+        animation:drift 22s cubic-bezier(0.4,0,0.2,1) infinite alternate; }
+  .orb.a{ width:520px; height:520px; left:-140px; top:-120px; background:radial-gradient(circle,#6366F1 0%,transparent 60%); animation-duration:26s; }
+  .orb.b{ width:620px; height:620px; right:-180px; top:10%; background:radial-gradient(circle,#8B5CF6 0%,transparent 60%); animation-duration:30s; animation-delay:-6s; }
+  .orb.c{ width:440px; height:440px; left:40%; bottom:-160px; background:radial-gradient(circle,#EC4899 0%,transparent 60%); animation-duration:34s; animation-delay:-12s; opacity:.38; }
+  @keyframes drift{ 0%{ transform:translate3d(0,0,0) scale(1);} 50%{ transform:translate3d(40px,30px,0) scale(1.08);} 100%{ transform:translate3d(-30px,60px,0) scale(.96);} }
+
+  .glass{ background:var(--glass); backdrop-filter:blur(20px) saturate(140%); -webkit-backdrop-filter:blur(20px) saturate(140%); border:1px solid var(--line); border-radius:16px; }
+  .glass-strong{ background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); backdrop-filter:blur(28px) saturate(160%); border:1px solid var(--line-2); border-radius:16px; }
+  .soft-shadow{ box-shadow:0 8px 32px rgba(0,0,0,0.30); }
+
+  .grad-text{
+    background:linear-gradient(90deg,#A5B4FC 0%,#C4B5FD 40%,#F0ABFC 70%,#A5B4FC 100%);
+    background-size:200% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:shimmer 5s ease-in-out infinite;
+  }
+  .grad-amber-text{
+    background:linear-gradient(90deg,#FBBF24,#F59E0B,#EF4444,#FBBF24);
+    background-size:200% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:shimmer 4s ease-in-out infinite;
+  }
+  @keyframes shimmer{ 0%,100%{ background-position:0% 50%;} 50%{ background-position:100% 50%;} }
+
+  .enter{ opacity:0; transform:translateY(14px); animation:enterUp .6s cubic-bezier(0.4,0,0.2,1) forwards; }
+  @keyframes enterUp{ to{ opacity:1; transform:translateY(0);} }
+
+  /* Sidebar */
+  .nav-item{ position:relative; display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; color:var(--ink-2); transition: all .25s cubic-bezier(0.4,0,0.2,1); cursor:pointer; }
+  .nav-item:hover{ background:rgba(255,255,255,0.05); color:var(--ink); }
+  .nav-item.active{ color:var(--ink); background:linear-gradient(90deg, rgba(99,102,241,0.18), rgba(139,92,246,0.08) 60%, transparent); }
+  .nav-item.active::before{ content:""; position:absolute; left:-12px; top:6px; bottom:6px; width:3px; border-radius:3px; background:linear-gradient(180deg,#6366F1,#8B5CF6,#EC4899); box-shadow:0 0 12px rgba(139,92,246,0.8), 0 0 24px rgba(99,102,241,0.45); }
+
+  /* Topbar */
+  .icon-btn{ width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--ink-2); background:rgba(255,255,255,0.04); border:1px solid var(--line); transition: all .22s; }
+  .icon-btn:hover{ background:rgba(255,255,255,0.08); color:var(--ink); }
+  .search{ display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid var(--line); color:var(--ink-2); width:320px; transition: all .22s; }
+  .search:focus-within{ border-color:rgba(139,92,246,0.55); box-shadow:0 0 0 4px rgba(139,92,246,0.12); }
+  .search input{ background:transparent; outline:none; color:var(--ink); width:100%; font-size:13px; }
+  .search .kbd{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-3); border:1px solid var(--line-2); padding:1px 6px; border-radius:6px; }
+  .avatar{ width:28px; height:28px; border-radius:9999px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:white; border:1.5px solid rgba(255,255,255,0.12); box-shadow:0 4px 10px rgba(0,0,0,0.3); flex-shrink:0; }
+  .avatar.sm{ width:22px; height:22px; font-size:9px; border-width:1.25px; }
+  .cluster{ display:flex; }
+  .cluster .avatar{ margin-left:-8px; }
+  .cluster .avatar:first-child{ margin-left:0; }
+  .live-dot{ width:8px; height:8px; border-radius:9999px; background:#10B981; animation: live 2s cubic-bezier(0.4,0,0.2,1) infinite; }
+  @keyframes live{ 0%{ box-shadow:0 0 0 0 rgba(16,185,129,0.55);} 70%{ box-shadow:0 0 0 10px rgba(16,185,129,0);} 100%{ box-shadow:0 0 0 0 rgba(16,185,129,0);} }
+  .badge-pulse{ position:absolute; top:-2px; right:-2px; min-width:16px; height:16px; padding:0 4px; border-radius:9999px; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; color:white; background:linear-gradient(135deg,#EF4444,#EC4899); animation: badgePulse 2s infinite; }
+  @keyframes badgePulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(236,72,153,0.45);} 50%{ box-shadow:0 0 0 8px rgba(236,72,153,0);} }
+
+  .logo-mark{ width:28px; height:28px; border-radius:9px; background:conic-gradient(from 140deg, #6366F1, #8B5CF6, #EC4899, #F59E0B, #6366F1); position:relative; }
+  .logo-mark::after{ content:""; position:absolute; inset:3px; border-radius:6px; background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.9), rgba(255,255,255,0) 60%), #0A0B1A; }
+  .logo-mark::before{ content:""; position:absolute; inset:0; border-radius:9px; box-shadow:0 0 22px rgba(139,92,246,0.55); pointer-events:none; }
+
+  /* CTA */
+  .btn-primary{
+    position:relative; padding:10px 16px; border-radius:12px;
+    color:white; font-weight:600; font-size:13px; letter-spacing:-0.01em;
+    background:linear-gradient(135deg,#6366F1 0%,#8B5CF6 100%);
+    box-shadow: 0 8px 24px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.22), 0 0 0 0 rgba(99,102,241,0.0);
+    transition: transform .22s, box-shadow .22s, filter .22s;
+  }
+  .btn-primary:hover{ filter:brightness(1.08); box-shadow: 0 12px 36px rgba(99,102,241,0.55), inset 0 1px 0 rgba(255,255,255,0.28); transform: translateY(-1px); }
+  .btn-primary::after{
+    content:""; position:absolute; inset:-2px; border-radius:14px; pointer-events:none;
+    background: conic-gradient(from 0deg, rgba(99,102,241,0.55), rgba(236,72,153,0.55), rgba(245,158,11,0.55), rgba(99,102,241,0.55));
+    filter: blur(14px); opacity:.35; z-index:-1;
+    animation: spin 7s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg);} }
+
+  /* Filter pills */
+  .pill{
+    padding:8px 14px; border-radius:10px; font-size:12.5px; font-weight:500;
+    border:1px solid var(--line); color:var(--ink-2); background:rgba(255,255,255,0.03);
+    transition: all .25s cubic-bezier(0.4,0,0.2,1);
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .pill .count{ font-size:11px; padding:1px 6px; border-radius:999px; background:rgba(255,255,255,0.08); color:var(--ink-2); transition:all .25s; }
+  .pill:hover{ background:rgba(255,255,255,0.06); color:var(--ink); }
+  .pill.on{
+    color:white;
+    background:linear-gradient(135deg, rgba(99,102,241,0.35), rgba(139,92,246,0.35));
+    border-color:rgba(139,92,246,0.45);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 8px 24px rgba(99,102,241,0.25);
+  }
+  .pill.on .count{ background:rgba(255,255,255,0.18); color:white; }
+  .pill.warn.on{ background:linear-gradient(135deg, rgba(239,68,68,0.35), rgba(236,72,153,0.35)); border-color:rgba(239,68,68,0.45); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 8px 24px rgba(239,68,68,0.25); }
+
+  /* Segmented */
+  .seg{ display:inline-flex; padding:3px; gap:3px; border-radius:10px; background: rgba(255,255,255,0.04); border:1px solid var(--line); }
+  .seg button{ padding:6px 12px; border-radius:8px; font-size:12px; color:var(--ink-2); transition: all .25s; font-weight:500; display:inline-flex; align-items:center; gap:6px; }
+  .seg button.on{ color:white; background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(139,92,246,0.35)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 6px 16px rgba(99,102,241,0.2); }
+
+  /* Search/chip input */
+  .input{ display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; background:rgba(255,255,255,0.04); border:1px solid var(--line); font-size:12.5px; color:var(--ink-2); transition: all .22s; }
+  .input:hover{ background:rgba(255,255,255,0.06); }
+  .input input{ background:transparent; outline:none; color:var(--ink); min-width:160px; font-size:12.5px; }
+
+  /* Kanban */
+  .board{ display:grid; grid-template-columns: repeat(4, minmax(260px, 1fr)); gap:16px; }
+  .col{
+    position:relative; border-radius:16px;
+    background: rgba(255,255,255,0.025);
+    border:1px solid var(--line);
+    min-height: 560px;
+    display:flex; flex-direction:column;
+    transition: background .25s, border-color .25s, box-shadow .3s;
+  }
+  .col.drag-over{
+    border-color: rgba(139,92,246,0.55);
+    box-shadow: 0 0 0 1px rgba(139,92,246,0.4), 0 0 32px rgba(139,92,246,0.25) inset;
+    animation: pulseCol 1.2s cubic-bezier(0.4,0,0.2,1) infinite;
+  }
+  @keyframes pulseCol{
+    0%,100%{ box-shadow: 0 0 0 1px rgba(139,92,246,0.35), 0 0 24px rgba(139,92,246,0.2) inset; }
+    50%    { box-shadow: 0 0 0 1px rgba(139,92,246,0.65), 0 0 48px rgba(139,92,246,0.35) inset; }
+  }
+  .col-head{ padding:14px 14px 10px; display:flex; align-items:center; gap:10px; }
+  .col-head .dot{ width:10px; height:10px; border-radius:3px; }
+  .col-head .count{ font-size:11px; padding:1px 7px; border-radius:999px; background:rgba(255,255,255,0.08); color:var(--ink-2); font-variant-numeric: tabular-nums; transition: all .3s; }
+  .col-body{ padding: 4px 12px 12px; display:flex; flex-direction:column; gap:10px; flex:1; }
+  .col-foot{ padding: 6px 12px 12px; }
+  .col-add{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    width:100%; padding:10px; border-radius:10px;
+    border:1px dashed rgba(255,255,255,0.12); color:var(--ink-3); font-size:12px;
+    transition:all .22s;
+  }
+  .col-add:hover{ color:var(--ink); border-color:rgba(255,255,255,0.25); background:rgba(255,255,255,0.03); }
+  .empty-drop{
+    border:1.5px dashed rgba(139,92,246,0.35); border-radius:12px;
+    padding:18px; text-align:center; color:var(--ink-3); font-size:12px;
+    background: rgba(139,92,246,0.05);
+  }
+
+  /* Card */
+  .card{
+    position:relative; border-radius:14px; padding:12px 14px 12px 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+    border:1px solid var(--line-2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    backdrop-filter: blur(10px);
+    cursor: grab;
+    transition: transform .22s cubic-bezier(0.4,0,0.2,1), box-shadow .22s, border-color .22s, opacity .22s;
+    overflow:hidden;
+  }
+  .card:active{ cursor: grabbing; }
+  .card::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background: linear-gradient(180deg,#94a3b8, #64748b);
+  }
+  .card.prio-top::before{ background: linear-gradient(180deg,#EF4444,#EC4899); box-shadow: 0 0 14px rgba(239,68,68,0.55); animation: topGlow 2s ease-in-out infinite; }
+  .card.prio-high::before{ background: linear-gradient(180deg,#8B5CF6,#6366F1); box-shadow: 0 0 12px rgba(139,92,246,0.55); }
+  .card.prio-med::before{ background: linear-gradient(180deg,#10B981,#06B6D4); box-shadow: 0 0 12px rgba(16,185,129,0.45); }
+  .card.prio-low::before{ background: linear-gradient(180deg,#06B6D4,#6366F1); box-shadow: 0 0 12px rgba(6,182,212,0.4); }
+  @keyframes topGlow{
+    0%,100%{ box-shadow: 0 0 10px rgba(239,68,68,0.4); }
+    50%    { box-shadow: 0 0 22px rgba(239,68,68,0.75); }
+  }
+  .card:hover{
+    transform: translateY(-8px) rotate(1deg);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(139,92,246,0.25);
+    border-color: rgba(255,255,255,0.20);
+  }
+  .card.dragging{ opacity:.5; transform: scale(.98) rotate(-1.5deg); cursor:grabbing; }
+  .card-title{ font-size:13.5px; font-weight:600; letter-spacing:-0.01em; margin:2px 0 6px; }
+  .card-meta{ display:flex; align-items:center; gap:10px; font-size:11px; color:var(--ink-3); }
+  .card-meta .m{ display:inline-flex; align-items:center; gap:4px; }
+  .tag{
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    padding:3px 7px; border-radius:999px;
+  }
+  .tag.top{ color:#FCA5A5; background:rgba(239,68,68,0.14); border:1px solid rgba(239,68,68,0.35); }
+  .tag.high{ color:#C4B5FD; background:rgba(139,92,246,0.14); border:1px solid rgba(139,92,246,0.35); }
+  .tag.med{ color:#6EE7B7; background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.35); }
+  .tag.low{ color:#67E8F9; background:rgba(6,182,212,0.14); border:1px solid rgba(6,182,212,0.35); }
+
+  /* Modal */
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(5,6,16,0.55); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); opacity:0; pointer-events:none; transition: opacity .32s cubic-bezier(0.4,0,0.2,1); z-index:50; }
+  .modal{ position:fixed; left:50%; top:50%; transform: translate(-50%,-48%) scale(.96); width:min(640px, 92vw); max-height:86vh; overflow:auto; opacity:0; transition: all .38s cubic-bezier(0.4,0,0.2,1); z-index:51; }
+  .modal.open{ opacity:1; transform: translate(-50%,-50%) scale(1); }
+  .modal-backdrop.open{ opacity:1; pointer-events:auto; }
+
+  /* Side detail panel */
+  .detail{
+    position:fixed; top:0; right:0; height:100vh; width:min(460px, 94vw);
+    transform: translateX(100%); transition: transform .42s cubic-bezier(0.4,0,0.2,1);
+    z-index:55;
+    border-left:1px solid var(--line-2);
+    background: linear-gradient(180deg, rgba(20,22,46,0.92), rgba(10,11,26,0.92));
+    backdrop-filter: blur(28px) saturate(160%);
+    box-shadow: -30px 0 60px rgba(0,0,0,0.5);
+  }
+  .detail.open{ transform: translateX(0); }
+
+  /* List view */
+  .list-row{
+    display:grid; grid-template-columns: 24px 1fr 120px 140px 120px 80px; gap:16px; align-items:center;
+    padding:12px 14px; border-radius:12px; border:1px solid var(--line);
+    background: rgba(255,255,255,0.025);
+    transition: all .22s;
+  }
+  .list-row:hover{ background: rgba(255,255,255,0.055); border-color: var(--line-2); transform: translateX(2px); }
+  .list-row .prio-rail{ width:4px; height:24px; border-radius:4px; }
+
+  *::-webkit-scrollbar{ width:10px; height:10px; }
+  *::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.08); border-radius:10px; }
+  *::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,0.16); }
+
+  .lbl{ font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3); }
+
+  /* Floating preview (shimmer) when empty */
+  .shimmer::after{
+    content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%);
+    transform: translateX(-100%);
+  }
+  .card:hover.shimmer::after{ animation: cardShimmer 1.2s cubic-bezier(0.4,0,0.2,1); }
+  @keyframes cardShimmer{ to{ transform: translateX(100%);} }
+
+</style>
+</head>
+<body class="min-h-screen">
+  <div class="orb a"></div>
+  <div class="orb b"></div>
+  <div class="orb c"></div>
+
+  <!-- Topbar -->
+  <header class="relative z-10">
+    <div class="max-w-[1440px] mx-auto px-6 pt-5">
+      <div class="glass-strong soft-shadow flex items-center justify-between px-4 py-3 rounded-2xl">
+        <div class="flex items-center gap-3">
+          <div class="logo-mark"></div>
+          <div class="leading-tight">
+            <div class="text-[14px] font-semibold tracking-tight">Avadeti</div>
+            <div class="text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">Team OS</div>
+          </div>
+          <div class="w-px h-6 bg-white/10 mx-3"></div>
+          <div class="search">
+            <i data-lucide="search" class="w-4 h-4"></i>
+            <input placeholder="Search people, tasks, messages…" />
+            <span class="kbd">⌘K</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="icon-btn relative"><i data-lucide="bell" class="w-4 h-4"></i><span class="badge-pulse">4</span></button>
+          <button class="icon-btn"><i data-lucide="notebook-pen" class="w-4 h-4"></i></button>
+          <button class="icon-btn"><i data-lucide="settings-2" class="w-4 h-4"></i></button>
+          <div class="w-px h-6 bg-white/10 mx-2"></div>
+          <div class="flex items-center gap-2 pr-1">
+            <div class="avatar" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">RK</div>
+            <div class="hidden md:block leading-tight">
+              <div class="text-[12px] font-semibold">Ravi Kulkarni</div>
+              <div class="text-[10px] text-[color:var(--ink-3)] flex items-center gap-1"><span class="live-dot"></span> Active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Layout -->
+  <div class="relative z-10 max-w-[1440px] mx-auto px-6 pt-5 pb-10">
+    <div class="grid grid-cols-12 gap-5">
+      <!-- Sidebar -->
+      <aside class="col-span-2 hidden lg:block">
+        <div class="glass soft-shadow p-3 sticky top-5">
+          <div class="lbl px-2 mt-1 mb-2">Workspace</div>
+          <nav class="flex flex-col gap-1">
+            <a class="nav-item" href="01-calendar.html"><i data-lucide="calendar-days" class="w-4 h-4"></i><span class="text-[13px]">Home</span></a>
+            <a class="nav-item active"><i data-lucide="check-circle-2" class="w-4 h-4"></i><span class="text-[13px] font-medium">Tasks</span><span class="ml-auto text-[11px] text-[color:var(--ink-3)]">12</span></a>
+            <a class="nav-item"><i data-lucide="message-square" class="w-4 h-4"></i><span class="text-[13px]">Messages</span><span class="ml-auto text-[10px] px-1.5 rounded-full" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);color:white;font-weight:700">3</span></a>
+            <a class="nav-item"><i data-lucide="bar-chart-3" class="w-4 h-4"></i><span class="text-[13px]">Analytics</span></a>
+            <a class="nav-item"><i data-lucide="users" class="w-4 h-4"></i><span class="text-[13px]">Team</span></a>
+            <a class="nav-item"><i data-lucide="folder" class="w-4 h-4"></i><span class="text-[13px]">Spaces</span></a>
+            <a class="nav-item"><i data-lucide="mail" class="w-4 h-4"></i><span class="text-[13px]">Email</span></a>
+            <a class="nav-item"><i data-lucide="bell-ring" class="w-4 h-4"></i><span class="text-[13px]">Notifications</span></a>
+          </nav>
+          <div class="border-t border-white/5 my-3"></div>
+          <div class="lbl px-2 mb-2">Pinned</div>
+          <nav class="flex flex-col gap-1">
+            <a class="nav-item"><span class="w-2 h-2 rounded-full" style="background:#6366F1"></span><span class="text-[13px]">Invoicing v2</span></a>
+            <a class="nav-item"><span class="w-2 h-2 rounded-full" style="background:#10B981"></span><span class="text-[13px]">Hiring Q2</span></a>
+            <a class="nav-item"><span class="w-2 h-2 rounded-full" style="background:#EC4899"></span><span class="text-[13px]">Brand refresh</span></a>
+          </nav>
+          <div class="border-t border-white/5 my-3"></div>
+          <a class="nav-item"><i data-lucide="more-horizontal" class="w-4 h-4"></i><span class="text-[13px]">More</span></a>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="col-span-12 lg:col-span-10 flex flex-col gap-5">
+
+        <!-- Header row -->
+        <section class="enter flex items-end justify-between flex-wrap gap-4" style="animation-delay:40ms">
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.22em] text-[color:var(--ink-3)] mb-2">Workspace · Platform pod</div>
+            <h1 class="text-[40px] font-bold leading-none tracking-[-0.03em]"><span class="grad-text">Tasks</span></h1>
+            <div class="text-[13px] text-[color:var(--ink-2)] mt-2">47 open · 22 done this week · <span class="grad-amber-text font-semibold">3 overdue</span></div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="icon-btn"><i data-lucide="sliders-horizontal" class="w-4 h-4"></i></button>
+            <button class="icon-btn"><i data-lucide="sparkles" class="w-4 h-4"></i></button>
+            <button class="btn-primary flex items-center gap-2" id="openNew"><i data-lucide="plus" class="w-4 h-4"></i>New task</button>
+          </div>
+        </section>
+
+        <!-- Filters bar -->
+        <section class="glass soft-shadow p-3 enter flex items-center justify-between gap-3 flex-wrap" style="animation-delay:80ms">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button class="pill on" data-filter="all">All <span class="count">47</span></button>
+            <button class="pill" data-filter="mine">Mine <span class="count">12</span></button>
+            <button class="pill" data-filter="by-me">Assigned by me <span class="count">8</span></button>
+            <button class="pill warn" data-filter="overdue">Overdue <span class="count">3</span></button>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="input"><i data-lucide="search" class="w-4 h-4"></i><input placeholder="Search tasks…"/></div>
+            <button class="input"><i data-lucide="filter" class="w-4 h-4"></i>Filter <i data-lucide="chevron-down" class="w-3 h-3 opacity-60"></i></button>
+            <button class="input"><i data-lucide="arrow-down-wide-narrow" class="w-4 h-4"></i>Sort <i data-lucide="chevron-down" class="w-3 h-3 opacity-60"></i></button>
+            <div class="seg" id="viewSeg">
+              <button data-view="list"><i data-lucide="list" class="w-3.5 h-3.5"></i>List</button>
+              <button data-view="board" class="on"><i data-lucide="columns-3" class="w-3.5 h-3.5"></i>Board</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Board -->
+        <section id="boardWrap" class="enter" style="animation-delay:120ms">
+          <div class="board" id="board">
+            <!-- Columns injected -->
+          </div>
+        </section>
+
+        <!-- List (hidden by default) -->
+        <section id="listWrap" class="enter hidden" style="animation-delay:120ms">
+          <div class="glass soft-shadow p-3">
+            <div class="grid gap-2" id="listBody"></div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- New Task Modal -->
+  <div class="modal-backdrop" id="mb"></div>
+  <div class="modal glass-strong soft-shadow" id="mo">
+    <div class="p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">Create</div>
+          <div class="text-[26px] font-bold tracking-[-0.03em]">New task</div>
+        </div>
+        <button class="icon-btn" id="moClose"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="mt-5 flex flex-col gap-4">
+        <div>
+          <div class="lbl mb-2">Title</div>
+          <input class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[15px] outline-none focus:border-violet-400/60 focus:ring-4 focus:ring-violet-400/10 transition" placeholder="e.g. Draft launch announcement" />
+        </div>
+        <div>
+          <div class="lbl mb-2">Description</div>
+          <textarea rows="3" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[13px] outline-none focus:border-violet-400/60 focus:ring-4 focus:ring-violet-400/10 transition resize-none" placeholder="Add context, links, acceptance criteria…"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="lbl mb-2">Priority</div>
+            <div class="flex gap-2">
+              <button class="tag top">Top</button>
+              <button class="tag high">High</button>
+              <button class="tag med">Med</button>
+              <button class="tag low">Low</button>
+            </div>
+          </div>
+          <div>
+            <div class="lbl mb-2">Due</div>
+            <button class="input w-full"><i data-lucide="calendar" class="w-4 h-4"></i>Pick a date</button>
+          </div>
+        </div>
+        <div>
+          <div class="lbl mb-2">Assignees</div>
+          <div class="flex items-center gap-2">
+            <div class="cluster">
+              <div class="avatar sm" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">RK</div>
+              <div class="avatar sm" style="background:linear-gradient(135deg,#EC4899,#F472B6)">AS</div>
+              <div class="avatar sm" style="background:linear-gradient(135deg,#10B981,#06B6D4)">PM</div>
+            </div>
+            <button class="input" style="min-width:auto"><i data-lucide="plus" class="w-3.5 h-3.5"></i>Add</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
+        <div class="text-[11px] text-[color:var(--ink-3)] flex items-center gap-2"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AI will suggest a column based on the title</div>
+        <div class="flex items-center gap-2">
+          <button class="input" id="moCancel">Cancel</button>
+          <button class="btn-primary">Create task</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <aside class="detail" id="detail">
+    <div class="p-5 h-full flex flex-col">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="tag high" id="dPrio">High</span>
+          <span class="text-[11px] text-[color:var(--ink-3)]">INV-482</span>
+        </div>
+        <button class="icon-btn" id="dClose"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div id="dTitle" class="text-[24px] font-bold tracking-[-0.02em] mt-3">Ship invoicing v2</div>
+      <div class="text-[12.5px] text-[color:var(--ink-2)] mt-2" id="dDesc">End-to-end flow including PDF generation, GST edge cases, and retry queue. Blocking Priya on QA pass.</div>
+
+      <div class="grid grid-cols-2 gap-3 mt-5">
+        <div class="glass p-3">
+          <div class="lbl mb-1">Assignee</div>
+          <div class="flex items-center gap-2"><div class="avatar sm" style="background:linear-gradient(135deg,#10B981,#06B6D4)">PM</div><span class="text-[13px]">Priya M.</span></div>
+        </div>
+        <div class="glass p-3">
+          <div class="lbl mb-1">Due</div>
+          <div class="text-[13px]">Friday, Apr 18</div>
+        </div>
+        <div class="glass p-3">
+          <div class="lbl mb-1">Project</div>
+          <div class="text-[13px] flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:#6366F1"></span>Invoicing v2</div>
+        </div>
+        <div class="glass p-3">
+          <div class="lbl mb-1">Estimate</div>
+          <div class="text-[13px]">6h · 4h logged</div>
+        </div>
+      </div>
+
+      <div class="mt-5">
+        <div class="lbl mb-2">Activity</div>
+        <div class="flex flex-col gap-3 text-[12px]">
+          <div class="flex gap-2"><div class="avatar sm" style="background:linear-gradient(135deg,#10B981,#06B6D4)">PM</div><div><span class="font-medium">Priya</span> <span class="text-[color:var(--ink-3)]">moved to In Progress · 2h ago</span></div></div>
+          <div class="flex gap-2"><div class="avatar sm" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">RK</div><div><span class="font-medium">Ravi</span> <span class="text-[color:var(--ink-3)]">commented: "Edge case for PO numbers covered?" · 4h ago</span></div></div>
+          <div class="flex gap-2"><div class="avatar sm" style="background:linear-gradient(135deg,#EC4899,#F472B6)">AS</div><div><span class="font-medium">Aisha</span> <span class="text-[color:var(--ink-3)]">attached design.pdf · yesterday</span></div></div>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-4 border-t border-white/5 flex items-center gap-2">
+        <input class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[13px] outline-none focus:border-violet-400/60 focus:ring-4 focus:ring-violet-400/10 transition" placeholder="Add a comment…" />
+        <button class="btn-primary">Send</button>
+      </div>
+    </div>
+  </aside>
+
+<script>
+/* ----- Mock data ----- */
+const TEAM = {
+  RK:{ n:'Ravi',  g:'linear-gradient(135deg,#6366F1,#8B5CF6)' },
+  PM:{ n:'Priya', g:'linear-gradient(135deg,#10B981,#06B6D4)' },
+  AS:{ n:'Aisha', g:'linear-gradient(135deg,#EC4899,#F472B6)' },
+  MV:{ n:'Meera', g:'linear-gradient(135deg,#F59E0B,#FBBF24)' },
+  AV:{ n:'Arjun', g:'linear-gradient(135deg,#06B6D4,#6366F1)' },
+};
+const PRIO = {
+  top:{ label:'Top', cls:'top' },
+  high:{ label:'High', cls:'high' },
+  med:{ label:'Med', cls:'med' },
+  low:{ label:'Low', cls:'low' },
+};
+
+let TASKS = [
+  { id:'t1', col:'todo',    prio:'top',  title:'Fix OTP security edge case', project:'Platform',   due:'Today!',   assignees:['PM','RK'], files:3, comments:4 },
+  { id:'t2', col:'todo',    prio:'high', title:'Onboard contractor — Arjun', project:'Hiring Q2',  due:'Mon',      assignees:['MV'],      files:1, comments:2 },
+  { id:'t3', col:'todo',    prio:'med',  title:'Draft All-Hands outline',    project:'Ops',        due:'Fri',      assignees:['RK'],      files:0, comments:1 },
+  { id:'t4', col:'todo',    prio:'low',  title:'Archive stale Linear cycles',project:'Platform',   due:'Next wk',  assignees:['PM'],      files:0, comments:0 },
+  { id:'t5', col:'todo',    prio:'med',  title:'Vendor contract — Razorpay', project:'Ops',        due:'Apr 22',   assignees:['MV','RK'], files:2, comments:6 },
+
+  { id:'t6', col:'doing',   prio:'high', title:'Ship invoicing v2',          project:'Invoicing',  due:'Fri',      assignees:['PM'],      files:7, comments:12 },
+  { id:'t7', col:'doing',   prio:'high', title:'Brand refresh — home',       project:'Brand',      due:'Mon',      assignees:['AS','MV'], files:14,comments:9 },
+  { id:'t8', col:'doing',   prio:'med',  title:'Analytics pipeline pass 2',  project:'Platform',   due:'Wed',      assignees:['AV'],      files:1, comments:3 },
+  { id:'t9', col:'doing',   prio:'top',  title:'Fix auth race on refresh',   project:'Platform',   due:'Today!',   assignees:['RK','PM'], files:0, comments:8 },
+  { id:'t10',col:'doing',   prio:'low',  title:'Spring cleanup — old PRs',   project:'Platform',   due:'Next wk',  assignees:['AV'],      files:0, comments:0 },
+  { id:'t11',col:'doing',   prio:'med',  title:'Legal review — NDA template',project:'Ops',        due:'Thu',      assignees:['MV'],      files:3, comments:2 },
+  { id:'t12',col:'doing',   prio:'high', title:'Mobile: offline queue',      project:'Platform',   due:'Fri',      assignees:['RK'],      files:2, comments:5 },
+
+  { id:'t13',col:'review',  prio:'med',  title:'Review PR #482',             project:'Platform',   due:'Mon',      assignees:['RK'],      files:0, comments:2 },
+  { id:'t14',col:'review',  prio:'high', title:'Onboarding copy pass',       project:'Brand',      due:'Tue',      assignees:['AS'],      files:2, comments:4 },
+  { id:'t15',col:'review',  prio:'low',  title:'Changelog — 4.12',           project:'Platform',   due:'Wed',      assignees:['MV'],      files:1, comments:1 },
+
+  { id:'t16',col:'done',    prio:'med',  title:'Quarterly OKRs — draft',     project:'Ops',        due:'Done',     assignees:['MV'],      files:1, comments:5 },
+  { id:'t17',col:'done',    prio:'high', title:'Zero-downtime migration',    project:'Platform',   due:'Done',     assignees:['PM','AV'], files:4, comments:11 },
+  { id:'t18',col:'done',    prio:'low',  title:'Fix favicon on Safari',      project:'Platform',   due:'Done',     assignees:['RK'],      files:0, comments:1 },
+];
+
+const COLS = [
+  { key:'todo',   label:'To Do',       dot:'linear-gradient(135deg,#64748B,#94A3B8)' },
+  { key:'doing',  label:'In Progress', dot:'linear-gradient(135deg,#6366F1,#8B5CF6)' },
+  { key:'review', label:'Review',      dot:'linear-gradient(135deg,#F59E0B,#FBBF24)' },
+  { key:'done',   label:'Done',        dot:'linear-gradient(135deg,#10B981,#06B6D4)' },
+];
+
+/* ----- Render board ----- */
+const board = document.getElementById('board');
+function renderBoard(){
+  board.innerHTML = COLS.map(c => {
+    const items = TASKS.filter(t => t.col === c.key);
+    return `
+      <div class="col enter" data-col="${c.key}" style="animation-delay:${120 + COLS.indexOf(c)*60}ms">
+        <div class="col-head">
+          <span class="dot" style="background:${c.dot}"></span>
+          <span class="text-[13px] font-semibold tracking-tight">${c.label}</span>
+          <span class="count" data-col-count="${c.key}">${items.length}</span>
+          <button class="icon-btn ml-auto" style="width:24px;height:24px"><i data-lucide="plus" class="w-3 h-3"></i></button>
+        </div>
+        <div class="col-body" data-dropzone="${c.key}">
+          ${items.map(renderCard).join('') || `<div class="empty-drop">Drop tasks here</div>`}
+        </div>
+        <div class="col-foot">
+          <button class="col-add"><i data-lucide="plus" class="w-3.5 h-3.5"></i>Add task</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  wireDnD();
+  wireCards();
+  lucide.createIcons();
+}
+function renderCard(t){
+  const prio = PRIO[t.prio];
+  return `
+    <div class="card prio-${t.prio} shimmer" draggable="true" data-id="${t.id}">
+      <div class="flex items-center justify-between">
+        <span class="tag ${prio.cls}">${prio.label}</span>
+        <span class="text-[10px] text-[color:var(--ink-3)]">${t.project}</span>
+      </div>
+      <div class="card-title">${t.title}</div>
+      <div class="flex items-center justify-between">
+        <div class="cluster">
+          ${t.assignees.map(a=>`<div class="avatar sm" style="background:${TEAM[a].g}" title="${TEAM[a].n}">${a}</div>`).join('')}
+        </div>
+        <div class="card-meta">
+          ${t.files?`<span class="m"><i data-lucide="paperclip" class="w-3 h-3"></i>${t.files}</span>`:''}
+          ${t.comments?`<span class="m"><i data-lucide="message-circle" class="w-3 h-3"></i>${t.comments}</span>`:''}
+          <span class="m ${t.due==='Today!'?'grad-amber-text font-semibold':''}"><i data-lucide="clock" class="w-3 h-3"></i>${t.due}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----- Render list ----- */
+function renderList(){
+  const body = document.getElementById('listBody');
+  body.innerHTML = TASKS.map(t => {
+    const prio = PRIO[t.prio];
+    const rail = {
+      top:'linear-gradient(180deg,#EF4444,#EC4899)',
+      high:'linear-gradient(180deg,#8B5CF6,#6366F1)',
+      med:'linear-gradient(180deg,#10B981,#06B6D4)',
+      low:'linear-gradient(180deg,#06B6D4,#6366F1)',
+    }[t.prio];
+    return `
+      <div class="list-row" data-id="${t.id}">
+        <span class="prio-rail" style="background:${rail}"></span>
+        <div>
+          <div class="text-[13.5px] font-medium">${t.title}</div>
+          <div class="text-[11px] text-[color:var(--ink-3)] mt-0.5">${t.project} · ${t.col === 'done' ? 'Completed' : 'In ' + (COLS.find(c=>c.key===t.col).label)}</div>
+        </div>
+        <span class="tag ${prio.cls}" style="justify-self:start">${prio.label}</span>
+        <div class="cluster">
+          ${t.assignees.map(a=>`<div class="avatar sm" style="background:${TEAM[a].g}">${a}</div>`).join('')}
+        </div>
+        <div class="text-[12px] text-[color:var(--ink-2)] flex items-center gap-1.5 ${t.due==='Today!'?'grad-amber-text font-semibold':''}"><i data-lucide="clock" class="w-3.5 h-3.5"></i>${t.due}</div>
+        <div class="text-[11px] text-[color:var(--ink-3)] flex items-center gap-3 justify-end">
+          ${t.files?`<span class="inline-flex items-center gap-1"><i data-lucide="paperclip" class="w-3 h-3"></i>${t.files}</span>`:''}
+          ${t.comments?`<span class="inline-flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i>${t.comments}</span>`:''}
+        </div>
+      </div>
+    `;
+  }).join('');
+  body.querySelectorAll('.list-row').forEach(r => r.addEventListener('click', ()=>openDetail(r.dataset.id)));
+  lucide.createIcons();
+}
+
+/* ----- Drag & drop ----- */
+let dragId = null;
+function wireDnD(){
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      dragId = card.dataset.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', dragId); } catch(_){}
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      document.querySelectorAll('.col.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    });
+  });
+  document.querySelectorAll('[data-dropzone]').forEach(zone => {
+    const col = zone.closest('.col');
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      col.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', e => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      const target = zone.dataset.dropzone;
+      const task = TASKS.find(t => t.id === dragId);
+      if (!task || task.col === target){ return; }
+      const prevCol = task.col;
+      task.col = target;
+      renderBoard();
+      animateCount(prevCol);
+      animateCount(target);
+    });
+  });
+}
+function animateCount(colKey){
+  const el = document.querySelector(`[data-col-count="${colKey}"]`);
+  if (!el) return;
+  el.animate(
+    [{ transform:'scale(1)', color:'#F8FAFC' },
+     { transform:'scale(1.35)', color:'#C4B5FD' },
+     { transform:'scale(1)', color:'#F8FAFC' }],
+    { duration: 480, easing: 'cubic-bezier(0.4,0,0.2,1)' }
+  );
+}
+
+/* ----- Card click → detail ----- */
+function wireCards(){
+  document.querySelectorAll('.card').forEach(c => {
+    c.addEventListener('click', () => openDetail(c.dataset.id));
+  });
+}
+
+/* ----- Detail panel ----- */
+const detail = document.getElementById('detail');
+function openDetail(id){
+  const t = TASKS.find(x => x.id === id);
+  if (!t) return;
+  const prio = PRIO[t.prio];
+  document.getElementById('dTitle').textContent = t.title;
+  document.getElementById('dPrio').className = 'tag ' + prio.cls;
+  document.getElementById('dPrio').textContent = prio.label;
+  document.getElementById('dDesc').textContent = `${t.project} · ${t.assignees.map(a=>TEAM[a].n).join(', ')} · ${t.comments} comments · ${t.files} files`;
+  detail.classList.add('open');
+}
+document.getElementById('dClose').addEventListener('click', ()=>detail.classList.remove('open'));
+document.addEventListener('keydown', e => { if (e.key==='Escape') { detail.classList.remove('open'); closeModal(); }});
+
+/* ----- New task modal ----- */
+const mb = document.getElementById('mb'), mo = document.getElementById('mo');
+function openModal(){ mb.classList.add('open'); mo.classList.add('open'); }
+function closeModal(){ mb.classList.remove('open'); mo.classList.remove('open'); }
+document.getElementById('openNew').addEventListener('click', openModal);
+document.getElementById('moClose').addEventListener('click', closeModal);
+document.getElementById('moCancel').addEventListener('click', closeModal);
+mb.addEventListener('click', closeModal);
+
+/* ----- View toggle ----- */
+const viewSeg = document.getElementById('viewSeg');
+viewSeg.querySelectorAll('button').forEach(b => {
+  b.addEventListener('click', () => {
+    viewSeg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    if (b.dataset.view === 'board'){
+      document.getElementById('listWrap').classList.add('hidden');
+      document.getElementById('boardWrap').classList.remove('hidden');
+      document.getElementById('boardWrap').animate(
+        [{opacity:0, transform:'translateY(10px)'},{opacity:1, transform:'translateY(0)'}],
+        {duration:380, easing:'cubic-bezier(0.4,0,0.2,1)'}
+      );
+    } else {
+      document.getElementById('boardWrap').classList.add('hidden');
+      document.getElementById('listWrap').classList.remove('hidden');
+      renderList();
+      document.getElementById('listWrap').animate(
+        [{opacity:0, transform:'translateY(10px)'},{opacity:1, transform:'translateY(0)'}],
+        {duration:380, easing:'cubic-bezier(0.4,0,0.2,1)'}
+      );
+    }
+  });
+});
+
+/* ----- Filter pills (visual only) ----- */
+document.querySelectorAll('.pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(x => x.classList.remove('on'));
+    p.classList.add('on');
+  });
+});
+
+/* ----- Boot ----- */
+renderBoard();
+lucide.createIcons();
+</script>
+</body>
+</html>

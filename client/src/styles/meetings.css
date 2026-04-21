@@ -1,20 +1,21 @@
 /* ═══ MEETINGS ═══ */
 .mtg-card {
-  background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+  background: var(--glass); backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line); border-radius: 12px;
   padding: 16px; margin-bottom: 10px; cursor: pointer;
   border-left: 3px solid; transition: box-shadow 0.15s;
 }
-.mtg-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+.mtg-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
 .mtg-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-.mtg-card-title { font-size: 15px; font-weight: 700; color: #1E293B; }
-.mtg-card-time { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+.mtg-card-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+.mtg-card-time { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
 .mtg-card-badges { display: flex; gap: 4px; }
 .mtg-attendees { display: flex; align-items: center; gap: 6px; }
 .mtg-attendee-stack { display: flex; }
 .mtg-attendee-avatar {
   width: 26px; height: 26px; border-radius: 50%; display: flex;
   align-items: center; justify-content: center; color: #fff;
-  font-size: 9px; font-weight: 700; border: 2px solid #fff;
+  font-size: 9px; font-weight: 700; border: 2px solid var(--bg-1);
 }
 
 /* Meeting Detail */
@@ -25,21 +26,21 @@
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
 }
 .mtg-info-item {
-  background: #F8FAFC; border-radius: 8px; padding: 10px;
+  background: var(--glass); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
 }
-.mtg-info-label { font-size: 9px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
-.mtg-info-value { font-size: 12px; font-weight: 600; color: #1E293B; }
+.mtg-info-label { font-size: 9px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+.mtg-info-value { font-size: 12px; font-weight: 600; color: var(--ink); }
 .mtg-meet-link {
   display: flex; align-items: center; gap: 8px; padding: 10px 14px;
-  background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15);
+  background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
   border-radius: 10px; margin-bottom: 16px; cursor: pointer;
 }
-.mtg-meet-link:hover { background: rgba(16,185,129,0.1); }
+.mtg-meet-link:hover { background: rgba(16,185,129,0.14); }
 
 /* Attendee list */
 .mtg-attendee-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 0; border-bottom: 1px solid #F0F2F7;
+  padding: 8px 0; border-bottom: 1px solid var(--line);
 }
 .mtg-response-badge {
   padding: 2px 8px; border-radius: 12px; font-size: 9px; font-weight: 600;
@@ -47,18 +48,19 @@
 
 /* MoM */
 .mtg-mom-card {
-  background: #fff; border: 1px solid #E2E8F0; border-radius: 10px;
+  background: var(--glass); backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line); border-radius: 10px;
   padding: 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s;
 }
-.mtg-mom-card:hover { border-color: #8B5CF6; }
-.mtg-mom-title { font-size: 12px; font-weight: 600; color: #1E293B; }
-.mtg-mom-meta { font-size: 10px; color: #94A3B8; margin-top: 2px; }
+.mtg-mom-card:hover { border-color: var(--violet); }
+.mtg-mom-title { font-size: 12px; font-weight: 600; color: var(--ink); }
+.mtg-mom-meta { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
 
 /* Create form */
 .mtg-type-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
 .mtg-type-btn {
   padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: 600;
-  cursor: pointer; transition: all 0.15s; border: 1px solid #E2E8F0;
-  background: #F8FAFC; color: #94A3B8;
+  cursor: pointer; transition: all 0.15s; border: 1px solid var(--line);
+  background: var(--glass); color: var(--ink-3);
 }
-.mtg-type-btn.active { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.08); color: #6366F1; }
+.mtg-type-btn.active { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.12); color: var(--indigo); }

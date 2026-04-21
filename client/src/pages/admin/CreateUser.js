@@ -134,14 +134,14 @@ export default function CreateUser() {
       <div style={{ maxWidth: 480, margin: '40px auto' }}>
         <div className="card" style={{ textAlign: 'center', padding: 32 }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1E293B', marginBottom: 8 }}>Employee Created!</h2>
-          <p style={{ fontSize: 13, color: '#64748B', marginBottom: 16 }}>{success.name} has been added to the team.</p>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>Employee Created!</h2>
+          <p style={{ fontSize: 13, color: 'var(--ink-2)', marginBottom: 16 }}>{success.name} has been added to the team.</p>
           <div className="info-box green" style={{ textAlign: 'left', marginBottom: 16 }}>
             <span>🔑</span>
             <div>
               <div style={{ fontWeight: 600, marginBottom: 4 }}>Temporary Password</div>
               <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, fontWeight: 700 }}>{success.tempPassword}</div>
-              <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 4 }}>Share this with the employee personally. It disappears after first login.</div>
+              <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 4 }}>Share this with the employee personally. It disappears after first login.</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
@@ -308,7 +308,7 @@ export default function CreateUser() {
 
           {form.role === 'admin' && (
             <div>
-              <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 12 }}>Tick individual powers or select a title template above</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 12 }}>Tick individual powers or select a title template above</div>
               {POWER_GROUPS.map(group => (
                 <div className="power-group" key={group.key}>
                   <div className="power-group-title">

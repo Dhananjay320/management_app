@@ -8,32 +8,34 @@
   gap: 8px;
 }
 .cal-day {
-  background: #fff;
-  border: 1px solid #E2E8F0;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 8px;
   min-height: 180px;
   transition: border-color 0.15s;
 }
-.cal-day:hover { border-color: #CBD5E1; }
-.cal-day.today { border-color: #6366F1; border-width: 2px; }
+.cal-day:hover { border-color: var(--line-2); }
+.cal-day.today { border-color: var(--indigo); border-width: 2px; }
 .cal-day-header {
   text-align: center;
   margin-bottom: 8px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #F0F2F7;
+  border-bottom: 1px solid var(--line);
 }
 .cal-day-name {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  color: var(--ink-3);
 }
-.cal-day-number { font-size: 18px; font-weight: 700; }
-.cal-day.today .cal-day-name { color: #6366F1; }
-.cal-day.today .cal-day-number { color: #6366F1; }
+.cal-day-number { font-size: 18px; font-weight: 700; color: var(--ink); }
+.cal-day.today .cal-day-name { color: var(--indigo); }
+.cal-day.today .cal-day-number { color: var(--indigo); }
 .cal-today-dot {
-  width: 4px; height: 4px; background: #6366F1; border-radius: 50%; margin: 2px auto 0;
+  width: 4px; height: 4px; background: var(--indigo); border-radius: 50%; margin: 2px auto 0;
 }
 
 /* Event Cards */
@@ -52,8 +54,9 @@
 .cal-month-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background: #fff;
-  border: 1px solid #E2E8F0;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -62,27 +65,27 @@
   text-align: center;
   font-size: 11px;
   font-weight: 600;
-  color: #94A3B8;
-  background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
+  color: var(--ink-3);
+  background: var(--glass-2);
+  border-bottom: 1px solid var(--line);
 }
 .cal-month-day {
   padding: 6px;
   min-height: 72px;
-  border: 1px solid #F0F2F7;
+  border: 1px solid var(--line);
   cursor: pointer;
   transition: background 0.1s;
 }
-.cal-month-day:hover { background: #FAFBFF; }
-.cal-month-day.today { background: rgba(99,102,241,0.03); }
+.cal-month-day:hover { background: var(--glass-2); }
+.cal-month-day.today { background: rgba(99,102,241,0.06); }
 .cal-month-day-num {
   font-size: 12px;
   font-weight: 500;
-  color: #1E293B;
+  color: var(--ink);
   margin-bottom: 3px;
 }
-.cal-month-day.today .cal-month-day-num { color: #6366F1; font-weight: 700; }
-.cal-month-day.other-month .cal-month-day-num { color: #CBD5E1; }
+.cal-month-day.today .cal-month-day-num { color: var(--indigo); font-weight: 700; }
+.cal-month-day.other-month .cal-month-day-num { color: var(--ink-4); }
 .cal-month-event {
   font-size: 8px;
   font-weight: 600;
@@ -95,7 +98,7 @@
 }
 .cal-month-more {
   font-size: 9px;
-  color: #94A3B8;
+  color: var(--ink-3);
   cursor: pointer;
 }
 
@@ -106,8 +109,9 @@
 }
 .cal-daily-timeline {
   flex: 1;
-  background: #fff;
-  border: 1px solid #E2E8F0;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 16px;
 }
@@ -119,16 +123,16 @@
   display: flex;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid #F8FAFC;
+  border-bottom: 1px solid var(--line);
   min-height: 48px;
 }
 .cal-time-label {
   width: 50px;
   font-size: 10px;
   font-weight: 600;
-  color: #94A3B8;
+  color: var(--ink-3);
   flex-shrink: 0;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--mono);
   padding-top: 2px;
 }
 .cal-time-event {
@@ -146,8 +150,9 @@
   gap: 16px;
   margin-bottom: 16px;
   padding: 10px 14px;
-  background: #fff;
-  border: 1px solid #E2E8F0;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
   border-radius: 10px;
 }
 .cal-att-item {
@@ -155,6 +160,7 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
+  color: var(--ink-2);
 }
-.cal-att-item.done { color: #10B981; font-weight: 600; }
-.cal-att-item.pending { color: #94A3B8; }
+.cal-att-item.done { color: var(--emerald); font-weight: 600; }
+.cal-att-item.pending { color: var(--ink-3); }

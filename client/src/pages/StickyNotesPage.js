@@ -75,8 +75,8 @@ export default function StickyNotesPage() {
       {notes.length === 0 ? (
         <div className="sn-empty">
           <div className="sn-empty-icon">📝</div>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>No sticky notes yet</h3>
-          <p style={{ fontSize: 12, color: '#94A3B8' }}>Create a quick note to capture ideas, reminders, or anything you want to remember.</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>No sticky notes yet</h3>
+          <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>Create a quick note to capture ideas, reminders, or anything you want to remember.</p>
         </div>
       ) : (
         <div className="sn-grid">
@@ -185,7 +185,7 @@ export default function StickyNotesPage() {
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <input
-                style={{ fontSize: 18, fontWeight: 800, color: '#1E293B', border: 'none', background: 'transparent', outline: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif", flex: 1 }}
+                style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', border: 'none', background: 'transparent', outline: 'none', fontFamily: "'Plus Jakarta Sans', sans-serif", flex: 1 }}
                 value={expandedNote.title || ''}
                 onChange={e => {
                   const val = e.target.value;
@@ -195,7 +195,7 @@ export default function StickyNotesPage() {
                 onBlur={e => updateNote(expandedNote._id, { title: e.target.value })}
                 placeholder="Note title..."
               />
-              <button onClick={() => setExpandedNote(null)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#64748B', cursor: 'pointer' }}>&times;</button>
+              <button onClick={() => setExpandedNote(null)} style={{ background: 'none', border: 'none', fontSize: 20, color: 'var(--ink-2)', cursor: 'pointer' }}>&times;</button>
             </div>
             <div
               contentEditable

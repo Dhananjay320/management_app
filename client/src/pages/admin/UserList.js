@@ -63,7 +63,7 @@ export default function UserList() {
     return { label: 'Hybrid', bg: 'rgba(245,158,11,0.08)', color: '#F59E0B' };
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading users...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading users...</div>;
 
   return (
     <div>
@@ -85,28 +85,28 @@ export default function UserList() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
-            width: '100%', maxWidth: 260, padding: '9px 14px', border: '1px solid #E2E8F0',
-            borderRadius: 8, background: '#fff', fontSize: 12, fontFamily: 'Inter, sans-serif',
-            color: '#1E293B', outline: 'none'
+            width: '100%', maxWidth: 260, padding: '9px 14px', border: '1px solid var(--line)',
+            borderRadius: 8, background: 'var(--glass)', fontSize: 12, fontFamily: 'Inter, sans-serif',
+            color: 'var(--ink)', outline: 'none'
           }}
         />
-        <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{ padding: '8px 10px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 11, color: '#475569', background: '#fff', fontFamily: 'Inter, sans-serif' }}>
+        <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 11, color: 'var(--ink-2)', background: 'var(--glass)', fontFamily: 'Inter, sans-serif' }}>
           <option value="all">All Roles</option>
           <option value="employee">Employee</option>
           <option value="admin">Admin</option>
           <option value="main_admin">Main Admin</option>
         </select>
-        <select value={filterWorkType} onChange={e => setFilterWorkType(e.target.value)} style={{ padding: '8px 10px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 11, color: '#475569', background: '#fff', fontFamily: 'Inter, sans-serif' }}>
+        <select value={filterWorkType} onChange={e => setFilterWorkType(e.target.value)} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 11, color: 'var(--ink-2)', background: 'var(--glass)', fontFamily: 'Inter, sans-serif' }}>
           <option value="all">All Work Types</option>
           <option value="full_office">Office</option>
           <option value="full_remote">Remote</option>
           <option value="hybrid">Hybrid</option>
         </select>
-        <select value={filterTeam} onChange={e => setFilterTeam(e.target.value)} style={{ padding: '8px 10px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 11, color: '#475569', background: '#fff', fontFamily: 'Inter, sans-serif' }}>
+        <select value={filterTeam} onChange={e => setFilterTeam(e.target.value)} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 11, color: 'var(--ink-2)', background: 'var(--glass)', fontFamily: 'Inter, sans-serif' }}>
           <option value="all">All Teams</option>
           {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        <select value={filterOffice} onChange={e => setFilterOffice(e.target.value)} style={{ padding: '8px 10px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 11, color: '#475569', background: '#fff', fontFamily: 'Inter, sans-serif' }}>
+        <select value={filterOffice} onChange={e => setFilterOffice(e.target.value)} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 11, color: 'var(--ink-2)', background: 'var(--glass)', fontFamily: 'Inter, sans-serif' }}>
           <option value="all">All Offices</option>
           {allOffices.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -136,14 +136,14 @@ export default function UserList() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div className="avatar-sm" style={{ background: GRADIENTS[i % GRADIENTS.length] }}>{initials}</div>
                 <div>
-                  <div style={{ fontWeight: 600, color: '#1E293B' }}>{user.name}</div>
-                  <div style={{ fontSize: 10, color: '#94A3B8' }}>{user.jobTitle || '—'}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{user.name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>{user.jobTitle || '—'}</div>
                 </div>
               </div>
-              <div style={{ color: '#64748B' }}>{user.email}</div>
+              <div style={{ color: 'var(--ink-2)' }}>{user.email}</div>
               <div><span className="badge-pill" style={{ background: role.bg, color: role.color }}>{role.label}</span></div>
               <div><span className="badge-pill" style={{ background: wt.bg, color: wt.color }}>{wt.label}</span></div>
-              <div style={{ color: '#64748B', fontSize: 11 }}>{user.teams?.map(t => t.name).join(', ') || '—'}</div>
+              <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{user.teams?.map(t => t.name).join(', ') || '—'}</div>
               <div>
                 {user.isFirstLogin
                   ? <span className="badge-pill" style={{ background: 'rgba(245,158,11,0.08)', color: '#F59E0B' }}>Pending</span>
@@ -154,7 +154,7 @@ export default function UserList() {
           );
         })}
         {filtered.length === 0 && (
-          <div style={{ padding: 32, textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>
             No users found.
           </div>
         )}

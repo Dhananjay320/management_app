@@ -1,0 +1,875 @@
+<!--
+  Avadeti Team — Screen 1: Calendar (Home)
+
+  Design Notes
+  ────────────
+  • Aesthetic: "Colorful Luxury" — deep navy-black canvas (#0A0B1A → #14162E) with
+    floating blurred gradient orbs for ambient life, glass cards (rgba white + backdrop-blur),
+    and indigo→purple as the hero accent.
+  • Type: Inter, tight tracking on headers (-0.02em). Numbers use tabular-nums for calm grids.
+  • Motion: Every transition uses cubic-bezier(0.4,0,0.2,1). Entry is staggered fade-up (50ms cascade).
+    Today cell has a slow gradient-border pulse. Stats count up on load. Live dot pulses.
+  • Event color language: meeting=indigo→purple, task=emerald→cyan, leave=amber, activity=pink→rose.
+  • Interactions: hover lift on cards/events, animated tab underline (FLIP), click-a-day zoom via scale+blur,
+    sidebar nav with gradient left-rail indicator, subtle shimmer on the "Hi Ravi" gradient text.
+  • No copyrighted marks — original wordmark (AV diamond) and original palette.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Avadeti — Calendar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root{
+    --bg-0:#0A0B1A;
+    --bg-1:#14162E;
+    --ink:#F8FAFC;
+    --ink-2:rgba(248,250,252,0.62);
+    --ink-3:rgba(248,250,252,0.40);
+    --line:rgba(255,255,255,0.08);
+    --line-2:rgba(255,255,255,0.14);
+    --glass:rgba(255,255,255,0.04);
+    --glass-2:rgba(255,255,255,0.06);
+    --indigo:#6366F1;
+    --violet:#8B5CF6;
+    --emerald:#10B981;
+    --cyan:#06B6D4;
+    --amber:#F59E0B;
+    --gold:#FBBF24;
+    --rose:#EC4899;
+    --danger:#EF4444;
+  }
+  *{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  html,body{ background:var(--bg-0); color:var(--ink); font-family:'Inter',system-ui,sans-serif; }
+  body{
+    background:
+      radial-gradient(1200px 800px at 85% -10%, rgba(139,92,246,0.18), transparent 60%),
+      radial-gradient(900px 700px at -10% 30%, rgba(99,102,241,0.14), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, rgba(236,72,153,0.10), transparent 60%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+    min-height:100vh;
+    letter-spacing:-0.01em;
+  }
+  /* Noise overlay */
+  body::before{
+    content:"";
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity:.5; mix-blend-mode:overlay;
+  }
+  /* Floating orbs */
+  .orb{
+    position:fixed; border-radius:9999px; filter:blur(80px); opacity:.55;
+    pointer-events:none; z-index:0;
+    animation:drift 22s cubic-bezier(0.4,0,0.2,1) infinite alternate;
+  }
+  .orb.a{ width:520px; height:520px; left:-140px; top:-120px; background:radial-gradient(circle,#6366F1 0%,transparent 60%); animation-duration:26s; }
+  .orb.b{ width:620px; height:620px; right:-180px; top:10%; background:radial-gradient(circle,#8B5CF6 0%,transparent 60%); animation-duration:30s; animation-delay:-6s; }
+  .orb.c{ width:440px; height:440px; left:40%; bottom:-160px; background:radial-gradient(circle,#EC4899 0%,transparent 60%); animation-duration:34s; animation-delay:-12s; opacity:.38; }
+  @keyframes drift{
+    0%  { transform: translate3d(0,0,0) scale(1); }
+    50% { transform: translate3d(40px,30px,0) scale(1.08); }
+    100%{ transform: translate3d(-30px,60px,0) scale(0.96); }
+  }
+
+  /* Glass */
+  .glass{
+    background:var(--glass);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border:1px solid var(--line);
+    border-radius:16px;
+  }
+  .glass-2{ background:var(--glass-2); backdrop-filter:blur(24px) saturate(140%); border:1px solid var(--line-2); border-radius:16px; }
+  .glass-strong{
+    background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    backdrop-filter: blur(28px) saturate(160%);
+    border:1px solid var(--line-2);
+    border-radius:16px;
+  }
+  .soft-shadow{ box-shadow: 0 8px 32px rgba(0,0,0,0.30); }
+  .glow-indigo{ box-shadow: 0 0 40px rgba(99,102,241,0.30), 0 8px 32px rgba(0,0,0,0.3); }
+
+  /* Gradient text */
+  .grad-text{
+    background:linear-gradient(90deg,#A5B4FC 0%,#C4B5FD 40%,#F0ABFC 70%,#A5B4FC 100%);
+    background-size:200% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:shimmer 5s ease-in-out infinite;
+  }
+  @keyframes shimmer{
+    0%,100%{ background-position: 0% 50%; }
+    50%    { background-position: 100% 50%; }
+  }
+  .grad-amber-text{
+    background:linear-gradient(90deg,#FBBF24,#F59E0B,#F97316,#FBBF24);
+    background-size:200% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:shimmer 6s ease-in-out infinite;
+  }
+
+  /* Stagger entry */
+  .enter{ opacity:0; transform:translateY(14px); animation:enterUp .6s cubic-bezier(0.4,0,0.2,1) forwards; }
+  @keyframes enterUp{ to{ opacity:1; transform:translateY(0);} }
+
+  /* Pulse ring */
+  @keyframes pulseRing{
+    0%  { box-shadow: 0 0 0 0 rgba(99,102,241,0.55), inset 0 0 0 1px rgba(255,255,255,0.18); }
+    70% { box-shadow: 0 0 0 14px rgba(99,102,241,0.00), inset 0 0 0 1px rgba(255,255,255,0.18); }
+    100%{ box-shadow: 0 0 0 0 rgba(99,102,241,0.00), inset 0 0 0 1px rgba(255,255,255,0.18); }
+  }
+
+  /* Today cell — animated gradient border */
+  .today-cell{
+    position:relative; isolation:isolate;
+    border-radius:14px;
+  }
+  .today-cell::before{
+    content:""; position:absolute; inset:0; border-radius:14px; padding:1.5px;
+    background: conic-gradient(from var(--a,0deg), #6366F1, #8B5CF6, #EC4899, #F59E0B, #6366F1);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: spinBorder 6s linear infinite, breathe 3.2s ease-in-out infinite;
+    z-index:1;
+  }
+  @property --a{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+  @keyframes spinBorder{ to{ --a:360deg; } }
+  @keyframes breathe{
+    0%,100%{ filter: drop-shadow(0 0 0 rgba(139,92,246,0.0)); }
+    50%    { filter: drop-shadow(0 0 18px rgba(139,92,246,0.55)); }
+  }
+
+  /* Sidebar nav item */
+  .nav-item{
+    position:relative; display:flex; align-items:center; gap:12px;
+    padding:10px 12px; border-radius:10px; color:var(--ink-2);
+    transition: all .25s cubic-bezier(0.4,0,0.2,1);
+    cursor:pointer;
+  }
+  .nav-item:hover{ background:rgba(255,255,255,0.05); color:var(--ink); }
+  .nav-item.active{
+    color:var(--ink);
+    background:linear-gradient(90deg, rgba(99,102,241,0.18), rgba(139,92,246,0.08) 60%, transparent);
+  }
+  .nav-item.active::before{
+    content:""; position:absolute; left:-12px; top:6px; bottom:6px; width:3px;
+    border-radius:3px;
+    background:linear-gradient(180deg,#6366F1,#8B5CF6,#EC4899);
+    box-shadow:0 0 12px rgba(139,92,246,0.8), 0 0 24px rgba(99,102,241,0.45);
+  }
+
+  /* Event chip */
+  .chip{
+    position:relative; display:flex; align-items:center; gap:6px;
+    padding:6px 8px; border-radius:8px;
+    font-size:11px; font-weight:500; letter-spacing:-0.01em;
+    border:1px solid rgba(255,255,255,0.08);
+    transition: transform .22s cubic-bezier(0.4,0,0.2,1), box-shadow .22s cubic-bezier(0.4,0,0.2,1), filter .22s;
+    cursor:pointer; overflow:hidden; color:#F8FAFC;
+    background:rgba(255,255,255,0.04);
+  }
+  .chip::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  }
+  .chip .dot{ width:6px; height:6px; border-radius:9999px; flex-shrink:0; }
+  .chip .time{ color:var(--ink-3); font-variant-numeric:tabular-nums; }
+  .chip:hover{ transform: translateY(-2px) scale(1.02); filter:brightness(1.15); }
+  .chip.meeting{ background:linear-gradient(135deg, rgba(99,102,241,0.22), rgba(139,92,246,0.22)); }
+  .chip.meeting::before{ background:linear-gradient(180deg,#6366F1,#8B5CF6); }
+  .chip.meeting:hover{ box-shadow: 0 10px 28px rgba(99,102,241,0.35); }
+  .chip.task{ background:linear-gradient(135deg, rgba(16,185,129,0.20), rgba(6,182,212,0.20)); }
+  .chip.task::before{ background:linear-gradient(180deg,#10B981,#06B6D4); }
+  .chip.task:hover{ box-shadow: 0 10px 28px rgba(16,185,129,0.30); }
+  .chip.leave{ background:linear-gradient(135deg, rgba(245,158,11,0.22), rgba(251,191,36,0.18)); }
+  .chip.leave::before{ background:linear-gradient(180deg,#F59E0B,#FBBF24); }
+  .chip.leave:hover{ box-shadow: 0 10px 28px rgba(245,158,11,0.35); }
+  .chip.activity{ background:linear-gradient(135deg, rgba(236,72,153,0.22), rgba(244,114,182,0.18)); }
+  .chip.activity::before{ background:linear-gradient(180deg,#EC4899,#F472B6); }
+  .chip.activity:hover{ box-shadow: 0 10px 28px rgba(236,72,153,0.35); }
+
+  /* Tooltip */
+  .chip .tip{
+    position:absolute; left:50%; transform: translate(-50%, -8px);
+    bottom: calc(100% + 8px);
+    background: rgba(10,11,26,0.92);
+    border:1px solid var(--line-2);
+    border-radius:10px; padding:8px 10px; white-space:nowrap;
+    opacity:0; pointer-events:none; transition: opacity .2s, transform .2s;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    z-index:30;
+  }
+  .chip:hover .tip{ opacity:1; transform: translate(-50%, 0); }
+
+  /* View switcher underline (FLIP animated via JS transform) */
+  .tab-track{ position:relative; }
+  .tab-ink{
+    position:absolute; bottom:-1px; height:2px; border-radius:2px;
+    background:linear-gradient(90deg,#6366F1,#8B5CF6);
+    box-shadow:0 0 12px rgba(139,92,246,0.7);
+    transition: transform .35s cubic-bezier(0.4,0,0.2,1), width .35s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* Button primary */
+  .btn-primary{
+    position:relative; padding:10px 16px; border-radius:12px;
+    color:white; font-weight:600; font-size:13px; letter-spacing:-0.01em;
+    background:linear-gradient(135deg,#6366F1 0%,#8B5CF6 100%);
+    box-shadow: 0 8px 24px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.22);
+    transition: transform .22s, box-shadow .22s, filter .22s;
+  }
+  .btn-primary:hover{ filter:brightness(1.08); box-shadow: 0 12px 36px rgba(99,102,241,0.55), inset 0 1px 0 rgba(255,255,255,0.28); transform: translateY(-1px); }
+
+  /* Icon buttons */
+  .icon-btn{ width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--ink-2); background:rgba(255,255,255,0.04); border:1px solid var(--line); transition: all .22s; }
+  .icon-btn:hover{ background:rgba(255,255,255,0.08); color:var(--ink); }
+
+  /* Search */
+  .search{
+    display:flex; align-items:center; gap:10px;
+    padding:8px 12px; border-radius:12px;
+    background:rgba(255,255,255,0.04); border:1px solid var(--line);
+    color:var(--ink-2); width:320px;
+    transition: all .22s;
+  }
+  .search:focus-within{ border-color:rgba(139,92,246,0.55); box-shadow:0 0 0 4px rgba(139,92,246,0.12); }
+  .search input{ background:transparent; outline:none; color:var(--ink); width:100%; font-size:13px; }
+  .search .kbd{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-3); border:1px solid var(--line-2); padding:1px 6px; border-radius:6px; }
+
+  /* Ring progress */
+  .ring{ transform: rotate(-90deg); }
+  .ring-track{ stroke: rgba(255,255,255,0.08); }
+  .ring-fill{ stroke-linecap: round; transition: stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1); }
+
+  /* Live dot */
+  .live-dot{ width:8px; height:8px; border-radius:9999px; background:#10B981; box-shadow:0 0 0 0 rgba(16,185,129,0.55); animation: live 2s cubic-bezier(0.4,0,0.2,1) infinite; }
+  @keyframes live{
+    0%  { box-shadow: 0 0 0 0 rgba(16,185,129,0.55); }
+    70% { box-shadow: 0 0 0 10px rgba(16,185,129,0.00); }
+    100%{ box-shadow: 0 0 0 0 rgba(16,185,129,0.00); }
+  }
+
+  /* Notif badge pulse */
+  .badge-pulse{
+    position:absolute; top:-2px; right:-2px; min-width:16px; height:16px; padding:0 4px;
+    border-radius:9999px; font-size:10px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; color:white;
+    background:linear-gradient(135deg,#EF4444,#EC4899);
+    box-shadow: 0 0 0 0 rgba(236,72,153,0.55);
+    animation: badgePulse 2s infinite;
+  }
+  @keyframes badgePulse{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(236,72,153,0.45); }
+    50%    { box-shadow: 0 0 0 8px rgba(236,72,153,0.00); }
+  }
+
+  /* Announcement */
+  .announce{
+    position:relative; overflow:hidden;
+    border-radius:16px; padding:14px 18px;
+    background: linear-gradient(90deg, rgba(245,158,11,0.20), rgba(251,191,36,0.10) 40%, rgba(236,72,153,0.10));
+    border:1px solid rgba(251,191,36,0.28);
+    box-shadow: 0 8px 32px rgba(245,158,11,0.12);
+  }
+  .announce::after{
+    content:""; position:absolute; inset:0;
+    background: linear-gradient(90deg, transparent, rgba(251,191,36,0.18), transparent);
+    transform: translateX(-100%);
+    animation: sweep 6s cubic-bezier(0.4,0,0.2,1) infinite;
+    pointer-events:none;
+  }
+  @keyframes sweep{ 0%{ transform:translateX(-100%);} 60%,100%{ transform:translateX(120%);} }
+
+  /* Day cell */
+  .day-cell{
+    position:relative; border-radius:14px;
+    background:rgba(255,255,255,0.025);
+    border:1px solid var(--line);
+    padding:12px 10px 12px;
+    min-height:180px;
+    display:flex; flex-direction:column; gap:8px;
+    transition: background .25s, transform .25s, border-color .25s, box-shadow .25s;
+    cursor:pointer;
+  }
+  .day-cell:hover{ background:rgba(255,255,255,0.05); transform: translateY(-2px); border-color:var(--line-2); box-shadow: 0 10px 28px rgba(0,0,0,0.3); }
+  .day-cell.weekend{ background:rgba(255,255,255,0.015); }
+  .day-num{ font-weight:600; font-size:18px; letter-spacing:-0.02em; }
+  .day-label{ font-size:11px; text-transform:uppercase; letter-spacing:0.14em; color:var(--ink-3); }
+
+  /* Avatar */
+  .avatar{
+    width:28px; height:28px; border-radius:9999px;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:600; color:white;
+    border:1.5px solid rgba(255,255,255,0.12);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+
+  /* Count-up placeholder style */
+  .statnum{ font-size:36px; font-weight:700; letter-spacing:-0.03em; font-variant-numeric: tabular-nums; }
+
+  /* Zoom-to-day modal */
+  .zoom-backdrop{
+    position:fixed; inset:0; background:rgba(5,6,16,0.55);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    opacity:0; pointer-events:none; transition: opacity .35s cubic-bezier(0.4,0,0.2,1);
+    z-index:50;
+  }
+  .zoom-backdrop.open{ opacity:1; pointer-events:auto; }
+  .zoom-panel{
+    position:fixed; left:50%; top:50%; transform: translate(-50%,-48%) scale(.96);
+    width:min(720px, 92vw); max-height:86vh; overflow:auto;
+    opacity:0; transition: all .4s cubic-bezier(0.4,0,0.2,1);
+    z-index:51;
+  }
+  .zoom-backdrop.open + .zoom-panel,
+  .zoom-panel.open{ opacity:1; transform: translate(-50%,-50%) scale(1); }
+
+  /* Scrollbar */
+  *::-webkit-scrollbar{ width:10px; height:10px; }
+  *::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.08); border-radius:10px; }
+  *::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,0.16); }
+
+  /* Checkbox mini */
+  .mini-check{ width:14px; height:14px; border-radius:4px; border:1.5px solid rgba(255,255,255,0.25); display:inline-flex; align-items:center; justify-content:center; }
+
+  /* Segmented */
+  .seg{
+    display:inline-flex; padding:3px; gap:3px; border-radius:10px;
+    background: rgba(255,255,255,0.04); border:1px solid var(--line);
+  }
+  .seg button{
+    padding:6px 12px; border-radius:8px; font-size:12px; color:var(--ink-2);
+    transition: all .22s; font-weight:500;
+  }
+  .seg button.on{
+    color:white;
+    background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(139,92,246,0.35));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 6px 16px rgba(99,102,241,0.2);
+  }
+
+  /* Main content column scroll */
+  .main-scroll{ max-height: calc(100vh - 0px); overflow:auto; }
+
+  /* Priority marker on task chips: add count cluster */
+  .cluster{ display:flex; margin-left:2px; }
+  .cluster .avatar{ width:18px; height:18px; margin-left:-6px; font-size:9px; border-width:1.5px; }
+
+  /* Section label */
+  .lbl{ font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3); }
+
+  /* Logo mark */
+  .logo-mark{
+    width:28px; height:28px; border-radius:9px;
+    background: conic-gradient(from 140deg, #6366F1, #8B5CF6, #EC4899, #F59E0B, #6366F1);
+    position:relative;
+  }
+  .logo-mark::after{
+    content:""; position:absolute; inset:3px; border-radius:6px;
+    background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.9), rgba(255,255,255,0.0) 60%), #0A0B1A;
+  }
+  .logo-mark::before{
+    content:""; position:absolute; inset:0; border-radius:9px;
+    box-shadow: 0 0 22px rgba(139,92,246,0.55);
+    pointer-events:none;
+  }
+</style>
+</head>
+<body class="min-h-screen">
+  <div class="orb a"></div>
+  <div class="orb b"></div>
+  <div class="orb c"></div>
+
+  <!-- Topbar -->
+  <header class="relative z-10">
+    <div class="max-w-[1440px] mx-auto px-6 pt-5">
+      <div class="glass-strong soft-shadow flex items-center justify-between px-4 py-3 rounded-2xl">
+        <div class="flex items-center gap-3">
+          <div class="logo-mark"></div>
+          <div class="leading-tight">
+            <div class="text-[14px] font-semibold tracking-tight">Avadeti</div>
+            <div class="text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">Team OS</div>
+          </div>
+          <div class="w-px h-6 bg-white/10 mx-3"></div>
+          <div class="search">
+            <i data-lucide="search" class="w-4 h-4"></i>
+            <input placeholder="Search people, tasks, messages…" />
+            <span class="kbd">⌘K</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button class="icon-btn relative" title="Notifications">
+            <i data-lucide="bell" class="w-4 h-4"></i>
+            <span class="badge-pulse">4</span>
+          </button>
+          <button class="icon-btn" title="Notes"><i data-lucide="notebook-pen" class="w-4 h-4"></i></button>
+          <button class="icon-btn" title="Settings"><i data-lucide="settings-2" class="w-4 h-4"></i></button>
+          <div class="w-px h-6 bg-white/10 mx-2"></div>
+          <div class="flex items-center gap-2 pr-1">
+            <div class="avatar" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);">RK</div>
+            <div class="hidden md:block leading-tight">
+              <div class="text-[12px] font-semibold">Ravi Kulkarni</div>
+              <div class="text-[10px] text-[color:var(--ink-3)] flex items-center gap-1"><span class="live-dot"></span> Active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Layout -->
+  <div class="relative z-10 max-w-[1440px] mx-auto px-6 pt-5 pb-10">
+    <div class="grid grid-cols-12 gap-5">
+
+      <!-- Sidebar -->
+      <aside class="col-span-2 hidden lg:block">
+        <div class="glass soft-shadow p-3 sticky top-5">
+          <div class="lbl px-2 mt-1 mb-2">Workspace</div>
+          <nav class="flex flex-col gap-1">
+            <a class="nav-item active"><i data-lucide="calendar-days" class="w-4 h-4"></i><span class="text-[13px] font-medium">Home</span></a>
+            <a class="nav-item"><i data-lucide="check-circle-2" class="w-4 h-4"></i><span class="text-[13px]">Tasks</span><span class="ml-auto text-[11px] text-[color:var(--ink-3)]">12</span></a>
+            <a class="nav-item"><i data-lucide="message-square" class="w-4 h-4"></i><span class="text-[13px]">Messages</span><span class="ml-auto text-[10px] px-1.5 rounded-full" style="background:linear-gradient(135deg,#8B5CF6,#EC4899);color:white;font-weight:700">3</span></a>
+            <a class="nav-item"><i data-lucide="bar-chart-3" class="w-4 h-4"></i><span class="text-[13px]">Analytics</span></a>
+            <a class="nav-item"><i data-lucide="users" class="w-4 h-4"></i><span class="text-[13px]">Team</span></a>
+            <a class="nav-item"><i data-lucide="folder" class="w-4 h-4"></i><span class="text-[13px]">Spaces</span></a>
+            <a class="nav-item"><i data-lucide="mail" class="w-4 h-4"></i><span class="text-[13px]">Email</span></a>
+            <a class="nav-item"><i data-lucide="bell-ring" class="w-4 h-4"></i><span class="text-[13px]">Notifications</span></a>
+          </nav>
+
+          <div class="border-t border-white/5 my-3"></div>
+
+          <div class="lbl px-2 mb-2">Pinned</div>
+          <nav class="flex flex-col gap-1">
+            <a class="nav-item"><span class="w-2 h-2 rounded-full" style="background:#6366F1"></span><span class="text-[13px]">Invoicing v2</span></a>
+            <a class="nav-item"><span class="w-2 h-2 rounded-full" style="background:#10B981"></span><span class="text-[13px]">Hiring Q2</span></a>
+            <a class="nav-item"><span class="w-2 h-2 rounded-full" style="background:#EC4899"></span><span class="text-[13px]">Brand refresh</span></a>
+          </nav>
+
+          <div class="border-t border-white/5 my-3"></div>
+          <a class="nav-item"><i data-lucide="more-horizontal" class="w-4 h-4"></i><span class="text-[13px]">More</span></a>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="col-span-12 lg:col-span-10 flex flex-col gap-5">
+
+        <!-- Announcement -->
+        <div class="announce enter" style="animation-delay:40ms">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#F59E0B,#FBBF24);box-shadow:0 0 24px rgba(251,191,36,0.35)">
+              <i data-lucide="megaphone" class="w-4 h-4 text-[#1a120a]"></i>
+            </div>
+            <div class="flex-1">
+              <div class="text-[13px] font-semibold">Q2 All-Hands — Friday 4:00 PM IST</div>
+              <div class="text-[12px] text-[color:var(--ink-2)]">Meera will walk through the roadmap. Drop questions in <span class="underline decoration-dotted underline-offset-2">#all-hands-qna</span>.</div>
+            </div>
+            <button class="text-[12px] font-medium px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition">RSVP</button>
+            <button class="icon-btn"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+        </div>
+
+        <!-- Greeting -->
+        <section class="enter" style="animation-delay:80ms">
+          <div class="flex items-end justify-between flex-wrap gap-4">
+            <div>
+              <div class="text-[11px] uppercase tracking-[0.22em] text-[color:var(--ink-3)] mb-2">Saturday, April 18, 2026</div>
+              <h1 class="text-[48px] font-bold leading-none tracking-[-0.03em]">
+                Hi <span class="grad-text">Ravi</span> <span style="display:inline-block;animation: wave 2.4s cubic-bezier(0.4,0,0.2,1) infinite;transform-origin:70% 70%">👋</span>
+              </h1>
+              <div class="text-[15px] text-[color:var(--ink-2)] mt-3">You have <span class="text-white font-semibold">3 meetings</span> and <span class="text-white font-semibold">7 tasks</span> today — the window looks calm after 4 PM.</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="icon-btn"><i data-lucide="sparkles" class="w-4 h-4"></i></button>
+              <button class="btn-primary flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Quick add</button>
+            </div>
+          </div>
+        </section>
+
+        <style>@keyframes wave{ 0%,60%,100%{ transform:rotate(0);} 70%{ transform:rotate(18deg);} 80%{ transform:rotate(-10deg);} 90%{ transform:rotate(14deg);} }</style>
+
+        <!-- Week toolbar -->
+        <section class="glass soft-shadow px-4 py-3 enter flex items-center justify-between gap-4 flex-wrap" style="animation-delay:120ms">
+          <div class="flex items-center gap-2">
+            <button class="icon-btn" id="prevWeek"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+            <div class="text-[14px] font-semibold tracking-tight">Week of Apr 14 – 20, 2026</div>
+            <button class="icon-btn" id="nextWeek"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+            <button class="ml-2 text-[12px] px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10">Today</button>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="tab-track relative flex items-center gap-1" id="viewTabs">
+              <button data-tab="day"   class="px-3 py-1.5 text-[12px] font-medium text-[color:var(--ink-2)]">Day</button>
+              <button data-tab="week"  class="px-3 py-1.5 text-[12px] font-medium text-white" data-active="true">Week</button>
+              <button data-tab="month" class="px-3 py-1.5 text-[12px] font-medium text-[color:var(--ink-2)]">Month</button>
+              <span class="tab-ink" id="tabInk"></span>
+            </div>
+            <div class="w-px h-5 bg-white/10"></div>
+            <div class="flex items-center gap-3 text-[11px] text-[color:var(--ink-2)]">
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)"></span>Meeting</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:linear-gradient(135deg,#10B981,#06B6D4)"></span>Task</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#F59E0B"></span>Leave</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:linear-gradient(135deg,#EC4899,#F472B6)"></span>Activity</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Week grid -->
+        <section class="glass soft-shadow p-4 enter" style="animation-delay:160ms">
+          <div id="weekGrid" class="grid grid-cols-7 gap-3">
+            <!-- injected -->
+          </div>
+        </section>
+
+        <!-- Bottom row: focus + stats + leave -->
+        <section class="grid grid-cols-12 gap-5">
+
+          <!-- Today's Focus -->
+          <div class="col-span-12 lg:col-span-5 glass soft-shadow p-5 enter" style="animation-delay:200ms">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="lbl">Today's Focus</div>
+                <span class="live-dot"></span>
+              </div>
+              <button class="text-[11px] text-[color:var(--ink-3)] hover:text-white flex items-center gap-1">View all <i data-lucide="arrow-right" class="w-3 h-3"></i></button>
+            </div>
+
+            <ul class="flex flex-col gap-3">
+              <li class="flex items-center gap-3 group">
+                <span class="mini-check group-hover:border-white/50 transition"></span>
+                <div class="flex-1">
+                  <div class="text-[13px]">Standup — Platform pod</div>
+                  <div class="text-[11px] text-[color:var(--ink-3)]">9:00 – 9:15 AM · Meeting</div>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.3));border:1px solid rgba(139,92,246,0.35)">Meeting</span>
+              </li>
+              <li class="flex items-center gap-3 group">
+                <span class="mini-check group-hover:border-white/50 transition"></span>
+                <div class="flex-1">
+                  <div class="text-[13px]">Review invoicing v2 PR</div>
+                  <div class="text-[11px] text-[color:var(--ink-3)]">Due 2:00 PM · Task · <span class="grad-amber-text font-semibold">Today!</span></div>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:linear-gradient(135deg,rgba(16,185,129,0.25),rgba(6,182,212,0.25));border:1px solid rgba(16,185,129,0.35)">Task</span>
+              </li>
+              <li class="flex items-center gap-3 group">
+                <span class="mini-check group-hover:border-white/50 transition"></span>
+                <div class="flex-1">
+                  <div class="text-[13px]">Design sync — Brand refresh</div>
+                  <div class="text-[11px] text-[color:var(--ink-3)]">2:00 – 3:00 PM · Meeting · with Aisha, Meera</div>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(139,92,246,0.3));border:1px solid rgba(139,92,246,0.35)">Meeting</span>
+              </li>
+              <li class="flex items-center gap-3 group">
+                <span class="mini-check group-hover:border-white/50 transition"></span>
+                <div class="flex-1">
+                  <div class="text-[13px]">Team dinner — Koramangala</div>
+                  <div class="text-[11px] text-[color:var(--ink-3)]">7:30 PM · Activity</div>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:linear-gradient(135deg,rgba(236,72,153,0.28),rgba(244,114,182,0.28));border:1px solid rgba(236,72,153,0.35)">Activity</span>
+              </li>
+            </ul>
+
+            <div class="mt-5 pt-4 border-t border-white/5 grid grid-cols-3 gap-3 text-center">
+              <div><div class="statnum" data-count="3">0</div><div class="text-[11px] text-[color:var(--ink-3)] mt-1">Meetings</div></div>
+              <div><div class="statnum" data-count="7">0</div><div class="text-[11px] text-[color:var(--ink-3)] mt-1">Tasks due</div></div>
+              <div><div class="statnum" data-count="2">0</div><div class="text-[11px] text-[color:var(--ink-3)] mt-1">On leave</div></div>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="col-span-12 lg:col-span-4 glass soft-shadow p-5 enter" style="animation-delay:240ms">
+            <div class="flex items-center justify-between mb-4">
+              <div class="lbl">Progress</div>
+              <div class="seg">
+                <button class="on">Week</button>
+                <button>Month</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="flex flex-col items-center">
+                <div class="relative w-[120px] h-[120px]">
+                  <svg class="ring" width="120" height="120" viewBox="0 0 120 120">
+                    <defs>
+                      <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#6366F1"/>
+                        <stop offset="100%" stop-color="#8B5CF6"/>
+                      </linearGradient>
+                    </defs>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke-width="10" class="ring-track"/>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="url(#g1)" stroke-width="10" class="ring-fill"
+                            stroke-dasharray="314" stroke-dashoffset="314" data-pct="47" style="filter: drop-shadow(0 0 10px rgba(139,92,246,0.5))"/>
+                  </svg>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <div class="text-[28px] font-bold tracking-[-0.03em]" data-count="47" data-suffix="%">0%</div>
+                    <div class="text-[10px] text-[color:var(--ink-3)] uppercase tracking-[0.18em]">Tasks</div>
+                  </div>
+                </div>
+                <div class="text-[11px] text-[color:var(--ink-3)] mt-3">22 of 47 done</div>
+              </div>
+
+              <div class="flex flex-col items-center">
+                <div class="relative w-[120px] h-[120px]">
+                  <svg class="ring" width="120" height="120" viewBox="0 0 120 120">
+                    <defs>
+                      <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#10B981"/>
+                        <stop offset="100%" stop-color="#06B6D4"/>
+                      </linearGradient>
+                    </defs>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke-width="10" class="ring-track"/>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="url(#g2)" stroke-width="10" class="ring-fill"
+                            stroke-dasharray="314" stroke-dashoffset="314" data-pct="92" style="filter: drop-shadow(0 0 10px rgba(16,185,129,0.5))"/>
+                  </svg>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <div class="text-[28px] font-bold tracking-[-0.03em]" data-count="92" data-suffix="%">0%</div>
+                    <div class="text-[10px] text-[color:var(--ink-3)] uppercase tracking-[0.18em]">Week</div>
+                  </div>
+                </div>
+                <div class="text-[11px] text-[color:var(--ink-3)] mt-3">On-track · streak 4w</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Out of Office / Team -->
+          <div class="col-span-12 lg:col-span-3 glass soft-shadow p-5 enter" style="animation-delay:280ms">
+            <div class="lbl mb-4">Out of Office</div>
+            <ul class="flex flex-col gap-3">
+              <li class="flex items-center gap-3">
+                <div class="avatar" style="background:linear-gradient(135deg,#EC4899,#F472B6)">AS</div>
+                <div class="flex-1 leading-tight">
+                  <div class="text-[13px] font-medium">Aisha Sharma</div>
+                  <div class="text-[11px] text-[color:var(--ink-3)]">Personal leave · back Mon</div>
+                </div>
+                <span class="w-2 h-2 rounded-full" style="background:#F59E0B"></span>
+              </li>
+              <li class="flex items-center gap-3">
+                <div class="avatar" style="background:linear-gradient(135deg,#10B981,#06B6D4)">AV</div>
+                <div class="flex-1 leading-tight">
+                  <div class="text-[13px] font-medium">Arjun Verma</div>
+                  <div class="text-[11px] text-[color:var(--ink-3)]">WFH · Thursday only</div>
+                </div>
+                <span class="w-2 h-2 rounded-full" style="background:#10B981"></span>
+              </li>
+            </ul>
+
+            <div class="border-t border-white/5 my-4"></div>
+
+            <div class="lbl mb-3">Weather · Bengaluru</div>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg, rgba(99,102,241,0.3), rgba(6,182,212,0.3));border:1px solid rgba(6,182,212,0.25)">
+                <i data-lucide="cloud-sun" class="w-5 h-5 text-white"></i>
+              </div>
+              <div>
+                <div class="text-[20px] font-semibold tracking-tight">28°<span class="text-[12px] text-[color:var(--ink-3)] ml-1">/ 22°</span></div>
+                <div class="text-[11px] text-[color:var(--ink-3)]">Partly cloudy · 18% rain</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Zoom-to-day modal -->
+  <div class="zoom-backdrop" id="zoomBackdrop"></div>
+  <div class="zoom-panel glass-strong soft-shadow" id="zoomPanel">
+    <div class="p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]" id="zDay">Friday</div>
+          <div class="text-[32px] font-bold tracking-[-0.03em]" id="zDate">April 18, 2026</div>
+        </div>
+        <button class="icon-btn" id="zClose"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div id="zBody" class="mt-5 flex flex-col gap-2"></div>
+    </div>
+  </div>
+
+<script>
+/* ---------- Mock data ---------- */
+const WEEK = [
+  { key:'mon', label:'Mon', date:14, events:[
+    { type:'meeting', title:'Standup',            time:'9:00 AM',  detail:'Platform pod · Focus room' },
+    { type:'task',    title:'Ship OTP fix',       time:'2:00 PM',  detail:'Security · Priority: High' },
+  ]},
+  { key:'tue', label:'Tue', date:15, events:[
+    { type:'task',    title:'Review PR #482',     time:'11:00 AM', detail:'Platform repo · 40 lines' },
+    { type:'activity',title:'Coffee ☕ Priya',    time:'4:00 PM',  detail:'Catch-up · 30 min' },
+  ]},
+  { key:'wed', label:'Wed', date:16, events:[
+    { type:'task',    title:'Invoicing v2 QA',    time:'10:00 AM', detail:'End-to-end pass with QA' },
+    { type:'meeting', title:'Vendor sync',        time:'3:30 PM',  detail:'Contracts · with Legal'   },
+    { type:'activity',title:'Team run 🏃',        time:'6:30 PM',  detail:'Cubbon Park · 5K loop'    },
+  ]},
+  { key:'thu', label:'Thu', date:17, events:[
+    { type:'leave',   title:'Aisha — Leave',      time:'All day',  detail:'Personal leave · back Mon' },
+    { type:'task',    title:'Roadmap slides',     time:'3:00 PM',  detail:'Prep for All-Hands Q2'     },
+  ]},
+  { key:'fri', label:'Fri', date:18, today:true, events:[
+    { type:'meeting', title:'Standup',            time:'9:00 AM',  detail:'Platform pod · Focus room' },
+    { type:'task',    title:'Review invoicing v2',time:'2:00 PM',  detail:'Priya · Due today'         },
+    { type:'meeting', title:'Brand sync',         time:'2:00 PM',  detail:'with Aisha, Meera'         },
+    { type:'task',    title:'Draft All-Hands',    time:'5:00 PM',  detail:'Outline + slides'          },
+    { type:'activity',title:'Team dinner',        time:'7:30 PM',  detail:'Koramangala · reserved 8'  },
+  ]},
+  { key:'sat', label:'Sat', date:19, weekend:true, events:[] },
+  { key:'sun', label:'Sun', date:20, weekend:true, events:[
+    { type:'activity',title:'Book club',          time:'6:00 PM',  detail:'Optional · company-wide'   },
+  ]},
+];
+
+/* ---------- Render week grid ---------- */
+const grid = document.getElementById('weekGrid');
+grid.innerHTML = WEEK.map((d, i) => `
+  <div class="day-cell ${d.weekend?'weekend':''} ${d.today?'today-cell':''}" data-day="${d.key}" style="animation-delay:${180 + i*35}ms">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="day-label">${d.label}</div>
+        <div class="day-num ${d.today?'grad-text':''}">${d.date}</div>
+      </div>
+      ${d.today?'<span class="text-[10px] px-2 py-0.5 rounded-full" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);color:white;font-weight:600;box-shadow:0 0 16px rgba(139,92,246,0.6)">TODAY</span>':''}
+    </div>
+    <div class="flex flex-col gap-1.5">
+      ${d.events.map(ev => `
+        <div class="chip ${ev.type}">
+          <span class="dot" style="${dotStyle(ev.type)}"></span>
+          <span class="truncate flex-1">${ev.title}</span>
+          <span class="time">${shortTime(ev.time)}</span>
+          <div class="tip">
+            <div class="text-[11px] font-semibold">${ev.title}</div>
+            <div class="text-[10px] text-[color:var(--ink-3)]">${ev.time} · ${ev.detail}</div>
+          </div>
+        </div>
+      `).join('') || '<div class="text-[11px] text-[color:var(--ink-3)] italic mt-1">— nothing scheduled —</div>'}
+    </div>
+  </div>
+`).join('');
+
+function dotStyle(t){
+  return ({
+    meeting:'background:linear-gradient(135deg,#6366F1,#8B5CF6)',
+    task:'background:linear-gradient(135deg,#10B981,#06B6D4)',
+    leave:'background:#F59E0B',
+    activity:'background:linear-gradient(135deg,#EC4899,#F472B6)',
+  })[t] || '';
+}
+function shortTime(t){ return t.replace(':00','').replace(' ',''); }
+
+/* Add staggered enter to each cell */
+document.querySelectorAll('.day-cell').forEach((el)=> el.classList.add('enter'));
+
+/* ---------- Tab underline ---------- */
+const tabsWrap = document.getElementById('viewTabs');
+const ink = document.getElementById('tabInk');
+function moveInk(btn){
+  const r = btn.getBoundingClientRect();
+  const pr = tabsWrap.getBoundingClientRect();
+  ink.style.width = r.width + 'px';
+  ink.style.transform = `translateX(${r.left - pr.left}px)`;
+}
+const tabButtons = tabsWrap.querySelectorAll('button');
+let active = tabsWrap.querySelector('[data-active="true"]');
+moveInk(active);
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    active.removeAttribute('data-active');
+    active.classList.remove('text-white');
+    active.classList.add('text-[color:var(--ink-2)]');
+    btn.setAttribute('data-active','true');
+    btn.classList.add('text-white');
+    btn.classList.remove('text-[color:var(--ink-2)]');
+    active = btn;
+    moveInk(btn);
+  });
+});
+window.addEventListener('resize', () => moveInk(active));
+
+/* ---------- Count up ---------- */
+function countUp(el){
+  const target = parseInt(el.dataset.count, 10);
+  const suffix = el.dataset.suffix || '';
+  const dur = 1100;
+  const start = performance.now();
+  function tick(now){
+    const t = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(target * eased) + suffix;
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e => {
+    if (e.isIntersecting){
+      countUp(e.target);
+      io.unobserve(e.target);
+    }
+  });
+}, { threshold:.4 });
+document.querySelectorAll('[data-count]').forEach(el => io.observe(el));
+
+/* Ring animate */
+setTimeout(()=>{
+  document.querySelectorAll('.ring-fill').forEach(c => {
+    const pct = parseInt(c.dataset.pct,10);
+    const C = 2 * Math.PI * 50;
+    c.style.strokeDashoffset = String(C * (1 - pct/100));
+  });
+}, 300);
+
+/* ---------- Zoom to day ---------- */
+const zb = document.getElementById('zoomBackdrop');
+const zp = document.getElementById('zoomPanel');
+const zBody = document.getElementById('zBody');
+const zDay = document.getElementById('zDay');
+const zDate = document.getElementById('zDate');
+const monthName = { 4:'April' }[4];
+
+function openDay(d){
+  const day = WEEK.find(x => x.key === d);
+  if (!day) return;
+  const fullName = { mon:'Monday', tue:'Tuesday', wed:'Wednesday', thu:'Thursday', fri:'Friday', sat:'Saturday', sun:'Sunday'}[d];
+  zDay.textContent = fullName;
+  zDate.textContent = `${monthName} ${day.date}, 2026`;
+  zBody.innerHTML = day.events.length
+    ? day.events.map(ev=>`
+      <div class="chip ${ev.type}" style="padding:12px 14px; font-size:13px">
+        <span class="dot" style="${dotStyle(ev.type)};width:8px;height:8px"></span>
+        <div class="flex-1">
+          <div class="font-semibold">${ev.title}</div>
+          <div class="text-[11px] text-[color:var(--ink-3)] mt-0.5">${ev.time} · ${ev.detail}</div>
+        </div>
+      </div>
+    `).join('')
+    : `<div class="text-[12px] text-[color:var(--ink-3)] italic">No events this day.</div>`;
+  zb.classList.add('open');
+  zp.classList.add('open');
+}
+function closeDay(){
+  zb.classList.remove('open');
+  zp.classList.remove('open');
+}
+zb.addEventListener('click', closeDay);
+document.getElementById('zClose').addEventListener('click', closeDay);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDay(); });
+
+document.querySelectorAll('.day-cell').forEach(el => {
+  el.addEventListener('click', (e) => {
+    // don't hijack chip clicks
+    if (e.target.closest('.chip')) return;
+    openDay(el.dataset.day);
+  });
+});
+
+/* Icons */
+lucide.createIcons();
+</script>
+</body>
+</html>

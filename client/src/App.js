@@ -46,6 +46,10 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <SocketProvider>
+        {/* Ambient gradient orbs */}
+        <div className="ad-orb ad-orb-a" />
+        <div className="ad-orb ad-orb-b" />
+        <div className="ad-orb ad-orb-c" />
         <Routes>
           {/* Auth (no layout) */}
           <Route path="/login" element={<Login />} />

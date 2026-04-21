@@ -508,7 +508,7 @@ export default function Messages() {
           <div className="msg-section-title"><span>Channels</span><span className="msg-section-add">+</span></div>
           {grouped.channel.map(ch => (
             <div key={ch._id} className={`msg-conv-item ${activeChannel?._id === ch._id ? 'active' : ''} ${ch.unreadCount > 0 ? 'unread' : ''}`} onClick={() => selectChannel(ch)}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#94A3B8', width: 20, textAlign: 'center' }}>#</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-3)', width: 20, textAlign: 'center' }}>#</span>
               <span className="msg-conv-name">{ch.name.replace('#', '')}</span>
               {ch.unreadCount > 0 && <span className="msg-unread-badge">{ch.unreadCount}</span>}
             </div>
@@ -585,7 +585,7 @@ export default function Messages() {
                 disabled={!user.aiActive}
                 title={user.aiActive ? 'Summarize conversation with AI' : 'AI not activated \u2014 go to Settings'}
                 onClick={() => user.aiActive ? handleAiSummarize() : void 0}
-                style={{ padding: '4px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 10, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+                style={{ padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 10, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
               >
                 {aiLoading ? 'Summarizing...' : '\u2728 Summarize'}
               </button>
@@ -593,7 +593,7 @@ export default function Messages() {
               <select
                 value={displayFormat}
                 onChange={e => setDisplayFormat(e.target.value)}
-                style={{ padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 10, color: '#475569', background: '#F8FAFC', fontFamily: 'Inter,sans-serif', cursor: 'pointer' }}
+                style={{ padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 10, color: 'var(--ink-2)', background: 'var(--glass)', fontFamily: 'Inter,sans-serif', cursor: 'pointer' }}
                 title="Switch display format"
               >
                 <option value="chat">💬 Chat</option>
@@ -614,25 +614,25 @@ export default function Messages() {
                 {displayFormat === 'chat' && messages.map(msg => renderMessageBubble(msg, false))}
 
                 {displayFormat === 'email' && messages.filter(m => m.type !== 'system').map(msg => (
-                  <div key={msg._id} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, borderBottom: '1px solid #F0F2F7', paddingBottom: 6 }}>
-                      <div><span style={{ fontSize: 11, fontWeight: 700, color: '#1E293B' }}>{msg.sender?.name}</span><span style={{ fontSize: 10, color: '#94A3B8', marginLeft: 8 }}>&lt;{msg.sender?.email}&gt;</span></div>
-                      <span style={{ fontSize: 10, color: '#CBD5E1' }}>{new Date(msg.createdAt).toLocaleString()}</span>
+                  <div key={msg._id} style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 14, marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, borderBottom: '1px solid var(--line)', paddingBottom: 6 }}>
+                      <div><span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>{msg.sender?.name}</span><span style={{ fontSize: 10, color: 'var(--ink-3)', marginLeft: 8 }}>&lt;{msg.sender?.email}&gt;</span></div>
+                      <span style={{ fontSize: 10, color: 'var(--ink-4)' }}>{new Date(msg.createdAt).toLocaleString()}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{msg.content}</div>
                   </div>
                 ))}
 
                 {displayFormat === 'table' && (
-                  <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 120px', padding: '8px 12px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: 9, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>
+                  <div style={{ background: 'var(--glass)', borderRadius: 8, border: '1px solid var(--line)', overflow: 'hidden' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 120px', padding: '8px 12px', background: 'var(--glass)', borderBottom: '1px solid var(--line)', fontSize: 9, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase' }}>
                       <div>Sender</div><div>Time</div><div>Message</div><div>Attachments</div>
                     </div>
                     {messages.filter(m => m.type !== 'system').map(msg => (
-                      <div key={msg._id} style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 120px', padding: '8px 12px', borderBottom: '1px solid #F0F2F7', fontSize: 11, alignItems: 'center' }}>
-                        <div style={{ fontWeight: 600, color: '#1E293B' }}>{msg.sender?.name}</div>
-                        <div style={{ color: '#94A3B8', fontSize: 10 }}>{new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
-                        <div style={{ color: '#475569' }}>{msg.content}</div>
+                      <div key={msg._id} style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 120px', padding: '8px 12px', borderBottom: '1px solid var(--line)', fontSize: 11, alignItems: 'center' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{msg.sender?.name}</div>
+                        <div style={{ color: 'var(--ink-3)', fontSize: 10 }}>{new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div style={{ color: 'var(--ink-2)' }}>{msg.content}</div>
                         <div>{msg.file ? '📎 ' + msg.file.name : '—'}</div>
                       </div>
                     ))}
@@ -651,9 +651,9 @@ export default function Messages() {
                       <div style={{ fontSize: 11, fontWeight: 700, color: '#6366F1', background: 'rgba(99,102,241,0.06)', padding: '6px 12px', borderRadius: 6, marginBottom: 6 }}>{date}</div>
                       {msgs.map(msg => (
                         <div key={msg._id} style={{ display: 'flex', gap: 8, padding: '4px 12px', fontSize: 11 }}>
-                          <span style={{ color: '#94A3B8', width: 60, flexShrink: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>{new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                          <span style={{ fontWeight: 600, color: '#1E293B', width: 100, flexShrink: 0 }}>{msg.sender?.name}</span>
-                          <span style={{ color: '#475569' }}>{msg.content}</span>
+                          <span style={{ color: 'var(--ink-3)', width: 60, flexShrink: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>{new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span style={{ fontWeight: 600, color: 'var(--ink)', width: 100, flexShrink: 0 }}>{msg.sender?.name}</span>
+                          <span style={{ color: 'var(--ink-2)' }}>{msg.content}</span>
                         </div>
                       ))}
                     </div>
@@ -661,19 +661,19 @@ export default function Messages() {
                 })()}
 
                 {displayFormat === 'document' && (
-                  <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #E2E8F0', padding: '24px 32px', maxWidth: 640, margin: '0 auto' }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1E293B', marginBottom: 4, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                  <div style={{ background: 'var(--glass)', borderRadius: 8, border: '1px solid var(--line)', padding: '24px 32px', maxWidth: 640, margin: '0 auto' }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 4, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
                       {activeChannel?.name || 'Conversation'}
                     </h2>
-                    <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #F0F2F7' }}>
+                    <div style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--line)' }}>
                       {messages.length} messages · {activeChannel?.members?.length} members
                     </div>
                     {messages.filter(m => m.type !== 'system').map(msg => (
                       <div key={msg._id} style={{ marginBottom: 12 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#1E293B' }}>
-                          {msg.sender?.name} <span style={{ fontWeight: 400, color: '#CBD5E1' }}>— {new Date(msg.createdAt).toLocaleString()}</span>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>
+                          {msg.sender?.name} <span style={{ fontWeight: 400, color: 'var(--ink-4)' }}>— {new Date(msg.createdAt).toLocaleString()}</span>
                         </div>
-                        <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.7, paddingLeft: 0, marginTop: 2 }}>{msg.content}</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7, paddingLeft: 0, marginTop: 2 }}>{msg.content}</div>
                       </div>
                     ))}
                   </div>
@@ -693,9 +693,9 @@ export default function Messages() {
                   <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: 14, margin: '8px 0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: '#6366F1' }}>AI Summary</span>
-                      <button onClick={() => setAiSummary(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#94A3B8' }}>&times;</button>
+                      <button onClick={() => setAiSummary(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--ink-3)' }}>&times;</button>
                     </div>
-                    <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{aiSummary}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{aiSummary}</div>
                   </div>
                 )}
                 <div ref={chatEndRef} />
@@ -721,17 +721,17 @@ export default function Messages() {
 
               {/* @mention dropdown */}
               {showMentionDropdown && (
-                <div style={{ position: 'absolute', bottom: '100%', left: 60, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 180, overflowY: 'auto', zIndex: 20, minWidth: 180 }}>
+                <div style={{ position: 'absolute', bottom: '100%', left: 60, background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 180, overflowY: 'auto', zIndex: 20, minWidth: 180 }}>
                   {mentionResults.map(m => (
                     <div key={m._id} onClick={() => selectMention(m)}
-                      style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #F0F2F7' }}
+                      style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line)' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.06)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <div style={{ width: 24, height: 24, borderRadius: '50%', background: getGradient(m._id), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>
                         {getInitials(m.name)}
                       </div>
-                      <span style={{ fontWeight: 600, color: '#1E293B' }}>{m.name}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{m.name}</span>
                     </div>
                   ))}
                 </div>
@@ -873,8 +873,8 @@ export default function Messages() {
         <div className="msg-empty">
           <div className="msg-empty-inner">
             <div className="msg-empty-icon">💬</div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>Select a conversation</h3>
-            <p style={{ fontSize: 12, color: '#94A3B8' }}>Choose a channel, DM, or room from the sidebar</p>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Select a conversation</h3>
+            <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>Choose a channel, DM, or room from the sidebar</p>
           </div>
         </div>
       )}

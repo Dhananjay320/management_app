@@ -27,12 +27,12 @@ export default function Placeholder() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 140px)' }}>
       <div className="card" style={{ textAlign: 'center', padding: 40, maxWidth: 420 }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>{info.icon}</div>
-        <h2 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 22, fontWeight: 800, color: '#1E293B', marginBottom: 8 }}>
+        <h2 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 22, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>
           {info.title}
         </h2>
-        <p style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.7, marginBottom: 20 }}>
+        <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 20 }}>
           {info.desc}<br />
-          <span style={{ fontSize: 11, color: '#CBD5E1' }}>This module will be built in an upcoming phase.</span>
+          <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>This module will be built in an upcoming phase.</span>
         </p>
         <div style={{ display: 'inline-flex', padding: '6px 14px', background: 'rgba(99,102,241,0.06)', color: '#6366F1', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
           Phase 3+

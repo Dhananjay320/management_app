@@ -90,7 +90,7 @@ export default function SettingsPage() {
     } catch {}
   };
 
-  if (loading) return <div style={{ padding: 20, color: '#94A3B8' }}>Loading...</div>;
+  if (loading) return <div style={{ padding: 20, color: 'var(--ink-3)' }}>Loading...</div>;
 
   return (
     <div className="ai-settings">
@@ -103,8 +103,8 @@ export default function SettingsPage() {
             <span className="ai-status-title">{company.name || 'Company Info'}</span>
           </div>
           {company.tagline && <div style={{ fontSize: 12, color: '#6366F1', fontWeight: 600, marginBottom: 6 }}>{company.tagline}</div>}
-          {company.about && <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5, marginBottom: 8 }}>{company.about}</div>}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11, color: '#94A3B8' }}>
+          {company.about && <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 8 }}>{company.about}</div>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11, color: 'var(--ink-3)' }}>
             {company.email && <span>✉️ {company.email}</span>}
             {company.phone && <span>📞 {company.phone}</span>}
             {company.address && <span>📍 {company.address}</span>}
@@ -225,7 +225,7 @@ export default function SettingsPage() {
       {_user?.role === 'main_admin' && (
         <div className="ai-activate-form" style={{ marginTop: 16 }}>
           <h3>Company AI Key</h3>
-          <p style={{ fontSize: 11, color: '#94A3B8', marginBottom: 12 }}>
+          <p style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 12 }}>
             Set a company-wide fallback AI key. High-priority features will use this key when a user&apos;s personal key is not configured or fails.
           </p>
 
@@ -314,12 +314,12 @@ export default function SettingsPage() {
               <div style={{ flex: 1 }}>
                 <span className="ai-feature-item-label">{f.label}</span>
                 <span className={`ai-feature-item-priority ${f.priority}`} style={{ marginLeft: 6 }}>{f.priority}</span>
-                <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 1 }}>{f.trigger}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 1 }}>{f.trigger}</div>
               </div>
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 12, fontSize: 10, color: '#94A3B8', lineHeight: 1.5 }}>
+        <div style={{ marginTop: 12, fontSize: 10, color: 'var(--ink-3)', lineHeight: 1.5 }}>
           <strong>High priority</strong> features use company fallback key if your quota is exhausted.<br />
           <strong>Low priority</strong> features notify you to try again later.
         </div>

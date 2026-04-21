@@ -105,7 +105,7 @@ export default function MeetingsPage() {
 
       {/* List */}
       {view === 'list' && (
-        loading ? <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading...</div> : (
+        loading ? <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading...</div> : (
           meetings.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: 40 }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>👥</div>
@@ -136,7 +136,7 @@ export default function MeetingsPage() {
                     </div>
                   ))}
                 </div>
-                <span style={{ fontSize: 10, color: '#94A3B8' }}>{m.attendees?.length} attendees</span>
+                <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{m.attendees?.length} attendees</span>
               </div>
             </div>
           ))
@@ -197,7 +197,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
         <div className="card" style={{ marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1E293B', marginBottom: 4 }}>{meeting.title}</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', marginBottom: 4 }}>{meeting.title}</h2>
               <div style={{ display: 'flex', gap: 6 }}>
                 <span className="badge-pill" style={{ background: meeting.type === 'online' ? 'rgba(99,102,241,0.08)' : 'rgba(139,92,246,0.08)', color: meeting.type === 'online' ? '#6366F1' : '#8B5CF6' }}>
                   {meeting.type === 'online' ? '🖥 Online' : '🏢 Offline'}
@@ -231,21 +231,21 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
               <span style={{ fontSize: 18 }}>📹</span>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#10B981' }}>Join Meeting</div>
-                <div style={{ fontSize: 10, color: '#94A3B8' }}>{meeting.googleMeetLink}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>{meeting.googleMeetLink}</div>
               </div>
             </div>
           )}
 
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>Agenda</div>
-            <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.7, background: '#F8FAFC', borderRadius: 8, padding: 12 }}>{meeting.agenda}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Agenda</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7, background: 'var(--glass)', borderRadius: 8, padding: 12 }}>{meeting.agenda}</div>
           </div>
 
           {/* My Response */}
           {isUpcoming && myAttendee && (
             <div style={{ marginTop: 12 }}>
               <div style={{ display: 'flex', gap: 8 }}>
-                <span style={{ fontSize: 11, color: '#94A3B8', alignSelf: 'center' }}>Your response:</span>
+                <span style={{ fontSize: 11, color: 'var(--ink-3)', alignSelf: 'center' }}>Your response:</span>
                 <button className={`btn ${myAttendee.response === 'confirmed' ? 'btn-primary-sm' : 'btn-secondary'}`}
                   style={{ padding: '6px 12px', fontSize: 10 }} onClick={() => onRespond('confirmed')}>
                   ✓ Confirm
@@ -265,7 +265,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
                     value={declineReason}
                     onChange={e => setDeclineReason(e.target.value)}
                     placeholder="Reason for declining (optional)..."
-                    style={{ flex: 1, padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, outline: 'none', fontFamily: 'Inter, sans-serif' }}
+                    style={{ flex: 1, padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, outline: 'none', fontFamily: 'Inter, sans-serif' }}
                     autoFocus
                   />
                   <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 10, color: '#EF4444', borderColor: '#EF4444' }}
@@ -285,13 +285,13 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
         {/* MoMs */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>Minutes of Meeting</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Minutes of Meeting</div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button
                 disabled={!user.aiActive}
                 title={user.aiActive ? 'Click to use AI' : 'AI not activated \u2014 go to Settings'}
                 onClick={() => user.aiActive ? handleAiMom() : void 0}
-                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid #E2E8F0', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid var(--line)', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
               >
                 {'\u2728'} Analyse MoM
               </button>
@@ -299,7 +299,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
                 disabled={!user.aiActive}
                 title={user.aiActive ? 'Click to use AI' : 'AI not activated \u2014 go to Settings'}
                 onClick={() => user.aiActive ? handleAiSummary() : void 0}
-                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid #E2E8F0', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid var(--line)', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
               >
                 {'\u2728'} Generate Summary
               </button>
@@ -324,9 +324,9 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
             <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: 14, marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#6366F1' }}>AI Result</span>
-                <button onClick={() => setAiResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#94A3B8' }}>&times;</button>
+                <button onClick={() => setAiResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--ink-3)' }}>&times;</button>
               </div>
-              <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{aiResult}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{aiResult}</div>
             </div>
           )}
 
@@ -349,7 +349,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
       {/* Sidebar — Attendees */}
       <div className="mtg-detail-side">
         <div className="card">
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>
             Attendees ({meeting.attendees?.length})
           </div>
           {meeting.attendees?.map((a, i) => (
@@ -357,8 +357,8 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div className="avatar-sm" style={{ background: getGrad(a.user?._id), width: 28, height: 28, fontSize: 10 }}>{initials(a.user?.name)}</div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#1E293B' }}>{a.user?.name}</div>
-                  <div style={{ fontSize: 9, color: '#94A3B8' }}>{a.user?.jobTitle || a.user?.email}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)' }}>{a.user?.name}</div>
+                  <div style={{ fontSize: 9, color: 'var(--ink-3)' }}>{a.user?.jobTitle || a.user?.email}</div>
                 </div>
               </div>
               <span className="mtg-response-badge" style={{ background: (responseColors[a.response] || '#94A3B8') + '14', color: responseColors[a.response] || '#94A3B8' }}>
@@ -406,7 +406,7 @@ function MomEditor({ mom, onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button className="btn btn-secondary" onClick={() => { save(); onBack(); }}>← Back</button>
           <input value={title} onChange={e => setTitle(e.target.value)}
-            style={{ fontSize: 18, fontWeight: 800, border: 'none', outline: 'none', background: 'transparent', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1E293B' }} />
+            style={{ fontSize: 18, fontWeight: 800, border: 'none', outline: 'none', background: 'transparent', fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--ink)' }} />
           {mom.type === 'scratchpad' && <span className="badge-pill" style={{ background: 'rgba(245,158,11,0.08)', color: '#F59E0B' }}>Private Scratchpad</span>}
           {published && <span className="badge-pill" style={{ background: 'rgba(139,92,246,0.08)', color: '#8B5CF6' }}>Published</span>}
         </div>
@@ -475,7 +475,7 @@ function CreateMeeting({ users, userId, onBack, onCreated }) {
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Type *</label>
+          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>Type *</label>
           <div className="mtg-type-toggle">
             <div className={`mtg-type-btn ${form.type === 'online' ? 'active' : ''}`} onClick={() => setForm(p => ({ ...p, type: 'online' }))}>🖥 Online</div>
             <div className={`mtg-type-btn ${form.type === 'offline' ? 'active' : ''}`} onClick={() => setForm(p => ({ ...p, type: 'offline' }))}>🏢 Offline</div>
@@ -500,13 +500,13 @@ function CreateMeeting({ users, userId, onBack, onCreated }) {
           <div className="form-field" style={{ marginBottom: 14 }}>
             <label>Meeting Link (Google Meet / Zoom / Teams)</label>
             <input value={form.meetingLink} onChange={e => setForm(p => ({ ...p, meetingLink: e.target.value }))} placeholder="Paste your meeting link here, e.g. https://meet.google.com/abc-defg-hij" />
-            <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 4 }}>Paste the link from your video conferencing provider. Attendees will see this link on the meeting page.</div>
+            <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 4 }}>Paste the link from your video conferencing provider. Attendees will see this link on the meeting page.</div>
           </div>
         )}
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Attendees *</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: 10, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
+          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>Attendees *</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: 10, background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, maxHeight: 160, overflowY: 'auto' }}>
             {users.filter(u => u._id !== userId).map(u => (
               <div key={u._id} onClick={() => toggleAttendee(u._id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 500, cursor: 'pointer',

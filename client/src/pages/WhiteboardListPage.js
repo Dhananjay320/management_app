@@ -35,7 +35,7 @@ export default function WhiteboardListPage() {
     } catch {}
   };
 
-  if (loading) return <div style={{ padding: 20, color: '#94A3B8' }}>Loading whiteboards...</div>;
+  if (loading) return <div style={{ padding: 20, color: 'var(--ink-3)' }}>Loading whiteboards...</div>;
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
@@ -52,7 +52,7 @@ export default function WhiteboardListPage() {
         <div
           onClick={createBoard}
           style={{
-            background: '#fff',
+            background: 'var(--glass)',
             border: '2px dashed #E2E8F0',
             borderRadius: 12,
             padding: 24,
@@ -67,7 +67,7 @@ export default function WhiteboardListPage() {
           onMouseEnter={e => e.currentTarget.style.borderColor = '#6366F1'}
           onMouseLeave={e => e.currentTarget.style.borderColor = '#E2E8F0'}
         >
-          <div style={{ fontSize: 32, color: '#94A3B8', marginBottom: 8 }}>+</div>
+          <div style={{ fontSize: 32, color: 'var(--ink-3)', marginBottom: 8 }}>+</div>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#6366F1' }}>New Whiteboard</div>
         </div>
 
@@ -79,19 +79,19 @@ export default function WhiteboardListPage() {
             onClick={() => navigate(`/whiteboards/${board._id}`)}
           >
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B', marginBottom: 6 }}>{board.title}</div>
-              <div style={{ fontSize: 11, color: '#94A3B8' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{board.title}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>
                 {board.shapes?.length || 0} shapes
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-              <div style={{ fontSize: 10, color: '#94A3B8' }}>
+              <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>
                 {board.owner?.name || 'Unknown'} &middot; {new Date(board.updatedAt).toLocaleDateString()}
               </div>
               {(board.owner?._id === user?._id || user?.role === 'main_admin') && (
                 <button
                   onClick={(e) => deleteBoard(board._id, e)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#94A3B8', padding: '2px 6px', borderRadius: 4 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--ink-3)', padding: '2px 6px', borderRadius: 4 }}
                   title="Delete"
                 >
                   x
@@ -103,7 +103,7 @@ export default function WhiteboardListPage() {
       </div>
 
       {boards.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)', fontSize: 13 }}>
           No whiteboards yet. Create one to start collaborating!
         </div>
       )}

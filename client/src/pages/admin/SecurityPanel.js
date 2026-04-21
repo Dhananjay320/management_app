@@ -126,7 +126,7 @@ export default function SecurityPanel() {
   };
 
   const renderOtps = () => {
-    if (otps.length === 0) return <div style={{ padding: 32, textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>No pending OTPs.</div>;
+    if (otps.length === 0) return <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>No pending OTPs.</div>;
     return (
       <div className="table-container">
         <div className="table-header" style={{ gridTemplateColumns: '1fr 120px 120px 100px' }}>
@@ -138,8 +138,8 @@ export default function SecurityPanel() {
         {otps.map(otp => (
           <div key={otp._id} className="table-row" style={{ gridTemplateColumns: '1fr 120px 120px 100px' }}>
             <div>
-              <div style={{ fontWeight: 600, color: '#1E293B' }}>{otp.userId?.name || 'Unknown'}</div>
-              <div style={{ fontSize: 10, color: '#94A3B8' }}>{otp.userId?.email || ''}</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{otp.userId?.name || 'Unknown'}</div>
+              <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>{otp.userId?.email || ''}</div>
             </div>
             <div>
               <span style={{
@@ -152,7 +152,7 @@ export default function SecurityPanel() {
                 borderRadius: 6,
               }}>{otp.code}</span>
             </div>
-            <div style={{ color: '#64748B', fontSize: 11 }}>{timeAgo(otp.createdAt)}</div>
+            <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{timeAgo(otp.createdAt)}</div>
             <div>
               <span className="badge-pill" style={{
                 background: countdown(otp.expiresAt) === 'Expired' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)',
@@ -166,7 +166,7 @@ export default function SecurityPanel() {
   };
 
   const renderLocks = () => {
-    if (locks.length === 0) return <div style={{ padding: 32, textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>No locked accounts.</div>;
+    if (locks.length === 0) return <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>No locked accounts.</div>;
     return (
       <div className="table-container">
         <div className="table-header" style={{ gridTemplateColumns: '1fr 1fr 120px 80px 100px' }}>
@@ -178,9 +178,9 @@ export default function SecurityPanel() {
         </div>
         {locks.map(user => (
           <div key={user._id} className="table-row" style={{ gridTemplateColumns: '1fr 1fr 120px 80px 100px' }}>
-            <div style={{ fontWeight: 600, color: '#1E293B' }}>{user.name}</div>
-            <div style={{ color: '#64748B' }}>{user.email}</div>
-            <div style={{ color: '#64748B', fontSize: 11 }}>{timeAgo(user.lockedAt)}</div>
+            <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{user.name}</div>
+            <div style={{ color: 'var(--ink-2)' }}>{user.email}</div>
+            <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{timeAgo(user.lockedAt)}</div>
             <div>
               <span className="badge-pill" style={{ background: 'rgba(239,68,68,0.08)', color: '#EF4444' }}>
                 {user.failedLoginAttempts}
@@ -203,7 +203,7 @@ export default function SecurityPanel() {
   };
 
   const renderSessions = () => {
-    if (sessions.length === 0) return <div style={{ padding: 32, textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>No active sessions.</div>;
+    if (sessions.length === 0) return <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>No active sessions.</div>;
     return (
       <div className="table-container">
         <div className="table-header" style={{ gridTemplateColumns: '1fr 1fr 100px 120px 100px' }}>
@@ -215,8 +215,8 @@ export default function SecurityPanel() {
         </div>
         {sessions.map(user => (
           <div key={user._id} className="table-row" style={{ gridTemplateColumns: '1fr 1fr 100px 120px 100px' }}>
-            <div style={{ fontWeight: 600, color: '#1E293B' }}>{user.name}</div>
-            <div style={{ color: '#64748B' }}>{user.email}</div>
+            <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{user.name}</div>
+            <div style={{ color: 'var(--ink-2)' }}>{user.email}</div>
             <div>
               <span className="badge-pill" style={{
                 background: user.role === 'main_admin' ? 'rgba(99,102,241,0.08)' : user.role === 'admin' ? 'rgba(249,115,22,0.08)' : 'rgba(16,185,129,0.08)',
@@ -225,7 +225,7 @@ export default function SecurityPanel() {
                 {user.role === 'main_admin' ? 'Main Admin' : user.role === 'admin' ? 'Admin' : 'Employee'}
               </span>
             </div>
-            <div style={{ color: '#64748B', fontSize: 11 }}>{formatDate(user.lastLogin)}</div>
+            <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{formatDate(user.lastLogin)}</div>
             <div>
               <button
                 className="btn btn-secondary"
@@ -245,14 +245,14 @@ export default function SecurityPanel() {
   const renderResets = () => {
     const { otpResets, passwordChanges } = resets;
     if (otpResets.length === 0 && passwordChanges.length === 0) {
-      return <div style={{ padding: 32, textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>No password reset history.</div>;
+      return <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>No password reset history.</div>;
     }
     return (
       <div>
         {/* OTP-based resets */}
         {otpResets.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10 }}>OTP-Based Resets</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>OTP-Based Resets</div>
             <div className="table-container">
               <div className="table-header" style={{ gridTemplateColumns: '1fr 1fr 150px' }}>
                 <div>User</div>
@@ -261,9 +261,9 @@ export default function SecurityPanel() {
               </div>
               {otpResets.map(otp => (
                 <div key={otp._id} className="table-row" style={{ gridTemplateColumns: '1fr 1fr 150px' }}>
-                  <div style={{ fontWeight: 600, color: '#1E293B' }}>{otp.userId?.name || 'Unknown'}</div>
-                  <div style={{ color: '#64748B' }}>{otp.userId?.email || ''}</div>
-                  <div style={{ color: '#64748B', fontSize: 11 }}>{formatDate(otp.usedAt)}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{otp.userId?.name || 'Unknown'}</div>
+                  <div style={{ color: 'var(--ink-2)' }}>{otp.userId?.email || ''}</div>
+                  <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{formatDate(otp.usedAt)}</div>
                 </div>
               ))}
             </div>
@@ -273,7 +273,7 @@ export default function SecurityPanel() {
         {/* Password changes (first-login) */}
         {passwordChanges.length > 0 && (
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10 }}>First-Login Password Changes</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>First-Login Password Changes</div>
             <div className="table-container">
               <div className="table-header" style={{ gridTemplateColumns: '1fr 1fr 150px' }}>
                 <div>User</div>
@@ -282,9 +282,9 @@ export default function SecurityPanel() {
               </div>
               {passwordChanges.map(user => (
                 <div key={user._id} className="table-row" style={{ gridTemplateColumns: '1fr 1fr 150px' }}>
-                  <div style={{ fontWeight: 600, color: '#1E293B' }}>{user.name}</div>
-                  <div style={{ color: '#64748B' }}>{user.email}</div>
-                  <div style={{ color: '#64748B', fontSize: 11 }}>{formatDate(user.updatedAt)}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{user.name}</div>
+                  <div style={{ color: 'var(--ink-2)' }}>{user.email}</div>
+                  <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{formatDate(user.updatedAt)}</div>
                 </div>
               ))}
             </div>
@@ -307,7 +307,7 @@ export default function SecurityPanel() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#fff', padding: 4, borderRadius: 10, width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: 'var(--glass)', padding: 4, borderRadius: 10, width: 'fit-content' }}>
         {TABS.map(t => (
           <button key={t.key} style={tabStyle(tab === t.key)} onClick={() => { setTab(t.key); setSuccess(''); setError(''); }}>
             {t.label}
@@ -321,7 +321,7 @@ export default function SecurityPanel() {
 
       {/* Content */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading...</div>
       ) : (
         <>
           {tab === 'otps' && renderOtps()}

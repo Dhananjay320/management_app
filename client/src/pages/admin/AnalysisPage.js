@@ -43,14 +43,14 @@ function StatCard({ label, value, subtitle, color, total }) {
   const pct = total ? Math.round((value / total) * 100) : null;
   return (
     <div className="card" style={{ padding: 20, flex: 1, minWidth: 160 }}>
-      <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 8, fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 8, fontWeight: 500 }}>{label}</div>
       <div style={{ fontSize: 28, fontWeight: 800, color: color || '#1E293B', lineHeight: 1 }}>{value}</div>
-      {subtitle && <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>{subtitle}</div>}
+      {subtitle && <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4 }}>{subtitle}</div>}
       {pct !== null && (
         <div style={{ marginTop: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 10, color: '#94A3B8' }}>{pct}%</span>
-            <span style={{ fontSize: 10, color: '#94A3B8' }}>{value}/{total}</span>
+            <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{pct}%</span>
+            <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>{value}/{total}</span>
           </div>
           <div style={{ height: 6, background: '#F1F5F9', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, background: color || '#6366F1', borderRadius: 3, transition: 'width 0.3s' }} />
@@ -199,7 +199,7 @@ export default function AnalysisPage() {
         </div>
 
         {!selectedUser && (
-          <div style={{ padding: 40, textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>
             Select an employee above to view their stats.
           </div>
         )}
@@ -207,7 +207,7 @@ export default function AnalysisPage() {
         {selectedUser && individualStats && (
           <>
             {/* Attendance stats */}
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10 }}>Attendance</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>Attendance</div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               <StatCard
                 label="This Week"
@@ -232,7 +232,7 @@ export default function AnalysisPage() {
             </div>
 
             {/* Task stats */}
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10 }}>Tasks</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>Tasks</div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               <StatCard
                 label="Total Tasks"
@@ -259,9 +259,9 @@ export default function AnalysisPage() {
             </div>
 
             {/* Leave history */}
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10 }}>Leave History</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>Leave History</div>
             {individualLeaves.length === 0 ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>No leave records.</div>
+              <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink-3)', fontSize: 12 }}>No leave records.</div>
             ) : (
               <div className="table-container">
                 <div className="table-header" style={{ gridTemplateColumns: '100px 100px 100px 1fr 80px' }}>
@@ -279,9 +279,9 @@ export default function AnalysisPage() {
                         color: l.type === 'half_day' ? '#F59E0B' : '#6366F1',
                       }}>{l.type === 'half_day' ? 'Half Day' : 'Full Day'}</span>
                     </div>
-                    <div style={{ color: '#64748B', fontSize: 11 }}>{l.startDate}</div>
-                    <div style={{ color: '#64748B', fontSize: 11 }}>{l.endDate}</div>
-                    <div style={{ color: '#64748B', fontSize: 11 }}>{l.reason}</div>
+                    <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{l.startDate}</div>
+                    <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{l.endDate}</div>
+                    <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{l.reason}</div>
                     <div>
                       <span className="badge-pill" style={{
                         background: l.status === 'approved' ? 'rgba(16,185,129,0.08)' : l.status === 'rejected' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)',
@@ -294,9 +294,9 @@ export default function AnalysisPage() {
             )}
 
             {/* Attendance records */}
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10, marginTop: 20 }}>Attendance Records</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10, marginTop: 20 }}>Attendance Records</div>
             {individualAttendance.length === 0 ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>No attendance records for this period.</div>
+              <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink-3)', fontSize: 12 }}>No attendance records for this period.</div>
             ) : (
               <div className="table-container">
                 <div className="table-header" style={{ gridTemplateColumns: '100px 100px 100px 80px 80px' }}>
@@ -308,10 +308,10 @@ export default function AnalysisPage() {
                 </div>
                 {individualAttendance.slice(0, 31).map(r => (
                   <div key={r._id || r.date} className="table-row" style={{ gridTemplateColumns: '100px 100px 100px 80px 80px' }}>
-                    <div style={{ color: '#1E293B', fontWeight: 500, fontSize: 11 }}>{r.date}</div>
-                    <div style={{ color: '#64748B', fontSize: 11 }}>{r.entryTime ? new Date(r.entryTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                    <div style={{ color: '#64748B', fontSize: 11 }}>{r.wrapUpTime ? new Date(r.wrapUpTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                    <div style={{ color: '#64748B', fontSize: 11 }}>{r.totalHours ? `${r.totalHours}h` : '—'}</div>
+                    <div style={{ color: 'var(--ink)', fontWeight: 500, fontSize: 11 }}>{r.date}</div>
+                    <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{r.entryTime ? new Date(r.entryTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                    <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{r.wrapUpTime ? new Date(r.wrapUpTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                    <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{r.totalHours ? `${r.totalHours}h` : '—'}</div>
                     <div>
                       <span className="badge-pill" style={{
                         background: r.status === 'present' ? 'rgba(16,185,129,0.08)' : r.status === 'leave' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)',
@@ -329,7 +329,7 @@ export default function AnalysisPage() {
   };
 
   const renderTeam = () => {
-    if (!teamData) return <div style={{ padding: 40, textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>Loading team data...</div>;
+    if (!teamData) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Loading team data...</div>;
 
     const marked = teamData.marked || [];
     const unmarked = teamData.unmarked || [];
@@ -344,7 +344,7 @@ export default function AnalysisPage() {
         </div>
 
         {/* Present */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10 }}>Present ({marked.length})</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>Present ({marked.length})</div>
         {marked.length > 0 ? (
           <div className="table-container" style={{ marginBottom: 20 }}>
             <div className="table-header" style={{ gridTemplateColumns: '1fr 1fr 120px' }}>
@@ -354,20 +354,20 @@ export default function AnalysisPage() {
             </div>
             {marked.map(r => (
               <div key={r._id} className="table-row" style={{ gridTemplateColumns: '1fr 1fr 120px' }}>
-                <div style={{ fontWeight: 600, color: '#1E293B' }}>{r.user?.name || 'Unknown'}</div>
-                <div style={{ color: '#64748B', fontSize: 11 }}>{r.user?.jobTitle || '—'}</div>
-                <div style={{ color: '#64748B', fontSize: 11 }}>
+                <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{r.user?.name || 'Unknown'}</div>
+                <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{r.user?.jobTitle || '—'}</div>
+                <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>
                   {r.entryTime ? new Date(r.entryTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ padding: 16, textAlign: 'center', color: '#94A3B8', fontSize: 12, marginBottom: 20 }}>No entries marked yet.</div>
+          <div style={{ padding: 16, textAlign: 'center', color: 'var(--ink-3)', fontSize: 12, marginBottom: 20 }}>No entries marked yet.</div>
         )}
 
         {/* Not marked */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10 }}>Not Marked ({unmarked.length})</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>Not Marked ({unmarked.length})</div>
         {unmarked.length > 0 ? (
           <div className="table-container">
             <div className="table-header" style={{ gridTemplateColumns: '1fr 1fr' }}>
@@ -376,31 +376,31 @@ export default function AnalysisPage() {
             </div>
             {unmarked.map(u => (
               <div key={u._id} className="table-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <div style={{ fontWeight: 600, color: '#1E293B' }}>{u.name}</div>
-                <div style={{ color: '#64748B' }}>{u.email}</div>
+                <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{u.name}</div>
+                <div style={{ color: 'var(--ink-2)' }}>{u.email}</div>
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ padding: 16, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>Everyone has marked entry.</div>
+          <div style={{ padding: 16, textAlign: 'center', color: 'var(--ink-3)', fontSize: 12 }}>Everyone has marked entry.</div>
         )}
       </div>
     );
   };
 
   const renderCompany = () => {
-    if (!companyStats) return <div style={{ padding: 40, textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>Loading company stats...</div>;
+    if (!companyStats) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-3)', fontSize: 13 }}>Loading company stats...</div>;
 
     return (
       <div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10 }}>Workforce Overview</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>Workforce Overview</div>
         <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           <StatCard label="Total Employees" value={companyStats.totalEmployees} color="#6366F1" />
           <StatCard label="Present Today" value={companyStats.presentToday} total={companyStats.totalEmployees} color="#10B981" subtitle={`of ${companyStats.totalEmployees}`} />
           <StatCard label="Absent Today" value={companyStats.absentToday} total={companyStats.totalEmployees} color="#EF4444" subtitle={`of ${companyStats.totalEmployees}`} />
         </div>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10 }}>Task Overview</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10 }}>Task Overview</div>
         <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           <StatCard label="Total Tasks" value={companyStats.totalTasks} color="#475569" />
           <StatCard label="Completed" value={companyStats.completedTasks} total={companyStats.totalTasks || 1} color="#10B981" subtitle="completion rate" />
@@ -409,7 +409,7 @@ export default function AnalysisPage() {
 
         {/* Attendance rate visual */}
         <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 12 }}>Today's Attendance Rate</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 12 }}>Today's Attendance Rate</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{
               width: 80, height: 80, borderRadius: '50%',
@@ -417,7 +417,7 @@ export default function AnalysisPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <div style={{
-                width: 60, height: 60, borderRadius: '50%', background: '#fff',
+                width: 60, height: 60, borderRadius: '50%', background: 'var(--glass)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 16, fontWeight: 800, color: '#10B981',
               }}>
@@ -425,8 +425,8 @@ export default function AnalysisPage() {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#1E293B' }}>{companyStats.presentToday} of {companyStats.totalEmployees} employees present</div>
-              <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>{companyStats.absentToday} not yet marked</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{companyStats.presentToday} of {companyStats.totalEmployees} employees present</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4 }}>{companyStats.absentToday} not yet marked</div>
             </div>
           </div>
         </div>
@@ -444,7 +444,7 @@ export default function AnalysisPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 12, background: '#fff', padding: 4, borderRadius: 10, width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, background: 'var(--glass)', padding: 4, borderRadius: 10, width: 'fit-content' }}>
         {TABS.map(t => (
           <button key={t.key} style={tabStyle(tab === t.key)} onClick={() => setTab(t.key)}>
             {t.label}
@@ -466,7 +466,7 @@ export default function AnalysisPage() {
 
       {/* Content */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading...</div>
       ) : (
         <>
           {tab === 'individual' && renderIndividual()}

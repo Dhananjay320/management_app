@@ -12,19 +12,20 @@
 .sal-header h2 {
   font-size: 18px;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--ink);
   margin: 0;
 }
 .sal-year-select {
   padding: 6px 10px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--line);
   border-radius: 6px;
   font-size: 12px;
-  font-family: 'Inter', sans-serif;
-  color: #475569;
+  font-family: var(--font);
+  color: var(--ink-2);
   outline: none;
+  background: var(--glass);
 }
-.sal-year-select:focus { border-color: #6366F1; }
+.sal-year-select:focus { border-color: var(--indigo); }
 
 /* Tabs */
 .sal-tabs {
@@ -34,16 +35,16 @@
 .sal-tab {
   padding: 6px 14px;
   border-radius: 20px;
-  border: 1px solid #E2E8F0;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--glass);
   font-size: 11px;
   font-weight: 600;
-  color: #64748B;
+  color: var(--ink-2);
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font);
   transition: all 0.1s;
 }
-.sal-tab:hover { border-color: #6366F1; color: #6366F1; }
+.sal-tab:hover { border-color: var(--indigo); color: var(--indigo); }
 .sal-tab.active {
   background: linear-gradient(135deg, #6366F1, #8B5CF6);
   color: #fff;
@@ -59,15 +60,16 @@
 
 /* Month Card */
 .sal-card {
-  background: #fff;
-  border: 1px solid #E2E8F0;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px;
   cursor: pointer;
   transition: box-shadow 0.15s, border-color 0.15s;
 }
-.sal-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-color: rgba(99,102,241,0.3); }
-.sal-card.active { border-color: #6366F1; box-shadow: 0 2px 12px rgba(99,102,241,0.15); }
+.sal-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.3); border-color: rgba(99,102,241,0.3); }
+.sal-card.active { border-color: var(--indigo); box-shadow: 0 4px 20px rgba(99,102,241,0.2); }
 
 .sal-card-header {
   display: flex;
@@ -75,7 +77,7 @@
   align-items: center;
   margin-bottom: 12px;
 }
-.sal-card-month { font-size: 14px; font-weight: 700; color: #1E293B; }
+.sal-card-month { font-size: 14px; font-weight: 700; color: var(--ink); }
 .sal-card-status {
   font-size: 9px;
   padding: 2px 8px;
@@ -83,17 +85,17 @@
   font-weight: 700;
   text-transform: uppercase;
 }
-.sal-card-status.finalized { background: rgba(16,185,129,0.1); color: #10B981; }
-.sal-card-status.draft { background: rgba(245,158,11,0.1); color: #F59E0B; }
+.sal-card-status.finalized { background: rgba(16,185,129,0.15); color: var(--emerald); }
+.sal-card-status.draft { background: rgba(245,158,11,0.15); color: var(--amber); }
 
 .sal-card-net {
   font-size: 24px;
   font-weight: 800;
-  color: #1E293B;
+  color: var(--ink);
   margin-bottom: 8px;
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
 }
-.sal-card-net .currency { font-size: 16px; color: #64748B; font-weight: 600; }
+.sal-card-net .currency { font-size: 16px; color: var(--ink-2); font-weight: 600; }
 
 .sal-card-breakdown {
   display: flex;
@@ -105,15 +107,16 @@
   justify-content: space-between;
   font-size: 11px;
 }
-.sal-card-row-label { color: #94A3B8; }
-.sal-card-row-value { font-weight: 600; color: #475569; }
-.sal-card-row-value.deduction { color: #EF4444; }
-.sal-card-row-value.bonus { color: #10B981; }
+.sal-card-row-label { color: var(--ink-3); }
+.sal-card-row-value { font-weight: 600; color: var(--ink-2); }
+.sal-card-row-value.deduction { color: var(--danger); }
+.sal-card-row-value.bonus { color: var(--emerald); }
 
 /* Detail Panel */
 .sal-detail {
-  background: #fff;
-  border: 1px solid #E2E8F0;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 20px;
 }
@@ -123,26 +126,26 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #E2E8F0;
+  border-bottom: 1px solid var(--line);
 }
-.sal-detail-title { font-size: 16px; font-weight: 700; color: #1E293B; }
+.sal-detail-title { font-size: 16px; font-weight: 700; color: var(--ink); }
 .sal-detail-actions { display: flex; gap: 6px; }
 .sal-detail-btn {
   padding: 6px 14px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--glass);
   font-size: 11px;
   font-weight: 600;
-  color: #64748B;
+  color: var(--ink-2);
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font);
   display: flex;
   align-items: center;
   gap: 4px;
   transition: all 0.1s;
 }
-.sal-detail-btn:hover { border-color: #6366F1; color: #6366F1; }
+.sal-detail-btn:hover { border-color: var(--indigo); color: var(--indigo); }
 .sal-detail-btn.primary {
   background: linear-gradient(135deg, #6366F1, #8B5CF6);
   color: #fff;
@@ -159,35 +162,35 @@
   padding: 8px 12px;
   text-align: left;
   font-size: 12px;
-  border-bottom: 1px solid #F0F2F7;
+  border-bottom: 1px solid var(--line);
 }
 .sal-table th {
   font-weight: 700;
-  color: #64748B;
+  color: var(--ink-2);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: #F8FAFC;
+  background: var(--glass-2);
 }
-.sal-table td { color: #334155; }
+.sal-table td { color: var(--ink-2); }
 .sal-table .section-header td {
   font-weight: 700;
-  color: #1E293B;
-  background: #F8FAFC;
+  color: var(--ink);
+  background: var(--glass-2);
   padding-top: 12px;
 }
 .sal-table .total-row td {
   font-weight: 700;
-  color: #1E293B;
-  border-top: 2px solid #E2E8F0;
+  color: var(--ink);
+  border-top: 2px solid var(--line-2);
   padding-top: 10px;
 }
-.sal-table .deduction { color: #EF4444; }
-.sal-table .bonus { color: #10B981; }
+.sal-table .deduction { color: var(--danger); }
+.sal-table .bonus { color: var(--emerald); }
 .sal-table .net-amount {
   font-size: 16px;
   font-weight: 800;
-  color: #6366F1;
+  color: var(--indigo);
 }
 
 /* Attendance Summary in Detail */
@@ -198,22 +201,23 @@
   flex-wrap: wrap;
 }
 .sal-att-item {
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  background: var(--glass);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px 14px;
   text-align: center;
   min-width: 80px;
 }
-.sal-att-value { font-size: 20px; font-weight: 800; color: #1E293B; }
-.sal-att-label { font-size: 10px; color: #94A3B8; margin-top: 2px; }
-.sal-att-item.present .sal-att-value { color: #10B981; }
-.sal-att-item.absent .sal-att-value { color: #EF4444; }
+.sal-att-value { font-size: 20px; font-weight: 800; color: var(--ink); }
+.sal-att-label { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+.sal-att-item.present .sal-att-value { color: var(--emerald); }
+.sal-att-item.absent .sal-att-value { color: var(--danger); }
 
 /* Dispute Section */
 .sal-dispute-card {
-  background: #fff;
-  border: 1px solid #E2E8F0;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 14px 16px;
   margin-bottom: 10px;
@@ -224,7 +228,7 @@
   align-items: center;
   margin-bottom: 6px;
 }
-.sal-dispute-month { font-size: 13px; font-weight: 700; color: #1E293B; }
+.sal-dispute-month { font-size: 13px; font-weight: 700; color: var(--ink); }
 .sal-dispute-status {
   font-size: 9px;
   padding: 2px 8px;
@@ -232,32 +236,33 @@
   font-weight: 700;
   text-transform: uppercase;
 }
-.sal-dispute-status.open { background: rgba(245,158,11,0.1); color: #F59E0B; }
-.sal-dispute-status.resolved { background: rgba(16,185,129,0.1); color: #10B981; }
-.sal-dispute-status.rejected { background: rgba(239,68,68,0.1); color: #EF4444; }
-.sal-dispute-status.escalated { background: rgba(99,102,241,0.1); color: #6366F1; }
-.sal-dispute-issue { font-size: 12px; font-weight: 600; color: #475569; }
-.sal-dispute-desc { font-size: 12px; color: #94A3B8; margin-top: 4px; line-height: 1.5; }
+.sal-dispute-status.open { background: rgba(245,158,11,0.15); color: var(--amber); }
+.sal-dispute-status.resolved { background: rgba(16,185,129,0.15); color: var(--emerald); }
+.sal-dispute-status.rejected { background: rgba(239,68,68,0.15); color: var(--danger); }
+.sal-dispute-status.escalated { background: rgba(99,102,241,0.15); color: var(--indigo); }
+.sal-dispute-issue { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.sal-dispute-desc { font-size: 12px; color: var(--ink-3); margin-top: 4px; line-height: 1.5; }
 .sal-dispute-resolution {
   margin-top: 8px;
   padding: 8px;
-  background: #F8FAFC;
+  background: var(--glass-2);
   border-radius: 6px;
   font-size: 11px;
-  color: #64748B;
+  color: var(--ink-2);
 }
 
 /* Dispute Form */
 .sal-dispute-form {
-  background: #fff;
-  border: 1px solid #E2E8F0;
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px;
 }
 .sal-dispute-form h4 {
   font-size: 14px;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--ink);
   margin: 0 0 12px;
 }
 .sal-form-group {
@@ -267,7 +272,7 @@
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: #64748B;
+  color: var(--ink-2);
   margin-bottom: 4px;
 }
 .sal-form-group input,
@@ -275,16 +280,17 @@
 .sal-form-group textarea {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--line);
   border-radius: 6px;
   font-size: 12px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font);
   outline: none;
-  color: #1E293B;
+  color: var(--ink);
+  background: var(--glass);
 }
 .sal-form-group input:focus,
 .sal-form-group select:focus,
-.sal-form-group textarea:focus { border-color: #6366F1; }
+.sal-form-group textarea:focus { border-color: var(--indigo); }
 .sal-form-group textarea { min-height: 80px; resize: vertical; }
 .sal-form-submit {
   padding: 8px 16px;
@@ -295,7 +301,7 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font);
 }
 .sal-form-submit:hover { opacity: 0.9; }
 .sal-form-submit:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -308,7 +314,7 @@
 .sal-empty-icon {
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.08));
+  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12));
   border-radius: 16px;
   display: flex;
   align-items: center;

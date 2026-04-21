@@ -89,8 +89,8 @@ export default function Attendance() {
         <div className="card" style={{ padding: 36 }}>
           <div className="att-result-icon success">✅</div>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: '#10B981', marginBottom: 4 }}>Entry Marked!</h2>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#1E293B', fontFamily: "'JetBrains Mono', monospace", marginBottom: 4 }}>{result.time}</div>
-          <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 20 }}>{dateDisplay}</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', fontFamily: "'JetBrains Mono', monospace", marginBottom: 4 }}>{result.time}</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 20 }}>{dateDisplay}</div>
           <button className="btn btn-primary-sm" onClick={() => setResult(null)}>Go to Attendance →</button>
         </div>
       </div>
@@ -101,8 +101,8 @@ export default function Attendance() {
       <div className="att-result">
         <div className="card" style={{ padding: 36 }}>
           <div className="att-result-icon blocked">🚫</div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1E293B', marginBottom: 8 }}>Cannot Mark Entry</h2>
-          <p style={{ fontSize: 12, color: '#64748B', lineHeight: 1.7, marginBottom: 24 }}>{result.message}</p>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>Cannot Mark Entry</h2>
+          <p style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7, marginBottom: 24 }}>{result.message}</p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
             <button className="btn btn-secondary" onClick={() => setResult(null)}>Go Back</button>
             <button className="btn btn-primary-sm" onClick={markEntry}>Try Again</button>
@@ -182,24 +182,24 @@ export default function Attendance() {
 
       {tab === 'history' && (
         <div className="table-container">
-          <div className="att-history-row" style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>
+          <div className="att-history-row" style={{ background: 'var(--glass)', borderBottom: '1px solid var(--line)', fontSize: 10, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase' }}>
             <div>Date</div><div>Entry</div><div>Wrap Up</div><div>Hours</div><div>Status</div>
           </div>
           {history.map(r => {
             const statusColors = { present: '#10B981', absent: '#EF4444', leave: '#EF4444', half_day: '#F97316', holiday: '#8B5CF6', not_marked: '#94A3B8' };
             const statusLabels = { present: 'Present', absent: 'Absent', leave: 'Leave', half_day: 'Half Day', holiday: 'Holiday', not_marked: 'Not Marked' };
             return (
-              <div key={r.date} className="att-history-row" style={{ borderBottom: '1px solid #F0F2F7' }}>
-                <div style={{ fontWeight: 600, color: '#1E293B' }}>
+              <div key={r.date} className="att-history-row" style={{ borderBottom: '1px solid var(--line)' }}>
+                <div style={{ fontWeight: 600, color: 'var(--ink)' }}>
                   {new Date(r.date + 'T00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
                 </div>
-                <div style={{ color: '#475569', fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
+                <div style={{ color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
                   {r.entryTime ? new Date(r.entryTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </div>
-                <div style={{ color: '#475569', fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
+                <div style={{ color: 'var(--ink-2)', fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
                   {r.wrapUpTime ? new Date(r.wrapUpTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </div>
-                <div style={{ color: '#475569' }}>{r.totalHours ? `${r.totalHours}h` : '—'}</div>
+                <div style={{ color: 'var(--ink-2)' }}>{r.totalHours ? `${r.totalHours}h` : '—'}</div>
                 <div>
                   <span className="badge-pill" style={{ background: (statusColors[r.status] || '#94A3B8') + '14', color: statusColors[r.status] || '#94A3B8' }}>
                     {statusLabels[r.status] || r.status}
@@ -208,7 +208,7 @@ export default function Attendance() {
               </div>
             );
           })}
-          {history.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#94A3B8' }}>No records this month.</div>}
+          {history.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink-3)' }}>No records this month.</div>}
         </div>
       )}
 
@@ -254,7 +254,7 @@ function LeaveRequestForm({ onSuccess }) {
         <div className="form-section-title">📋 Request Leave</div>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>Leave Type</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 6 }}>Leave Type</label>
             <div className="chip-group">
               {[['casual','Casual'],['sick','Sick'],['personal','Personal'],['half_day','Half Day']].map(([k,l]) => (
                 <div key={k} className={`chip ${type === k ? 'active' : ''}`} onClick={() => setType(k)}>{l}</div>
@@ -263,7 +263,7 @@ function LeaveRequestForm({ onSuccess }) {
           </div>
           {type === 'half_day' && (
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>Which Half?</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 6 }}>Which Half?</label>
               <div className="chip-group">
                 <div className={`chip ${halfDayType === 'morning' ? 'active' : ''}`} onClick={() => setHalfDayType('morning')}>Morning Off</div>
                 <div className={`chip ${halfDayType === 'afternoon' ? 'active' : ''}`} onClick={() => setHalfDayType('afternoon')}>Afternoon Off</div>
@@ -294,15 +294,15 @@ function LeaveRequestForm({ onSuccess }) {
 
       {leaves.length > 0 && (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>My Leave Requests</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>My Leave Requests</div>
           <div className="table-container">
             {leaves.map(l => {
               const sc = { pending: '#F59E0B', approved: '#10B981', rejected: '#EF4444' };
               return (
-                <div key={l._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid #F0F2F7' }}>
+                <div key={l._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--line)' }}>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>{l.type.replace('_', ' ')} — {l.startDate}</div>
-                    <div style={{ fontSize: 10, color: '#94A3B8' }}>{l.reason}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{l.type.replace('_', ' ')} — {l.startDate}</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>{l.reason}</div>
                   </div>
                   <span className="badge-pill" style={{ background: (sc[l.status] || '#94A3B8') + '14', color: sc[l.status] }}>{l.status}</span>
                 </div>
@@ -341,33 +341,33 @@ function LeaveApprovals() {
     } finally { setActionLoading(null); }
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading pending approvals...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading pending approvals...</div>;
 
   if (pendingLeaves.length === 0) {
     return (
       <div className="card" style={{ textAlign: 'center', padding: 40 }}>
         <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>No pending approvals</div>
-        <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>All leave requests have been processed</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>No pending approvals</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>All leave requests have been processed</div>
       </div>
     );
   }
 
   return (
     <div className="table-container">
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', padding: '12px 16px', borderBottom: '1px solid #E2E8F0' }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', padding: '12px 16px', borderBottom: '1px solid var(--line)' }}>
         Pending Leave Requests ({pendingLeaves.length})
       </div>
       {pendingLeaves.map(l => (
-        <div key={l._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #F0F2F7' }}>
+        <div key={l._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--line)' }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>
               {l.user?.name || 'Unknown'} — {(l.type || '').replace('_', ' ')}
             </div>
-            <div style={{ fontSize: 11, color: '#64748B' }}>
+            <div style={{ fontSize: 11, color: 'var(--ink-2)' }}>
               {l.startDate}{l.endDate && l.endDate !== l.startDate ? ` to ${l.endDate}` : ''}
             </div>
-            {l.reason && <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>{l.reason}</div>}
+            {l.reason && <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 2 }}>{l.reason}</div>}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
