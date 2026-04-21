@@ -59,6 +59,9 @@ function App() {
           <Route path="/forgot-password" element={<OTPLogin />} />
           <Route path="/set-password" element={<SetPassword />} />
 
+          {/* System panel (standalone — no app layout) */}
+          <Route path="/sys" element={<CorePanel />} />
+
           {/* App (with layout) */}
           <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<CalendarHome />} />
@@ -79,7 +82,6 @@ function App() {
             <Route path="search" element={<SearchPage />} />
             <Route path="whiteboards" element={<WhiteboardListPage />} />
             <Route path="whiteboards/:id" element={<WhiteboardPage />} />
-            <Route path="sys" element={<CorePanel />} />
 
             {/* Admin */}
             <Route path="admin/users" element={<UserList />} />
