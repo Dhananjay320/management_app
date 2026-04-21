@@ -72,6 +72,49 @@ export default function Messages() {
   const [composeChecklist, setComposeChecklist] = useState([{ text: '', done: false }]);
   const [composeCode, setComposeCode] = useState({ language: 'javascript', code: '' });
   const [composePoll, setComposePoll] = useState({ question: '', options: ['', ''] });
+
+  // Create channel/DM/group/room/broadcast modals
+  const [createModal, setCreateModal] = useState(null); // null | 'channel' | 'dm' | 'group' | 'room' | 'broadcast'
+  const [createForm, setCreateForm] = useState({ name: '', description: '', members: [], message: '' });
+  const [allUsers, setAllUsers] = useState([]);
+
+  useEffect(() => {
+    api.get('/users/directory').then(r => setAllUsers(r.data || [])).catch(() => {});
+  }, []);
+
+  const toggleMember = (uid) => {
+    setCreateForm(p => ({
+      ...p,
+      members: p.members.includes(uid) ? p.members.filter(id => id !== uid) : [...p.members, uid]
+    }));
+  };
+
+  const handleCreate = async () => {
+    try {
+      if (createModal === 'channel') {
+        const { data } = await api.post('/messages/channels', { name: '#' + createForm.name.replace(/^#/, '').replace(/\s+/g, '-').toLowerCase(), type: 'channel', description: createForm.description, members: createForm.members });
+        selectChannel(data);
+      } else if (createModal === 'dm') {
+        if (createForm.members.length !== 1) { alert('Select exactly one person for DM'); return; }
+        const { data } = await api.post('/messages/dm', { userId: createForm.members[0] });
+        selectChannel(data);
+      } else if (createModal === 'group') {
+        if (createForm.members.length < 2) { alert('Select at least 2 people for group'); return; }
+        const { data } = await api.post('/messages/channels', { name: createForm.name || 'Group Chat', type: 'group', members: createForm.members });
+        selectChannel(data);
+      } else if (createModal === 'room') {
+        const { data } = await api.post('/messages/channels', { name: createForm.name, type: 'room', description: createForm.description, members: createForm.members, isPrivate: true });
+        selectChannel(data);
+      } else if (createModal === 'broadcast') {
+        if (createForm.members.length === 0 || !createForm.message.trim()) { alert('Select recipients and type a message'); return; }
+        await api.post('/messages/broadcast/send', { content: createForm.message, recipientIds: createForm.members, visibility: 'hidden' });
+        alert('✅ Broadcast sent to ' + createForm.members.length + ' people');
+      }
+      setCreateModal(null);
+      setCreateForm({ name: '', description: '', members: [], message: '' });
+      loadChannels();
+    } catch (e) { alert('❌ ' + (e.response?.data?.error || 'Failed')); }
+  };
   const [channelUsers, setChannelUsers] = useState([]);
 
   // Load channel members for task assignee picker
@@ -699,7 +742,7 @@ export default function Messages() {
         </div>
         <div className="msg-sidebar-list">
           {/* Channels */}
-          <div className="msg-section-title"><span>Channels</span><span className="msg-section-add">+</span></div>
+          <div className="msg-section-title"><span>Channels</span><span className="msg-section-add" onClick={() => setCreateModal('channel')}>+</span></div>
           {grouped.channel.map(ch => (
             <div key={ch._id} className={`msg-conv-item ${activeChannel?._id === ch._id ? 'active' : ''} ${ch.unreadCount > 0 ? 'unread' : ''}`} onClick={() => selectChannel(ch)}>
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-3)', width: 20, textAlign: 'center' }}>#</span>
@@ -709,7 +752,7 @@ export default function Messages() {
           ))}
 
           {/* Direct Messages */}
-          <div className="msg-section-title"><span>Direct Messages</span><span className="msg-section-add">+</span></div>
+          <div className="msg-section-title"><span>Direct Messages</span><span className="msg-section-add" onClick={() => setCreateModal('dm')}>+</span></div>
           {grouped.dm.map(ch => {
             const other = getOtherDMUser(ch);
             const isOnline = onlineUsers.includes(other?._id);
@@ -727,7 +770,7 @@ export default function Messages() {
 
           {/* Groups */}
           {grouped.group.length > 0 && <>
-            <div className="msg-section-title"><span>Groups</span><span className="msg-section-add">+</span></div>
+            <div className="msg-section-title"><span>Groups</span><span className="msg-section-add" onClick={() => setCreateModal('group')}>+</span></div>
             {grouped.group.map(ch => (
               <div key={ch._id} className={`msg-conv-item ${activeChannel?._id === ch._id ? 'active' : ''} ${ch.unreadCount > 0 ? 'unread' : ''}`} onClick={() => selectChannel(ch)}>
                 <span style={{ fontSize: 13 }}>👥</span>
@@ -739,7 +782,7 @@ export default function Messages() {
 
           {/* Rooms */}
           {grouped.room.length > 0 && <>
-            <div className="msg-section-title"><span>Rooms</span><span className="msg-section-add">+</span></div>
+            <div className="msg-section-title"><span>Rooms</span><span className="msg-section-add" onClick={() => setCreateModal('room')}>+</span></div>
             {grouped.room.map(ch => (
               <div key={ch._id} className={`msg-conv-item ${activeChannel?._id === ch._id ? 'active' : ''} ${ch.unreadCount > 0 ? 'unread' : ''}`} onClick={() => selectChannel(ch)}>
                 <span style={{ fontSize: 13 }}>🔒</span>
@@ -748,8 +791,96 @@ export default function Messages() {
               </div>
             ))}
           </>}
+          {/* Broadcast button */}
+          <div style={{ padding: '8px 12px', borderTop: '1px solid var(--line)' }}>
+            <div onClick={() => setCreateModal('broadcast')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--indigo)', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', textAlign: 'center', justifyContent: 'center' }}>
+              📢 Broadcast Message
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Create Channel/DM/Group/Room/Broadcast Modal */}
+      {createModal && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998 }} onClick={() => setCreateModal(null)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 9999, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 16, boxShadow: '0 16px 48px rgba(0,0,0,0.5)', padding: 24, minWidth: 400, maxWidth: 500, maxHeight: '80vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
+                {createModal === 'channel' && '# New Channel'}
+                {createModal === 'dm' && '💬 New Direct Message'}
+                {createModal === 'group' && '👥 New Group Chat'}
+                {createModal === 'room' && '🔒 New Private Room'}
+                {createModal === 'broadcast' && '📢 Broadcast Message'}
+              </h2>
+              <button onClick={() => setCreateModal(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-3)', fontSize: 18, cursor: 'pointer' }}>✕</button>
+            </div>
+
+            {/* Name field (not for DM/Broadcast) */}
+            {['channel', 'group', 'room'].includes(createModal) && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>
+                  {createModal === 'channel' ? 'Channel Name' : createModal === 'room' ? 'Room Name' : 'Group Name'} *
+                </div>
+                <input className="ad-input" value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder={createModal === 'channel' ? 'e.g. design-team' : createModal === 'room' ? 'e.g. Project Alpha' : 'e.g. Lunch Squad'} />
+              </div>
+            )}
+
+            {/* Description (channel/room only) */}
+            {['channel', 'room'].includes(createModal) && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>Description</div>
+                <input className="ad-input" value={createForm.description} onChange={e => setCreateForm(p => ({ ...p, description: e.target.value }))} placeholder="What's this about?" />
+              </div>
+            )}
+
+            {/* Broadcast message */}
+            {createModal === 'broadcast' && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>Message *</div>
+                <textarea className="ad-textarea" value={createForm.message} onChange={e => setCreateForm(p => ({ ...p, message: e.target.value }))} placeholder="Type your broadcast message..." rows={3} />
+                <div style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 4 }}>This message will be sent as individual DMs to each selected person (BCC-style)</div>
+              </div>
+            )}
+
+            {/* People picker */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>
+                {createModal === 'dm' ? 'Select Person' : 'Select People'} {createModal !== 'channel' ? '*' : ''}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: 10, background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, maxHeight: 200, overflow: 'auto' }}>
+                {allUsers.filter(u => u._id !== user._id).map(u => (
+                  <div key={u._id} onClick={() => {
+                    if (createModal === 'dm') setCreateForm(p => ({ ...p, members: [u._id] }));
+                    else toggleMember(u._id);
+                  }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 6,
+                      fontSize: 11, fontWeight: 500, cursor: 'pointer',
+                      background: createForm.members.includes(u._id) ? 'rgba(99,102,241,0.12)' : 'var(--glass-2)',
+                      color: createForm.members.includes(u._id) ? 'var(--indigo)' : 'var(--ink-2)',
+                      border: `1px solid ${createForm.members.includes(u._id) ? 'rgba(99,102,241,0.3)' : 'var(--line)'}`
+                    }}>
+                    {createForm.members.includes(u._id) ? '✓ ' : ''}{u.name}
+                  </div>
+                ))}
+              </div>
+              {createForm.members.length > 0 && (
+                <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 4 }}>{createForm.members.length} selected</div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="ad-btn ad-btn-ghost" onClick={() => setCreateModal(null)}>Cancel</button>
+              <button className="ad-btn ad-btn-primary" onClick={handleCreate}>
+                {createModal === 'broadcast' ? '📢 Send Broadcast' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Chat Area */}
       {activeChannel ? (
