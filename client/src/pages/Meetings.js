@@ -43,9 +43,11 @@ export default function MeetingsPage() {
     } catch {}
   };
 
-  const respond = async (response) => {
+  const respond = async (response, reason) => {
     if (!selected) return;
-    await api.post(`/meetings/${selected._id}/respond`, { response });
+    const payload = { response };
+    if (reason) payload.reason = reason;
+    await api.post(`/meetings/${selected._id}/respond`, payload);
     openMeeting(selected._id);
   };
 
@@ -164,6 +166,8 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
   const isUpcoming = meeting.status === 'scheduled';
   const [aiResult, setAiResult] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [showDeclinePrompt, setShowDeclinePrompt] = useState(false);
+  const [declineReason, setDeclineReason] = useState('');
 
   const handleAiMom = async () => {
     if (!user.aiActive) return;
@@ -239,14 +243,41 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
 
           {/* My Response */}
           {isUpcoming && myAttendee && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <span style={{ fontSize: 11, color: '#94A3B8', alignSelf: 'center' }}>Your response:</span>
-              {['confirmed', 'declined', 'reschedule_requested'].map(r => (
-                <button key={r} className={`btn ${myAttendee.response === r ? 'btn-primary-sm' : 'btn-secondary'}`}
-                  style={{ padding: '6px 12px', fontSize: 10 }} onClick={() => onRespond(r)}>
-                  {r === 'confirmed' ? '✓ Confirm' : r === 'declined' ? '✕ Decline' : '↻ Reschedule'}
+            <div style={{ marginTop: 12 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ fontSize: 11, color: '#94A3B8', alignSelf: 'center' }}>Your response:</span>
+                <button className={`btn ${myAttendee.response === 'confirmed' ? 'btn-primary-sm' : 'btn-secondary'}`}
+                  style={{ padding: '6px 12px', fontSize: 10 }} onClick={() => onRespond('confirmed')}>
+                  ✓ Confirm
                 </button>
-              ))}
+                <button className={`btn ${myAttendee.response === 'declined' ? 'btn-primary-sm' : 'btn-secondary'}`}
+                  style={{ padding: '6px 12px', fontSize: 10 }} onClick={() => setShowDeclinePrompt(!showDeclinePrompt)}>
+                  ✕ Decline
+                </button>
+                <button className={`btn ${myAttendee.response === 'reschedule_requested' ? 'btn-primary-sm' : 'btn-secondary'}`}
+                  style={{ padding: '6px 12px', fontSize: 10 }} onClick={() => onRespond('reschedule_requested')}>
+                  ↻ Reschedule
+                </button>
+              </div>
+              {showDeclinePrompt && (
+                <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center' }}>
+                  <input
+                    value={declineReason}
+                    onChange={e => setDeclineReason(e.target.value)}
+                    placeholder="Reason for declining (optional)..."
+                    style={{ flex: 1, padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, outline: 'none', fontFamily: 'Inter, sans-serif' }}
+                    autoFocus
+                  />
+                  <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 10, color: '#EF4444', borderColor: '#EF4444' }}
+                    onClick={() => { onRespond('declined', declineReason); setShowDeclinePrompt(false); setDeclineReason(''); }}>
+                    Confirm Decline
+                  </button>
+                  <button className="btn btn-secondary" style={{ padding: '6px 10px', fontSize: 10 }}
+                    onClick={() => { setShowDeclinePrompt(false); setDeclineReason(''); }}>
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

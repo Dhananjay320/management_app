@@ -76,6 +76,10 @@ export default function EmailPage() {
   // Drafts
   const [drafts, setDrafts] = useState([]);
 
+  // Contact autocomplete
+  const [contactSuggestions, setContactSuggestions] = useState([]);
+  const [showContactSuggestions, setShowContactSuggestions] = useState(false);
+
   // AI Draft
   const [aiDraftPrompt, setAiDraftPrompt] = useState('');
   const [aiDraftLoading, setAiDraftLoading] = useState(false);
@@ -269,6 +273,33 @@ export default function EmailPage() {
       setAiDraftPrompt('');
     } catch {}
     finally { setAiDraftLoading(false); }
+  };
+
+  const handleToChange = async (value) => {
+    setComposeData(prev => ({ ...prev, to: value }));
+    // Get the last token (after the last comma)
+    const lastToken = value.split(',').pop().trim();
+    if (lastToken.length >= 2) {
+      try {
+        const { data } = await api.get('/users/directory');
+        const matches = data.filter(u =>
+          u.name.toLowerCase().includes(lastToken.toLowerCase()) ||
+          u.email.toLowerCase().includes(lastToken.toLowerCase())
+        ).slice(0, 6);
+        setContactSuggestions(matches);
+        setShowContactSuggestions(matches.length > 0);
+      } catch { setShowContactSuggestions(false); }
+    } else {
+      setShowContactSuggestions(false);
+    }
+  };
+
+  const selectContact = (contact) => {
+    const parts = composeData.to.split(',').map(s => s.trim()).filter(Boolean);
+    parts.pop(); // remove partial match
+    parts.push(contact.email);
+    setComposeData(prev => ({ ...prev, to: parts.join(', ') + ', ' }));
+    setShowContactSuggestions(false);
   };
 
   const applyTemplate = (template) => {
@@ -567,13 +598,27 @@ export default function EmailPage() {
                   ))}
                 </select>
               </div>
-              <div className="email-compose-field">
+              <div className="email-compose-field" style={{ position: 'relative' }}>
                 <label>To</label>
                 <input
                   value={composeData.to}
-                  onChange={e => setComposeData(prev => ({ ...prev, to: e.target.value }))}
+                  onChange={e => handleToChange(e.target.value)}
+                  onBlur={() => setTimeout(() => setShowContactSuggestions(false), 200)}
                   placeholder="recipient@example.com"
                 />
+                {showContactSuggestions && (
+                  <div style={{ position: 'absolute', top: '100%', left: 30, right: 0, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', zIndex: 50, maxHeight: 180, overflowY: 'auto' }}>
+                    {contactSuggestions.map(c => (
+                      <div key={c._id} onMouseDown={() => selectContact(c)}
+                        style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 11, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F0F2F7' }}
+                        onMouseOver={e => e.currentTarget.style.background = '#F8FAFC'}
+                        onMouseOut={e => e.currentTarget.style.background = '#fff'}>
+                        <span style={{ fontWeight: 600, color: '#1E293B' }}>{c.name}</span>
+                        <span style={{ color: '#94A3B8' }}>{c.email}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="email-compose-field">
                 <label>CC</label>

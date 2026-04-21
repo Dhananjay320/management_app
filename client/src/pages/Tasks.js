@@ -45,6 +45,8 @@ export default function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
 
   const loadTasks = useCallback(async () => {
     try {
@@ -71,9 +73,14 @@ export default function Tasks() {
     } catch {}
   };
 
-  // Group by priority
+  // Apply filters then group by priority
+  const filteredTasks = tasks.filter(t => {
+    if (filterStatus !== 'all' && t.status !== filterStatus) return false;
+    if (filterPriority !== 'all' && t.priority !== filterPriority) return false;
+    return true;
+  });
   const grouped = { top: [], high: [], medium: [], low: [] };
-  tasks.forEach(t => { if (grouped[t.priority]) grouped[t.priority].push(t); });
+  filteredTasks.forEach(t => { if (grouped[t.priority]) grouped[t.priority].push(t); });
 
   return (
     <div>
@@ -94,9 +101,21 @@ export default function Tasks() {
 
       {tab === 'tasks' && (
         <>
-          <div className="task-filters">
+          <div className="task-filters" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
             {[['my','My Tasks'],['all','All Tasks']].map(([k,l]) => (
               <div key={k} className={`task-filter-chip ${view === k ? 'active' : ''}`} onClick={() => setView(k)}>{l}</div>
+            ))}
+            <div style={{ width: 1, height: 20, background: '#E2E8F0', margin: '0 4px' }} />
+            {[['all','All Status'],['not_started','Not Started'],['in_progress','In Progress'],['done','Done']].map(([k,l]) => (
+              <div key={k} className={`task-filter-chip ${filterStatus === k ? 'active' : ''}`}
+                style={filterStatus === k ? { background: (STATUS_CONFIG[k]?.color || '#6366F1') + '14', color: STATUS_CONFIG[k]?.color || '#6366F1', borderColor: (STATUS_CONFIG[k]?.color || '#6366F1') + '33' } : {}}
+                onClick={() => setFilterStatus(k)}>{l}</div>
+            ))}
+            <div style={{ width: 1, height: 20, background: '#E2E8F0', margin: '0 4px' }} />
+            {[['all','All Priority'],['top','Top'],['high','High'],['medium','Medium'],['low','Low']].map(([k,l]) => (
+              <div key={k} className={`task-filter-chip ${filterPriority === k ? 'active' : ''}`}
+                style={filterPriority === k ? { background: (PRIORITY_CONFIG[k]?.color || '#6366F1') + '14', color: PRIORITY_CONFIG[k]?.color || '#6366F1', borderColor: (PRIORITY_CONFIG[k]?.color || '#6366F1') + '33' } : {}}
+                onClick={() => setFilterPriority(k)}>{l}</div>
             ))}
           </div>
           {loading ? <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading...</div> : (
@@ -387,18 +406,8 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
         {/* Sidebar */}
         <div className="task-detail-side">
           {/* Subtasks */}
-          <div className="card" style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>Subtasks ({task.subtasks?.length || 0})</div>
-            {task.subtasks?.map(st => (
-              <div key={st._id} className="subtask-item">
-                <div className={`subtask-check ${st.status === 'done' ? 'done' : ''}`} onClick={() => onUpdate(st._id, { status: st.status === 'done' ? 'not_started' : 'done' })}>
-                  {st.status === 'done' && '✓'}
-                </div>
-                <span className={`subtask-text ${st.status === 'done' ? 'done' : ''}`}>{st.title}</span>
-              </div>
-            ))}
-            {(!task.subtasks || task.subtasks.length === 0) && <div style={{ fontSize: 11, color: '#CBD5E1' }}>No subtasks</div>}
-          </div>
+          <SubtaskSection task={task} onUpdate={onUpdate} onReload={onReload} />
+
 
           {/* Dependencies */}
           {task.preTasks?.length > 0 && (
@@ -435,6 +444,50 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SubtaskSection({ task, onUpdate, onReload }) {
+  const [newSubtask, setNewSubtask] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const addSubtask = async () => {
+    if (!newSubtask.trim()) return;
+    setAdding(true);
+    try {
+      await api.post('/tasks', { title: newSubtask.trim(), parentTask: task._id, priority: task.priority || 'medium' });
+      setNewSubtask('');
+      onReload();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to add subtask.');
+    } finally { setAdding(false); }
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>Subtasks ({task.subtasks?.length || 0})</div>
+      {task.subtasks?.map(st => (
+        <div key={st._id} className="subtask-item">
+          <div className={`subtask-check ${st.status === 'done' ? 'done' : ''}`} onClick={() => onUpdate(st._id, { status: st.status === 'done' ? 'not_started' : 'done' })}>
+            {st.status === 'done' && '✓'}
+          </div>
+          <span className={`subtask-text ${st.status === 'done' ? 'done' : ''}`}>{st.title}</span>
+        </div>
+      ))}
+      {(!task.subtasks || task.subtasks.length === 0) && <div style={{ fontSize: 11, color: '#CBD5E1', marginBottom: 8 }}>No subtasks</div>}
+      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        <input
+          value={newSubtask}
+          onChange={e => setNewSubtask(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') addSubtask(); }}
+          placeholder="Add a subtask..."
+          style={{ flex: 1, padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, background: '#F8FAFC', outline: 'none', fontFamily: 'Inter, sans-serif' }}
+        />
+        <button className="btn btn-primary-sm" style={{ padding: '6px 12px', fontSize: 10 }} onClick={addSubtask} disabled={adding || !newSubtask.trim()}>
+          {adding ? '...' : '+ Add'}
+        </button>
       </div>
     </div>
   );

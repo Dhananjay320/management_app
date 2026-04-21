@@ -172,14 +172,48 @@ export default function CalendarHome() {
       </div>
 
       {/* Views */}
-      {view === 'weekly' && <WeeklyView dates={weekDates} getEvents={getEventsForDate} />}
+      {view === 'weekly' && <WeeklyView dates={weekDates} getEvents={getEventsForDate} navigate={navigate} />}
       {view === 'monthly' && <MonthlyView currentDate={currentDate} getEvents={getEventsForDate} events={events} setView={setView} setCurrentDate={setCurrentDate} />}
-      {view === 'daily' && <DailyView date={currentDate} events={getEventsForDate(currentDate)} todayAtt={todayAtt} />}
+      {view === 'daily' && <DailyView date={currentDate} events={getEventsForDate(currentDate)} todayAtt={todayAtt} navigate={navigate} />}
+
+      {/* Today's Events Summary */}
+      {(() => {
+        const todayEvents = events.filter(ev => ev.date === dateStr(new Date()));
+        if (todayEvents.length === 0) return null;
+        return (
+          <div className="card" style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', marginBottom: 10 }}>Today's Events</div>
+            {todayEvents.map((ev, i) => {
+              const col = EVENT_COLORS[ev.type] || '#3B82F6';
+              return (
+                <div key={i} onClick={() => {
+                  if (ev.type === 'task') navigate('/tasks');
+                  else if (ev.type === 'meeting') navigate('/meetings');
+                  else if (ev.type === 'activity') navigate('/activity');
+                }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, marginBottom: 4, background: col + '08', cursor: 'pointer' }}>
+                  <div style={{ width: 4, height: 28, borderRadius: 2, background: col }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>{ev.title}</div>
+                    <div style={{ fontSize: 10, color: '#94A3B8' }}>{ev.startTime || ev.type}{ev.endTime ? ` - ${ev.endTime}` : ''}</div>
+                  </div>
+                  <span className="badge-pill" style={{ background: col + '14', color: col, fontSize: 9 }}>{ev.type}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 }
 
-function WeeklyView({ dates, getEvents }) {
+function handleEventClick(ev, navigate) {
+  if (ev.type === 'task') navigate('/tasks');
+  else if (ev.type === 'meeting') navigate('/meetings');
+  else if (ev.type === 'activity') navigate('/activity');
+}
+
+function WeeklyView({ dates, getEvents, navigate }) {
   return (
     <div className="cal-week-grid">
       {dates.map(d => {
@@ -198,7 +232,7 @@ function WeeklyView({ dates, getEvents }) {
               const eventCol = EVENT_COLORS[ev.type] || '#3B82F6';
               const priorityCol = ev.priority ? PRIORITY_COLORS[ev.priority] : null;
               return (
-                <div key={i} className="cal-event" style={{ background: eventCol + '0D', borderLeft: `2px solid ${eventCol}` }}>
+                <div key={i} className="cal-event" style={{ background: eventCol + '0D', borderLeft: `2px solid ${eventCol}`, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleEventClick(ev, navigate); }}>
                   <div className="cal-event-title" style={{ color: eventCol }}>
                     {isTask && priorityCol && (
                       <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: priorityCol, marginRight: 4, verticalAlign: 'middle' }} />
@@ -277,7 +311,7 @@ function MonthlyView({ currentDate, events, setView, setCurrentDate }) {
   );
 }
 
-function DailyView({ date, events, todayAtt }) {
+function DailyView({ date, events, todayAtt, navigate }) {
   const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8 AM to 8 PM
 
   // Separate tasks (for priority grouping) from timed events
@@ -309,7 +343,7 @@ function DailyView({ date, events, todayAtt }) {
                 {hourEvents.map((ev, i) => {
                   const col = EVENT_COLORS[ev.type] || '#3B82F6';
                   return (
-                    <div key={i} className="cal-time-event" style={{ background: col + '0A', borderLeft: `3px solid ${col}` }}>
+                    <div key={i} className="cal-time-event" style={{ background: col + '0A', borderLeft: `3px solid ${col}`, cursor: 'pointer' }} onClick={() => handleEventClick(ev, navigate)}>
                       <div className="cal-time-event-title" style={{ color: '#1E293B' }}>{ev.title}</div>
                       <div className="cal-time-event-sub" style={{ color: '#94A3B8' }}>
                         {ev.startTime}{ev.endTime ? ` – ${ev.endTime}` : ''} · {ev.type}

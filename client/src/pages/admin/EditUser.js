@@ -42,6 +42,7 @@ export default function EditUser() {
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
@@ -156,6 +157,20 @@ export default function EditUser() {
         : [...prev.teams, teamId]
     }));
     setSuccess('');
+  };
+
+  const handleDeactivate = async () => {
+    if (!window.confirm('Are you sure you want to deactivate this employee? This action cannot be easily undone.')) return;
+    setDeactivating(true);
+    setError('');
+    try {
+      await api.delete(`/users/${id}`);
+      navigate('/admin/users');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to deactivate employee.');
+    } finally {
+      setDeactivating(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -365,11 +380,16 @@ export default function EditUser() {
           </div>
         </div>
 
-        <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/admin/users')}>Cancel</button>
-          <button type="submit" className="btn btn-primary-sm" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
+        <div className="form-actions" style={{ justifyContent: 'space-between' }}>
+          <button type="button" style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #EF4444', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }} onClick={handleDeactivate} disabled={deactivating}>
+            {deactivating ? 'Deactivating...' : 'Deactivate Employee'}
           </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/admin/users')}>Cancel</button>
+            <button type="submit" className="btn btn-primary-sm" disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       </form>
     </div>

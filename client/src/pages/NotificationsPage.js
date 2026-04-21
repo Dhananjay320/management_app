@@ -187,7 +187,19 @@ export default function NotificationsPage() {
                   {n.sender && <span className="notif-sender">from {n.sender.name}</span>}
                 </div>
               </div>
-              <div className="notif-actions">
+              <div className="notif-actions" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                {!n.isRead && (
+                  <button className="notif-action-btn" onClick={(e) => { e.stopPropagation(); markRead(n._id); }}
+                    style={{ padding: '3px 8px', fontSize: 9, border: '1px solid #E2E8F0', borderRadius: 5, background: '#F8FAFC', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
+                    Mark as read
+                  </button>
+                )}
+                {n.type === 'task' && n.entityId && (
+                  <button className="notif-action-btn" onClick={(e) => { e.stopPropagation(); if (!n.isRead) markRead(n._id); navigate(`/tasks?id=${n.entityId}`); }}
+                    style={{ padding: '3px 8px', fontSize: 9, border: '1px solid #6366F1', borderRadius: 5, background: 'rgba(99,102,241,0.08)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
+                    View Task
+                  </button>
+                )}
                 {n.isEmergency && !n.acknowledgedAt && (
                   <button className="notif-action-btn acknowledge" onClick={(e) => { e.stopPropagation(); acknowledge(n._id); }}>
                     Acknowledge

@@ -5,7 +5,7 @@ import '../styles/attendance.css';
 
 export default function Attendance() {
   const { user } = useAuth();
-  const [tab, setTab] = useState('mark'); // mark, history, leave
+  const [tab, setTab] = useState('mark'); // mark, history, leave, approvals
   const [todayAtt, setTodayAtt] = useState(null);
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);
@@ -117,7 +117,9 @@ export default function Attendance() {
       <div className="page-header">
         <div className="page-title">Attendance</div>
         <div className="chip-group">
-          {[['mark','Mark Entry'],['history','History'],['leave','Request Leave']].map(([k,l]) => (
+          {[['mark','Mark Entry'],['history','History'],['leave','Request Leave'],
+            ...(user.powers?.attendance?.editRecords ? [['approvals','Pending Approvals']] : [])
+          ].map(([k,l]) => (
             <div key={k} className={`chip ${tab === k ? 'active' : ''}`} onClick={() => setTab(k)}>{l}</div>
           ))}
         </div>
@@ -211,6 +213,8 @@ export default function Attendance() {
       )}
 
       {tab === 'leave' && <LeaveRequestForm onSuccess={loadData} />}
+
+      {tab === 'approvals' && <LeaveApprovals />}
     </div>
   );
 }
@@ -307,6 +311,84 @@ function LeaveRequestForm({ onSuccess }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function LeaveApprovals() {
+  const [pendingLeaves, setPendingLeaves] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
+
+  useEffect(() => {
+    loadPending();
+  }, []);
+
+  const loadPending = async () => {
+    try {
+      const { data } = await api.get('/attendance/leaves/pending');
+      setPendingLeaves(data);
+    } catch {} finally { setLoading(false); }
+  };
+
+  const handleAction = async (leaveId, action) => {
+    setActionLoading(leaveId + action);
+    try {
+      await api.put(`/attendance/leave/${leaveId}/${action}`);
+      setPendingLeaves(prev => prev.filter(l => l._id !== leaveId));
+    } catch (err) {
+      alert(err.response?.data?.error || `Failed to ${action} leave.`);
+    } finally { setActionLoading(null); }
+  };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading pending approvals...</div>;
+
+  if (pendingLeaves.length === 0) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: 40 }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>No pending approvals</div>
+        <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>All leave requests have been processed</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="table-container">
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', padding: '12px 16px', borderBottom: '1px solid #E2E8F0' }}>
+        Pending Leave Requests ({pendingLeaves.length})
+      </div>
+      {pendingLeaves.map(l => (
+        <div key={l._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #F0F2F7' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>
+              {l.user?.name || 'Unknown'} — {(l.type || '').replace('_', ' ')}
+            </div>
+            <div style={{ fontSize: 11, color: '#64748B' }}>
+              {l.startDate}{l.endDate && l.endDate !== l.startDate ? ` to ${l.endDate}` : ''}
+            </div>
+            {l.reason && <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>{l.reason}</div>}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              className="btn btn-primary-sm"
+              style={{ padding: '5px 12px', fontSize: 10, background: '#10B981', border: 'none' }}
+              disabled={actionLoading === l._id + 'approve'}
+              onClick={() => handleAction(l._id, 'approve')}
+            >
+              {actionLoading === l._id + 'approve' ? '...' : 'Approve'}
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{ padding: '5px 12px', fontSize: 10, color: '#EF4444', borderColor: '#EF4444' }}
+              disabled={actionLoading === l._id + 'reject'}
+              onClick={() => handleAction(l._id, 'reject')}
+            >
+              {actionLoading === l._id + 'reject' ? '...' : 'Reject'}
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

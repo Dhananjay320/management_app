@@ -19,6 +19,9 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [viewingFile, setViewingFile] = useState(null);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [memberUsers, setMemberUsers] = useState([]);
+  const [memberSearch, setMemberSearch] = useState('');
 
   const loadWorkspaces = useCallback(async () => {
     try { const { data } = await api.get('/workspace'); setWorkspaces(data); } catch {} finally { setLoading(false); }
@@ -56,6 +59,21 @@ export default function WorkspacePage() {
       await api.post(`/workspace/${selectedWs}/notes`, { title: 'New Note', content: '' });
       openWorkspace(selectedWs);
     } catch {}
+  };
+
+  const loadMemberUsers = async () => {
+    try { const { data } = await api.get('/users/directory'); setMemberUsers(data); } catch {}
+  };
+
+  const addMember = async (userId) => {
+    try {
+      await api.post(`/workspace/${selectedWs}/members`, { userId });
+      openWorkspace(selectedWs);
+      setShowAddMember(false);
+      setMemberSearch('');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to add member.');
+    }
   };
 
   const addLink = async () => {
@@ -139,9 +157,38 @@ export default function WorkspacePage() {
             <div className="page-subtitle">{wsDetail?.description}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', position: 'relative' }}>
           <span className="badge-pill" style={{ background: (wsDetail?.color || '#6366F1') + '14', color: wsDetail?.color }}>{wsDetail?.type?.replace('_', ' ')}</span>
           <span className="badge-pill" style={{ background: '#F0F2F7', color: '#64748B' }}>{wsDetail?.members?.length} members</span>
+          <button className="btn btn-primary-sm" style={{ padding: '5px 10px', fontSize: 10 }} onClick={() => { setShowAddMember(!showAddMember); if (!showAddMember) loadMemberUsers(); }}>+ Add Member</button>
+          {showAddMember && (
+            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10, padding: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', width: 260, zIndex: 20 }}>
+              <input
+                value={memberSearch}
+                onChange={e => setMemberSearch(e.target.value)}
+                placeholder="Search users..."
+                style={{ width: '100%', padding: '7px 10px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 11, marginBottom: 6, outline: 'none', fontFamily: 'Inter, sans-serif' }}
+                autoFocus
+              />
+              <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+                {memberUsers
+                  .filter(u => !wsDetail?.members?.some(m => (m._id || m) === u._id))
+                  .filter(u => u.name.toLowerCase().includes(memberSearch.toLowerCase()) || u.email.toLowerCase().includes(memberSearch.toLowerCase()))
+                  .map(u => (
+                    <div key={u._id} onClick={() => addMember(u._id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#1E293B' }}
+                      onMouseOver={e => e.currentTarget.style.background = '#F8FAFC'}
+                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                      <span style={{ fontWeight: 600 }}>{u.name}</span>
+                      <span style={{ color: '#94A3B8', fontSize: 10, marginLeft: 'auto' }}>{u.email}</span>
+                    </div>
+                  ))}
+                {memberUsers.filter(u => !wsDetail?.members?.some(m => (m._id || m) === u._id)).length === 0 && (
+                  <div style={{ fontSize: 11, color: '#94A3B8', textAlign: 'center', padding: 8 }}>No users to add</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
