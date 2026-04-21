@@ -25,6 +25,8 @@ const NAV_ITEMS = [
 
 const ADMIN_ITEMS = [
   { key: 'users', icon: '👤', label: 'Manage Users', path: '/admin/users' },
+  { key: 'offices', icon: '🏢', label: 'Offices', path: '/admin/offices' },
+  { key: 'announcements', icon: '📢', label: 'Announcements', path: '/admin/announcements' },
   { key: 'analysis', icon: '📊', label: 'Analysis', path: '/admin/analysis' },
   { key: 'security', icon: '🔐', label: 'Security', path: '/admin/security' },
 ];

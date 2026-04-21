@@ -11,6 +11,7 @@ import EditUser from './pages/admin/EditUser';
 import SecurityPanel from './pages/admin/SecurityPanel';
 import AnalysisPage from './pages/admin/AnalysisPage';
 import AnnouncementManager from './pages/admin/AnnouncementManager';
+import OfficeManager from './pages/admin/OfficeManager';
 import AttendancePage from './pages/Attendance';
 import MessagesPage from './pages/Messages';
 import TasksPage from './pages/Tasks';
@@ -86,6 +87,7 @@ function App() {
             <Route path="admin/analysis" element={<AnalysisPage />} />
             <Route path="admin/security" element={<SecurityPanel />} />
             <Route path="admin/announcements" element={<AnnouncementManager />} />
+            <Route path="admin/offices" element={<OfficeManager />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" />} />

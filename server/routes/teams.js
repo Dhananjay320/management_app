@@ -23,6 +23,44 @@ router.get('/offices', protect, async (req, res) => {
   }
 });
 
+// POST /api/v1/teams/offices — create office
+router.post('/offices', protect, async (req, res) => {
+  if (req.user.role !== 'main_admin' && !req.user._c) return res.status(403).json({ error: 'Only main admin can manage offices.' });
+  try {
+    const { name, lat, lng, wifiSubnet, radiusMeters, address } = req.body;
+    if (!name || lat === undefined || lng === undefined || !wifiSubnet) {
+      return res.status(400).json({ error: 'Name, latitude, longitude, and WiFi subnet are required.' });
+    }
+    const office = await Office.create({ name, lat, lng, wifiSubnet, radiusMeters: radiusMeters || 100, address });
+    res.status(201).json(office);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// PUT /api/v1/teams/offices/:id — update office
+router.put('/offices/:id', protect, async (req, res) => {
+  if (req.user.role !== 'main_admin' && !req.user._c) return res.status(403).json({ error: 'Only main admin can manage offices.' });
+  try {
+    const office = await Office.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!office) return res.status(404).json({ error: 'Office not found.' });
+    res.json(office);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// DELETE /api/v1/teams/offices/:id — deactivate office
+router.delete('/offices/:id', protect, async (req, res) => {
+  if (req.user.role !== 'main_admin' && !req.user._c) return res.status(403).json({ error: 'Only main admin can manage offices.' });
+  try {
+    await Office.findByIdAndUpdate(req.params.id, { isActive: false });
+    res.json({ message: 'Office deactivated.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // POST /api/v1/teams — create team + auto-create #[team-name] channel (per spec Section 6.1.1)
 const { requireRole } = require('../middleware/auth');
 router.post('/', protect, requireRole('main_admin', 'admin'), async (req, res) => {
