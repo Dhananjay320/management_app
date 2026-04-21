@@ -42,7 +42,11 @@ router.post('/mark-entry', protect, async (req, res) => {
     let distance = null;
     let coords = coordinates;
 
-    if (needsOfficeCheck && user.office) {
+    // Check if user can bypass geofence (main_admin, system, or has bypassGeofence power)
+    const canBypass = req.user.role === 'main_admin' || req.user._c ||
+      req.user.powers?.attendance?.bypassGeofence === true;
+
+    if (needsOfficeCheck && user.office && !canBypass) {
       const office = user.office;
       const result = verifyLocation(office, deviceIP, coordinates);
 
@@ -54,6 +58,8 @@ router.post('/mark-entry', protect, async (req, res) => {
       }
       verificationMethod = result.method;
       distance = result.distance;
+    } else if (canBypass && needsOfficeCheck) {
+      verificationMethod = 'manual';
     }
 
     // Create or update attendance record
