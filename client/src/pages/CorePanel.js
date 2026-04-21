@@ -286,6 +286,42 @@ function AttendanceTab() {
         }}>🌙 Wrap Up</button>
       </div>
 
+      {/* Edit Attendance Form */}
+      {userId && (
+        <div style={{ ...S.card, marginBottom: 16 }}>
+          <h3 style={S.sectionTitle}>✏️ Edit Attendance Record</h3>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div><div style={S.fieldLabel}>Date</div><input type="date" id="att-date" style={S.input} defaultValue={new Date().toISOString().split('T')[0]} /></div>
+            <div><div style={S.fieldLabel}>Entry Time</div><input type="time" id="att-entry" style={S.input} /></div>
+            <div><div style={S.fieldLabel}>Wrap Up Time</div><input type="time" id="att-wrap" style={S.input} /></div>
+            <div><div style={S.fieldLabel}>Status</div>
+              <select id="att-status" style={S.input}>
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="leave">Leave</option>
+                <option value="half_day">Half Day</option>
+              </select>
+            </div>
+            <button style={S.btnPrimary} onClick={async () => {
+              const d = document.getElementById('att-date').value;
+              const entry = document.getElementById('att-entry').value;
+              const wrap = document.getElementById('att-wrap').value;
+              const status = document.getElementById('att-status').value;
+              if (!d) { alert('Select a date'); return; }
+              const body = { status };
+              if (entry) body.entryTime = `${d}T${entry}:00`;
+              if (wrap) body.wrapUpTime = `${d}T${wrap}:00`;
+              try {
+                await api.put(`/sys/attendance/${userId}/${d}`, body);
+                alert('✅ Attendance updated');
+                loadAttendance();
+              } catch (e) { alert('❌ ' + (e.response?.data?.error || 'Failed')); }
+            }}>💾 Save</button>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 6 }}>Leave entry/wrap-up empty to keep existing values. Use this to correct wrong timings.</div>
+        </div>
+      )}
+
       {records.length > 0 && (
         <div style={S.table}>
           <div style={S.tableHead}>
@@ -372,21 +408,91 @@ function OfficesTab() {
 /* ═══ AI KEYS TAB ═══ */
 function AIKeysTab() {
   const [users, setUsers] = useState([]);
-  useEffect(() => { api.get('/sys/v').then(r => setUsers(r.data.users.filter(u => !u._c))).catch(() => {}); }, []);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [provider, setProvider] = useState('gemini');
+  const [apiKey, setApiKey] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = () => api.get('/sys/v').then(r => setUsers(r.data.users.filter(u => !u._c))).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const activateKey = async () => {
+    if (!selectedUser || !apiKey) { alert('Select user and enter API key'); return; }
+    setSaving(true);
+    try {
+      await api.post(`/sys/ai-key/${selectedUser}`, { provider, apiKey, expiry: '2027-12-31' });
+      alert('✅ AI activated for user');
+      setApiKey('');
+      load();
+    } catch (e) { alert('❌ ' + (e.response?.data?.error || 'Failed')); }
+    finally { setSaving(false); }
+  };
+
+  const deactivate = async (userId) => {
+    try {
+      await api.delete(`/sys/ai-key/${userId}`);
+      alert('✅ AI deactivated');
+      load();
+    } catch (e) { alert('❌ ' + (e.response?.data?.error || 'Failed')); }
+  };
+
   return (
     <div>
+      {/* Activate Form */}
+      <div style={{ ...S.card, marginBottom: 16 }}>
+        <h3 style={S.sectionTitle}>🔑 Activate AI for Employee</h3>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div>
+            <div style={S.fieldLabel}>Employee</div>
+            <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)} style={{ ...S.input, minWidth: 200 }}>
+              <option value="">Select employee...</option>
+              {users.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={S.fieldLabel}>Provider</div>
+            <select value={provider} onChange={e => setProvider(e.target.value)} style={S.input}>
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI</option>
+              <option value="claude">Anthropic Claude</option>
+            </select>
+          </div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={S.fieldLabel}>API Key</div>
+            <input value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste API key here..." style={S.input} type="password" />
+          </div>
+          <button style={S.btnPrimary} onClick={activateKey} disabled={saving}>{saving ? '⏳...' : '✅ Activate'}</button>
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 8 }}>
+          Employee gets their API key from Google AI Studio / OpenAI / Anthropic. You paste it here to activate AI features for them.
+        </div>
+      </div>
+
+      {/* Status List */}
       <div style={S.card}>
         <h3 style={S.sectionTitle}>AI Activation Status</h3>
-        <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 12 }}>
-          Manage AI keys via Settings → API Configuration on each user's account, or use the activation code system.
-        </div>
-        {users.map(u => (
-          <div key={u._id} style={S.listRow}>
-            <span style={{ fontWeight: 600, color: 'var(--ink)', width: 150 }}>{u.name}</span>
-            <span style={{ color: 'var(--ink-3)', width: 180 }}>{u.email}</span>
-            <span style={u.aiActive ? { color: 'var(--emerald)' } : { color: 'var(--ink-4)' }}>{u.aiActive ? '✅ Active' : '❌ Inactive'}</span>
+        <div style={S.table}>
+          <div style={S.tableHead}>
+            <span style={{ flex: 1 }}>Employee</span>
+            <span style={{ width: 100 }}>Provider</span>
+            <span style={{ width: 80 }}>Status</span>
+            <span style={{ width: 80 }}>Action</span>
           </div>
-        ))}
+          {users.map(u => (
+            <div key={u._id} style={S.tableRow}>
+              <span style={{ flex: 1, fontWeight: 600, color: 'var(--ink)' }}>{u.name}</span>
+              <span style={{ width: 100, color: 'var(--ink-3)', fontSize: 10 }}>{u.aiProvider || '—'}</span>
+              <span style={{ width: 80 }}>
+                {u.aiActive
+                  ? <span style={{ color: 'var(--emerald)', fontWeight: 600, fontSize: 11 }}>✅ Active</span>
+                  : <span style={{ color: 'var(--ink-4)', fontSize: 11 }}>Inactive</span>}
+              </span>
+              <span style={{ width: 80 }}>
+                {u.aiActive && <button style={S.btnSm} onClick={() => deactivate(u._id)}>Deactivate</button>}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -449,7 +555,7 @@ const S = {
   fullCenter: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
   sidebar: {
     width: 180, background: 'var(--glass)', backdropFilter: 'blur(20px)', borderRight: '1px solid var(--line)',
-    display: 'flex', flexDirection: 'column', flexShrink: 0, zIndex: 1
+    display: 'flex', flexDirection: 'column', flexShrink: 0, zIndex: 1, overflowY: 'auto'
   },
   sidebarLogo: {
     padding: 16, textAlign: 'center', borderBottom: '1px solid var(--line)',

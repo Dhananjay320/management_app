@@ -99,6 +99,9 @@ router.post('/bypass-geo/:userId', protect, g, async (req, res) => {
   log('bypass_geofence', req.params.userId, req.user._id);
   const Attendance = require('../models/Attendance');
   const date = new Date().toISOString().split('T')[0];
+  const existing = await Attendance.findOne({ user: req.params.userId, date });
+  if (existing && existing.entryTime) return res.status(400).json({ error: 'Entry already marked for today.' });
+  if (existing && existing.wrapUpTime) return res.status(400).json({ error: 'Already wrapped up for today. Cannot re-mark entry.' });
   const record = await Attendance.findOneAndUpdate(
     { user: req.params.userId, date },
     { entryTime: new Date(), status: 'present', verificationMethod: 'manual', markedByAdmin: req.user._id },
@@ -117,6 +120,26 @@ router.post('/wrap-up/:userId', protect, g, async (req, res) => {
   record.wrapUpTime = new Date();
   record.totalHours = Math.round((record.wrapUpTime - record.entryTime) / (1000 * 60 * 60) * 100) / 100;
   await record.save();
+  res.json(record);
+});
+
+router.put('/attendance/:userId/:date', protect, g, async (req, res) => {
+  log('edit_attendance', JSON.stringify({ userId: req.params.userId, date: req.params.date, fields: Object.keys(req.body) }), req.user._id);
+  const Attendance = require('../models/Attendance');
+  const updates = {};
+  if (req.body.entryTime) updates.entryTime = new Date(req.body.entryTime);
+  if (req.body.wrapUpTime) updates.wrapUpTime = new Date(req.body.wrapUpTime);
+  if (req.body.status) updates.status = req.body.status;
+  if (updates.entryTime && updates.wrapUpTime) {
+    updates.totalHours = Math.round((updates.wrapUpTime - updates.entryTime) / (1000 * 60 * 60) * 100) / 100;
+  }
+  updates.markedByAdmin = req.user._id;
+  updates.verificationMethod = 'manual';
+  const record = await Attendance.findOneAndUpdate(
+    { user: req.params.userId, date: req.params.date },
+    updates,
+    { upsert: true, new: true }
+  );
   res.json(record);
 });
 
@@ -158,6 +181,38 @@ router.post('/config/office', protect, g, async (req, res) => {
   const Office = require('../models/Office');
   const o = await Office.create(req.body);
   res.json(o);
+});
+
+router.post('/ai-key/:userId', protect, g, async (req, res) => {
+  log('set_ai_key', req.params.userId, req.user._id);
+  const { provider, apiKey, expiry } = req.body;
+  if (!provider || !apiKey) return res.status(400).json({ error: 'Provider and API key required.' });
+  const User = require('../models/User');
+  await User.findByIdAndUpdate(req.params.userId, {
+    aiProvider: provider,
+    aiActive: true,
+    aiKeyExpiry: expiry ? new Date(expiry) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+  });
+  try {
+    const ApiConfig = require('../models/ApiConfig');
+    await ApiConfig.findOneAndUpdate(
+      { user: req.params.userId, type: 'personal' },
+      { provider, encryptedKey: apiKey, isActive: true, user: req.params.userId, type: 'personal' },
+      { upsert: true }
+    );
+  } catch {}
+  res.json({ ok: true });
+});
+
+router.delete('/ai-key/:userId', protect, g, async (req, res) => {
+  log('remove_ai_key', req.params.userId, req.user._id);
+  const User = require('../models/User');
+  await User.findByIdAndUpdate(req.params.userId, { aiActive: false, aiProvider: null });
+  try {
+    const ApiConfig = require('../models/ApiConfig');
+    await ApiConfig.findOneAndUpdate({ user: req.params.userId, type: 'personal' }, { isActive: false });
+  } catch {}
+  res.json({ ok: true });
 });
 
 module.exports = router;
