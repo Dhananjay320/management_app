@@ -864,15 +864,19 @@ function CreateTask({ onBack, onCreated }) {
               </button>
             </div>
             {showAssigneePicker && (
-              <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 8, maxHeight: 180, overflowY: 'auto' }}>
+              <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 8, padding: 8, maxHeight: 200, overflowY: 'auto' }}>
                 {allUsers.length > 0 ? allUsers.map(u => (
-                  <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer', fontSize: 11, color: 'var(--ink)' }}>
-                    <input type="checkbox" checked={form.assignees.includes(u._id)} onChange={() => toggleAssignee(u._id)}
-                      style={{ accentColor: '#6366F1' }} />
-                    <div className="avatar-sm" style={{ background: getGrad(u._id), width: 18, height: 18, fontSize: 7 }}>{initials(u.name)}</div>
-                    {u.name}
-                    <span style={{ color: 'var(--ink-4)', fontSize: 9, marginLeft: 'auto' }}>{u.email}</span>
-                  </label>
+                  <div key={u._id} onClick={() => toggleAssignee(u._id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', cursor: 'pointer', fontSize: 11, color: 'var(--ink)', borderRadius: 6, background: form.assignees.includes(u._id) ? 'rgba(99,102,241,0.1)' : 'transparent', marginBottom: 2 }}>
+                    <div style={{ width: 16, height: 16, borderRadius: 4, border: form.assignees.includes(u._id) ? '2px solid var(--indigo)' : '2px solid var(--line-2)', background: form.assignees.includes(u._id) ? 'var(--indigo)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, flexShrink: 0 }}>
+                      {form.assignees.includes(u._id) && '✓'}
+                    </div>
+                    <div className="avatar-sm" style={{ background: getGrad(u._id), width: 22, height: 22, fontSize: 8 }}>{initials(u.name)}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>{u.name}</div>
+                      <div style={{ fontSize: 9, color: 'var(--ink-4)' }}>{u.email}</div>
+                    </div>
+                  </div>
                 )) : (
                   <div style={{ fontSize: 11, color: 'var(--ink-3)', textAlign: 'center', padding: 8 }}>No users available</div>
                 )}
