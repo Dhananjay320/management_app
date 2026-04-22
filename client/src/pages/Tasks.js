@@ -109,13 +109,13 @@ export default function Tasks() {
             {[['my','My Tasks'],['all','All Tasks']].map(([k,l]) => (
               <div key={k} className={`task-filter-chip ${view === k ? 'active' : ''}`} onClick={() => setView(k)}>{l}</div>
             ))}
-            <div style={{ width: 1, height: 20, background: '#E2E8F0', margin: '0 4px' }} />
+            <div style={{ width: 1, height: 20, background: 'var(--line)', margin: '0 4px' }} />
             {[['all','All Status'],['not_started','Not Started'],['in_progress','In Progress'],['done','Done']].map(([k,l]) => (
               <div key={k} className={`task-filter-chip ${filterStatus === k ? 'active' : ''}`}
                 style={filterStatus === k ? { background: (STATUS_CONFIG[k]?.color || '#6366F1') + '14', color: STATUS_CONFIG[k]?.color || '#6366F1', borderColor: (STATUS_CONFIG[k]?.color || '#6366F1') + '33' } : {}}
                 onClick={() => setFilterStatus(k)}>{l}</div>
             ))}
-            <div style={{ width: 1, height: 20, background: '#E2E8F0', margin: '0 4px' }} />
+            <div style={{ width: 1, height: 20, background: 'var(--line)', margin: '0 4px' }} />
             {[['all','All Priority'],['top','Top'],['high','High'],['medium','Medium'],['low','Low']].map(([k,l]) => (
               <div key={k} className={`task-filter-chip ${filterPriority === k ? 'active' : ''}`}
                 style={filterPriority === k ? { background: (PRIORITY_CONFIG[k]?.color || '#6366F1') + '14', color: PRIORITY_CONFIG[k]?.color || '#6366F1', borderColor: (PRIORITY_CONFIG[k]?.color || '#6366F1') + '33' } : {}}
@@ -291,7 +291,7 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
               </div>
               <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
                 <div className="task-field-label">Deadline</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: task.deadline && new Date(task.deadline) < new Date() ? '#EF4444' : '#1E293B' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: task.deadline && new Date(task.deadline) < new Date() ? '#EF4444' : 'var(--ink)' }}>
                   {task.deadline ? new Date(task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                 </div>
               </div>
@@ -324,7 +324,7 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
                 <div className="task-field-label">Visibility</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div className="task-toggle" onClick={handlePrivateToggle}
-                    style={{ width: 36, height: 20, borderRadius: 10, background: task.isPrivate ? '#6366F1' : '#E2E8F0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+                    style={{ width: 36, height: 20, borderRadius: 10, background: task.isPrivate ? '#6366F1' : 'var(--line)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
                     <div style={{ width: 16, height: 16, borderRadius: 8, background: 'var(--glass)', position: 'absolute', top: 2, left: task.isPrivate ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
                   </div>
                   <span style={{ fontSize: 11, color: 'var(--ink-2)' }}>{task.isPrivate ? '🔒 Private' : '🌐 Public'}</span>
@@ -704,7 +704,7 @@ function CreateTask({ onBack, onCreated }) {
               <label>Recurring Task</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div onClick={() => setForm(p => ({ ...p, isRecurring: !p.isRecurring }))}
-                  style={{ width: 36, height: 20, borderRadius: 10, background: form.isRecurring ? '#6366F1' : '#E2E8F0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                  style={{ width: 36, height: 20, borderRadius: 10, background: form.isRecurring ? '#6366F1' : 'var(--line)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                   <div style={{ width: 16, height: 16, borderRadius: 8, background: 'var(--glass)', position: 'absolute', top: 2, left: form.isRecurring ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
                 </div>
                 {form.isRecurring && (
@@ -722,7 +722,7 @@ function CreateTask({ onBack, onCreated }) {
               <label>Visibility</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div onClick={() => setForm(p => ({ ...p, isPrivate: !p.isPrivate }))}
-                  style={{ width: 36, height: 20, borderRadius: 10, background: form.isPrivate ? '#6366F1' : '#E2E8F0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                  style={{ width: 36, height: 20, borderRadius: 10, background: form.isPrivate ? '#6366F1' : 'var(--line)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                   <div style={{ width: 16, height: 16, borderRadius: 8, background: 'var(--glass)', position: 'absolute', top: 2, left: form.isPrivate ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }} />
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--ink-2)' }}>{form.isPrivate ? '🔒 Private' : '🌐 Public'}</span>
@@ -899,7 +899,7 @@ function TodoList() {
                 {(todo.deadline || todo.notes) && (
                   <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
                     {todo.deadline && (
-                      <span style={{ fontSize: 9, color: new Date(todo.deadline) < new Date() && !todo.isDone ? '#EF4444' : '#94A3B8' }}>
+                      <span style={{ fontSize: 9, color: new Date(todo.deadline) < new Date() && !todo.isDone ? '#EF4444' : 'var(--ink-3)' }}>
                         📅 {new Date(todo.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     )}
@@ -907,7 +907,7 @@ function TodoList() {
                   </div>
                 )}
               </div>
-              {todo.priority && <div className="todo-priority-dot" style={{ background: priColors[todo.priority] || '#CBD5E1' }} />}
+              {todo.priority && <div className="todo-priority-dot" style={{ background: priColors[todo.priority] || 'var(--ink-4)' }} />}
               <div className="todo-actions">
                 {!todo.isDone && <span className="todo-action-btn" onClick={() => convertToTask(todo._id)} title="Convert to task">📋</span>}
                 <span className="todo-action-btn" onClick={() => deleteTodo(todo._id)} title="Delete">✕</span>

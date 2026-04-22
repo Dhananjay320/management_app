@@ -760,7 +760,7 @@ export default function Messages() {
               <div key={ch._id} className={`msg-conv-item ${activeChannel?._id === ch._id ? 'active' : ''} ${ch.unreadCount > 0 ? 'unread' : ''}`} onClick={() => selectChannel(ch)}>
                 <div className="msg-avatar-wrap">
                   <div className="avatar-sm" style={{ background: getGradient(other?._id), width: 24, height: 24, fontSize: 9 }}>{getInitials(other?.name)}</div>
-                  <div className="msg-status-dot" style={{ background: isOnline ? '#10B981' : '#CBD5E1' }} />
+                  <div className="msg-status-dot" style={{ background: isOnline ? '#10B981' : 'var(--ink-4)' }} />
                 </div>
                 <span className="msg-conv-name">{other?.name || 'Unknown'}</span>
                 {ch.unreadCount > 0 && <span className="msg-unread-badge">{ch.unreadCount}</span>}
@@ -910,7 +910,7 @@ export default function Messages() {
                 disabled={!user.aiActive}
                 title={user.aiActive ? 'Summarize conversation with AI' : 'AI not activated \u2014 go to Settings'}
                 onClick={() => user.aiActive ? handleAiSummarize() : void 0}
-                style={{ padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 10, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+                style={{ padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 10, background: user.aiActive ? 'rgba(99,102,241,0.08)' : 'var(--glass)', color: user.aiActive ? '#6366F1' : 'var(--ink-3)', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
               >
                 {aiLoading ? 'Summarizing...' : '\u2728 Summarize'}
               </button>
@@ -1213,7 +1213,7 @@ export default function Messages() {
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.06)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: getGradient(m._id), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: getGradient(m._id), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: 'var(--ink)', fontWeight: 700 }}>
                         {getInitials(m.name)}
                       </div>
                       <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{m.name}</span>
@@ -1327,7 +1327,7 @@ export default function Messages() {
                             <div className="msg-right-panel-member-name">{member.name}</div>
                             <div className="msg-right-panel-member-title">{member.jobTitle || member.email}</div>
                           </div>
-                          <div className="msg-status-indicator" style={{ background: onlineUsers.includes(member._id) ? '#10B981' : '#CBD5E1' }} />
+                          <div className="msg-status-indicator" style={{ background: onlineUsers.includes(member._id) ? '#10B981' : 'var(--ink-4)' }} />
                         </div>
                       ))
                     )

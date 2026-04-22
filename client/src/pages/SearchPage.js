@@ -97,7 +97,7 @@ export default function SearchPage() {
                   onClick={() => navigate(`${scope.linkPrefix}${item.entityId}`)}
                   style={{ padding: '10px 14px', background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, cursor: 'pointer', transition: 'border-color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = '#6366F1'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = '#E2E8F0'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--line)'}
                 >
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>{item.title}</div>
                   {item.snippet && item.snippet !== item.title && (

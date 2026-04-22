@@ -18,7 +18,7 @@ const tabStyle = (active) => ({
   padding: '8px 18px',
   fontSize: 12,
   fontWeight: active ? 700 : 500,
-  color: active ? '#6366F1' : '#64748B',
+  color: active ? '#6366F1' : 'var(--ink-2)',
   background: active ? 'rgba(99,102,241,0.08)' : 'transparent',
   border: 'none',
   borderRadius: 8,
@@ -31,7 +31,7 @@ const periodStyle = (active) => ({
   padding: '5px 12px',
   fontSize: 11,
   fontWeight: active ? 600 : 400,
-  color: active ? '#fff' : '#64748B',
+  color: active ? '#fff' : 'var(--ink-2)',
   background: active ? '#6366F1' : 'transparent',
   border: active ? 'none' : '1px solid #E2E8F0',
   borderRadius: 6,
@@ -44,7 +44,7 @@ function StatCard({ label, value, subtitle, color, total }) {
   return (
     <div className="card" style={{ padding: 20, flex: 1, minWidth: 160 }}>
       <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 8, fontWeight: 500 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 800, color: color || '#1E293B', lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: color || 'var(--ink)', lineHeight: 1 }}>{value}</div>
       {subtitle && <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4 }}>{subtitle}</div>}
       {pct !== null && (
         <div style={{ marginTop: 10 }}>

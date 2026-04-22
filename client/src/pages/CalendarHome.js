@@ -14,7 +14,7 @@ const EVENT_COLORS = {
   activity: '#F59E0B',   // Yellow
   meeting: '#8B5CF6',    // Indigo-purple
   reminder: '#06B6D4',
-  custom: '#64748B'
+  custom: 'var(--ink-2)'
 };
 // Task priority colors per spec Section 5.2.2
 const PRIORITY_COLORS = {

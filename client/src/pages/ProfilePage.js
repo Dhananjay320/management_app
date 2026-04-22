@@ -82,7 +82,7 @@ export default function ProfilePage() {
               <input value={form.statusMessage} onChange={e => setForm(prev => ({ ...prev, statusMessage: e.target.value }))} />
             </div>
             <button
-              style={{ padding: '8px 16px', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
+              style={{ padding: '8px 16px', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', border: 'none', borderRadius: 8, color: 'var(--ink)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
               onClick={saveProfile}
             >
               Save

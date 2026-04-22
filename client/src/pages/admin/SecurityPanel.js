@@ -12,7 +12,7 @@ const tabStyle = (active) => ({
   padding: '8px 18px',
   fontSize: 12,
   fontWeight: active ? 700 : 500,
-  color: active ? '#6366F1' : '#64748B',
+  color: active ? '#6366F1' : 'var(--ink-2)',
   background: active ? 'rgba(99,102,241,0.08)' : 'transparent',
   border: 'none',
   borderRadius: 8,

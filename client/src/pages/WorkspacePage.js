@@ -177,7 +177,7 @@ export default function WorkspacePage() {
                   .map(u => (
                     <div key={u._id} onClick={() => addMember(u._id)}
                       style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: 'var(--ink)' }}
-                      onMouseOver={e => e.currentTarget.style.background = '#F8FAFC'}
+                      onMouseOver={e => e.currentTarget.style.background = 'var(--glass)'}
                       onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                       <span style={{ fontWeight: 600 }}>{u.name}</span>
                       <span style={{ color: 'var(--ink-3)', fontSize: 10, marginLeft: 'auto' }}>{u.email}</span>
@@ -226,7 +226,7 @@ export default function WorkspacePage() {
           <div style={{ marginBottom: 12 }}><button className="btn btn-primary-sm" onClick={createNote}>+ New Note</button></div>
           <div className="ws-notes-grid">
             {wsDetail?.notes?.map(note => (
-              <div key={note._id} className="ws-note-card" style={{ background: note.color || '#F8FAFC' }}>
+              <div key={note._id} className="ws-note-card" style={{ background: note.color || 'var(--glass)' }}>
                 <div className="ws-note-title">{note.title}</div>
                 <div className="ws-note-text">{note.content || 'Empty note'}</div>
               </div>
@@ -430,7 +430,7 @@ function CreateWorkspaceForm({ onClose, onCreated }) {
         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
           {icons.map(i => (
             <div key={i} onClick={() => setForm(p => ({ ...p, icon: i }))}
-              style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer', border: form.icon === i ? '2px solid #6366F1' : '1px solid #E2E8F0', background: form.icon === i ? 'rgba(99,102,241,0.08)' : '#F8FAFC' }}>{i}</div>
+              style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer', border: form.icon === i ? '2px solid #6366F1' : '1px solid #E2E8F0', background: form.icon === i ? 'rgba(99,102,241,0.08)' : 'var(--glass)' }}>{i}</div>
           ))}
         </div>
         <div className="form-field" style={{ marginBottom: 12 }}>

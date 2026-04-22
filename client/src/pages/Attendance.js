@@ -186,7 +186,7 @@ export default function Attendance() {
             <div>Date</div><div>Entry</div><div>Wrap Up</div><div>Hours</div><div>Status</div>
           </div>
           {history.map(r => {
-            const statusColors = { present: '#10B981', absent: '#EF4444', leave: '#EF4444', half_day: '#F97316', holiday: '#8B5CF6', not_marked: '#94A3B8' };
+            const statusColors = { present: '#10B981', absent: '#EF4444', leave: '#EF4444', half_day: '#F97316', holiday: '#8B5CF6', not_marked: 'var(--ink-3)' };
             const statusLabels = { present: 'Present', absent: 'Absent', leave: 'Leave', half_day: 'Half Day', holiday: 'Holiday', not_marked: 'Not Marked' };
             return (
               <div key={r.date} className="att-history-row" style={{ borderBottom: '1px solid var(--line)' }}>
@@ -201,7 +201,7 @@ export default function Attendance() {
                 </div>
                 <div style={{ color: 'var(--ink-2)' }}>{r.totalHours ? `${r.totalHours}h` : '—'}</div>
                 <div>
-                  <span className="badge-pill" style={{ background: (statusColors[r.status] || '#94A3B8') + '14', color: statusColors[r.status] || '#94A3B8' }}>
+                  <span className="badge-pill" style={{ background: (statusColors[r.status] || 'var(--ink-3)') + '14', color: statusColors[r.status] || 'var(--ink-3)' }}>
                     {statusLabels[r.status] || r.status}
                   </span>
                 </div>
@@ -304,7 +304,7 @@ function LeaveRequestForm({ onSuccess }) {
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{l.type.replace('_', ' ')} — {l.startDate}</div>
                     <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>{l.reason}</div>
                   </div>
-                  <span className="badge-pill" style={{ background: (sc[l.status] || '#94A3B8') + '14', color: sc[l.status] }}>{l.status}</span>
+                  <span className="badge-pill" style={{ background: (sc[l.status] || 'var(--ink-3)') + '14', color: sc[l.status] }}>{l.status}</span>
                 </div>
               );
             })}

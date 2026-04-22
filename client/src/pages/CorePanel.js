@@ -600,7 +600,7 @@ const S = {
   },
   btnPrimary: {
     padding: '6px 14px', border: 'none', borderRadius: 6,
-    background: 'linear-gradient(135deg, var(--indigo), var(--violet))', color: '#fff',
+    background: 'linear-gradient(135deg, var(--indigo), var(--violet))', color: 'var(--ink)',
     fontSize: 11, fontWeight: 600, cursor: 'pointer'
   },
   badge: { padding: '2px 8px', borderRadius: 12, fontSize: 9, fontWeight: 600 },

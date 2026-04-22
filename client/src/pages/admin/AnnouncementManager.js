@@ -51,7 +51,7 @@ export default function AnnouncementManager() {
           <div className="page-subtitle">Create and manage company announcements</div>
         </div>
         <button className="btn btn-primary" onClick={() => setCreating(true)} style={{
-          padding: '8px 18px', fontSize: 13, fontWeight: 600, background: '#6366F1', color: '#fff',
+          padding: '8px 18px', fontSize: 13, fontWeight: 600, background: '#6366F1', color: 'var(--ink)',
           border: 'none', borderRadius: 8, cursor: 'pointer'
         }}>
           + New Announcement
@@ -111,7 +111,7 @@ export default function AnnouncementManager() {
               border: 'none', borderRadius: 8, cursor: 'pointer'
             }}>Cancel</button>
             <button onClick={createAnnouncement} disabled={!form.title.trim() || !form.content.trim()} style={{
-              padding: '8px 16px', fontSize: 12, background: '#6366F1', color: '#fff',
+              padding: '8px 16px', fontSize: 12, background: '#6366F1', color: 'var(--ink)',
               border: 'none', borderRadius: 8, cursor: 'pointer', opacity: (!form.title.trim() || !form.content.trim()) ? 0.5 : 1
             }}>Create</button>
           </div>

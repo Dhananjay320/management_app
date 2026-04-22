@@ -31,7 +31,7 @@ export default function FormatSwitcher({ messages = [], channelName, memberCount
         onChange={e => setFormat(e.target.value)}
         style={{
           padding: '4px 8px', border: '1px solid #E2E8F0', borderRadius: 6,
-          fontSize: 10, color: '#475569', background: '#F8FAFC',
+          fontSize: 10, color: 'var(--ink-2)', background: 'var(--glass)',
           fontFamily: 'Inter,sans-serif', cursor: 'pointer', marginBottom: 8
         }}
         title="Switch display format"
@@ -47,40 +47,40 @@ export default function FormatSwitcher({ messages = [], channelName, memberCount
           ? messages.map(msg => renderChatBubble(msg))
           : filtered.map(msg => (
             <div key={msg._id} style={{ padding: '6px 0', fontSize: 12 }}>
-              <span style={{ fontWeight: 700, color: '#1E293B' }}>{msg.sender?.name}</span>
-              <span style={{ color: '#94A3B8', marginLeft: 8, fontSize: 10 }}>
+              <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{msg.sender?.name}</span>
+              <span style={{ color: 'var(--ink-3)', marginLeft: 8, fontSize: 10 }}>
                 {new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               </span>
-              <div style={{ color: '#475569', marginTop: 2 }}>{msg.content}</div>
+              <div style={{ color: 'var(--ink-2)', marginTop: 2 }}>{msg.content}</div>
             </div>
           ))
       )}
 
       {/* Email view */}
       {format === 'email' && filtered.map(msg => (
-        <div key={msg._id} style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 8 }}>
+        <div key={msg._id} style={{ background: 'var(--glass)', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, borderBottom: '1px solid #F0F2F7', paddingBottom: 6 }}>
             <div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#1E293B' }}>{msg.sender?.name}</span>
-              <span style={{ fontSize: 10, color: '#94A3B8', marginLeft: 8 }}>&lt;{msg.sender?.email}&gt;</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>{msg.sender?.name}</span>
+              <span style={{ fontSize: 10, color: 'var(--ink-3)', marginLeft: 8 }}>&lt;{msg.sender?.email}&gt;</span>
             </div>
-            <span style={{ fontSize: 10, color: '#CBD5E1' }}>{new Date(msg.createdAt).toLocaleString()}</span>
+            <span style={{ fontSize: 10, color: 'var(--ink-4)' }}>{new Date(msg.createdAt).toLocaleString()}</span>
           </div>
-          <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{msg.content}</div>
         </div>
       ))}
 
       {/* Table view */}
       {format === 'table' && (
-        <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 120px', padding: '8px 12px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: 9, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>
+        <div style={{ background: 'var(--glass)', borderRadius: 8, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 120px', padding: '8px 12px', background: 'var(--glass)', borderBottom: '1px solid #E2E8F0', fontSize: 9, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase' }}>
             <div>Sender</div><div>Time</div><div>Message</div><div>Attachments</div>
           </div>
           {filtered.map(msg => (
             <div key={msg._id} style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 120px', padding: '8px 12px', borderBottom: '1px solid #F0F2F7', fontSize: 11, alignItems: 'center' }}>
-              <div style={{ fontWeight: 600, color: '#1E293B' }}>{msg.sender?.name}</div>
-              <div style={{ color: '#94A3B8', fontSize: 10 }}>{new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
-              <div style={{ color: '#475569' }}>{msg.content}</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{msg.sender?.name}</div>
+              <div style={{ color: 'var(--ink-3)', fontSize: 10 }}>{new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+              <div style={{ color: 'var(--ink-2)' }}>{msg.content}</div>
               <div>{msg.file ? '\uD83D\uDCCE ' + msg.file.name : '\u2014'}</div>
             </div>
           ))}
@@ -100,11 +100,11 @@ export default function FormatSwitcher({ messages = [], channelName, memberCount
             <div style={{ fontSize: 11, fontWeight: 700, color: '#6366F1', background: 'rgba(99,102,241,0.06)', padding: '6px 12px', borderRadius: 6, marginBottom: 6 }}>{date}</div>
             {msgs.map(msg => (
               <div key={msg._id} style={{ display: 'flex', gap: 8, padding: '4px 12px', fontSize: 11 }}>
-                <span style={{ color: '#94A3B8', width: 60, flexShrink: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
+                <span style={{ color: 'var(--ink-3)', width: 60, flexShrink: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
                   {new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                 </span>
-                <span style={{ fontWeight: 600, color: '#1E293B', width: 100, flexShrink: 0 }}>{msg.sender?.name}</span>
-                <span style={{ color: '#475569' }}>{msg.content}</span>
+                <span style={{ fontWeight: 600, color: 'var(--ink)', width: 100, flexShrink: 0 }}>{msg.sender?.name}</span>
+                <span style={{ color: 'var(--ink-2)' }}>{msg.content}</span>
               </div>
             ))}
           </div>
@@ -113,19 +113,19 @@ export default function FormatSwitcher({ messages = [], channelName, memberCount
 
       {/* Document view */}
       {format === 'document' && (
-        <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #E2E8F0', padding: '24px 32px', maxWidth: 640, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1E293B', marginBottom: 4, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+        <div style={{ background: 'var(--glass)', borderRadius: 8, border: '1px solid #E2E8F0', padding: '24px 32px', maxWidth: 640, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 4, fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
             {channelName || 'Conversation'}
           </h2>
-          <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #F0F2F7' }}>
+          <div style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #F0F2F7' }}>
             {messages.length} messages{memberCount ? ` \u00B7 ${memberCount} members` : ''}
           </div>
           {filtered.map(msg => (
             <div key={msg._id} style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#1E293B' }}>
-                {msg.sender?.name} <span style={{ fontWeight: 400, color: '#CBD5E1' }}>\u2014 {new Date(msg.createdAt).toLocaleString()}</span>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>
+                {msg.sender?.name} <span style={{ fontWeight: 400, color: 'var(--ink-4)' }}>\u2014 {new Date(msg.createdAt).toLocaleString()}</span>
               </div>
-              <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.7, marginTop: 2 }}>{msg.content}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.7, marginTop: 2 }}>{msg.content}</div>
             </div>
           ))}
         </div>

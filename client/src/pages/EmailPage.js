@@ -611,7 +611,7 @@ export default function EmailPage() {
                     {contactSuggestions.map(c => (
                       <div key={c._id} onMouseDown={() => selectContact(c)}
                         style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 11, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--line)' }}
-                        onMouseOver={e => e.currentTarget.style.background = '#F8FAFC'}
+                        onMouseOver={e => e.currentTarget.style.background = 'var(--glass)'}
                         onMouseOut={e => e.currentTarget.style.background = '#fff'}>
                         <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{c.name}</span>
                         <span style={{ color: 'var(--ink-3)' }}>{c.email}</span>
@@ -684,7 +684,7 @@ export default function EmailPage() {
                     style={{ flex: 1, border: '1px solid var(--line)', borderRadius: 6, padding: '6px 10px', fontSize: 11, fontFamily: 'Inter,sans-serif', outline: 'none' }}
                     autoFocus
                   />
-                  <button onClick={handleAiDraft} disabled={aiDraftLoading || !aiDraftPrompt.trim()} style={{ padding: '6px 12px', background: '#6366F1', color: '#fff', border: 'none', borderRadius: 6, fontSize: 10, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
+                  <button onClick={handleAiDraft} disabled={aiDraftLoading || !aiDraftPrompt.trim()} style={{ padding: '6px 12px', background: '#6366F1', color: 'var(--ink)', border: 'none', borderRadius: 6, fontSize: 10, cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>
                     {aiDraftLoading ? '...' : 'Generate'}
                   </button>
                 </div>

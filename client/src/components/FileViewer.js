@@ -189,7 +189,7 @@ export default function FileViewer({ url, name, mimeType, size, onClose }) {
 
           {category === 'text' && (
             textLoading ? (
-              <div style={{ color: '#94A3B8', fontSize: 12 }}>Loading content...</div>
+              <div style={{ color: 'var(--ink-3)', fontSize: 12 }}>Loading content...</div>
             ) : editing ? (
               <textarea
                 className="file-viewer-edit-area"

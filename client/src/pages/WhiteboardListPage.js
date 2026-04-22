@@ -65,7 +65,7 @@ export default function WhiteboardListPage() {
             transition: 'border-color 0.2s'
           }}
           onMouseEnter={e => e.currentTarget.style.borderColor = '#6366F1'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = '#E2E8F0'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--line)'}
         >
           <div style={{ fontSize: 32, color: 'var(--ink-3)', marginBottom: 8 }}>+</div>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#6366F1' }}>New Whiteboard</div>

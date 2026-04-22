@@ -291,7 +291,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
                 disabled={!user.aiActive}
                 title={user.aiActive ? 'Click to use AI' : 'AI not activated \u2014 go to Settings'}
                 onClick={() => user.aiActive ? handleAiMom() : void 0}
-                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid var(--line)', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid var(--line)', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : 'var(--glass)', color: user.aiActive ? '#6366F1' : 'var(--ink-3)', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
               >
                 {'\u2728'} Analyse MoM
               </button>
@@ -299,7 +299,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
                 disabled={!user.aiActive}
                 title={user.aiActive ? 'Click to use AI' : 'AI not activated \u2014 go to Settings'}
                 onClick={() => user.aiActive ? handleAiSummary() : void 0}
-                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid var(--line)', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : '#F8FAFC', color: user.aiActive ? '#6366F1' : '#94A3B8', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+                style={{ padding: '4px 10px', fontSize: 10, border: '1px solid var(--line)', borderRadius: 6, background: user.aiActive ? 'rgba(99,102,241,0.08)' : 'var(--glass)', color: user.aiActive ? '#6366F1' : 'var(--ink-3)', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
               >
                 {'\u2728'} Generate Summary
               </button>
@@ -331,11 +331,11 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
           )}
 
           {meeting.moms?.filter(m => m.type !== 'scratchpad').map(mom => (
-            <div key={mom._id} className="mtg-mom-card" style={{ borderLeft: `3px solid ${mom.isPublished ? '#8B5CF6' : '#94A3B8'}` }} onClick={() => onOpenMom(mom)}>
+            <div key={mom._id} className="mtg-mom-card" style={{ borderLeft: `3px solid ${mom.isPublished ? '#8B5CF6' : 'var(--ink-3)'}` }} onClick={() => onOpenMom(mom)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 12 }}>📋</span>
                 <div className="mtg-mom-title">{mom.title}</div>
-                <span className="badge-pill" style={{ background: mom.isPublished ? 'rgba(139,92,246,0.08)' : 'rgba(148,163,184,0.08)', color: mom.isPublished ? '#8B5CF6' : '#94A3B8' }}>
+                <span className="badge-pill" style={{ background: mom.isPublished ? 'rgba(139,92,246,0.08)' : 'rgba(148,163,184,0.08)', color: mom.isPublished ? '#8B5CF6' : 'var(--ink-3)' }}>
                   {mom.isPublished ? 'Published' : 'Draft'}
                 </span>
                 <span className="badge-pill" style={{ background: 'rgba(99,102,241,0.06)', color: '#6366F1' }}>{mom.type}</span>
@@ -361,7 +361,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
                   <div style={{ fontSize: 9, color: 'var(--ink-3)' }}>{a.user?.jobTitle || a.user?.email}</div>
                 </div>
               </div>
-              <span className="mtg-response-badge" style={{ background: (responseColors[a.response] || '#94A3B8') + '14', color: responseColors[a.response] || '#94A3B8' }}>
+              <span className="mtg-response-badge" style={{ background: (responseColors[a.response] || 'var(--ink-3)') + '14', color: responseColors[a.response] || 'var(--ink-3)' }}>
                 {a.isPresent ? '✓ Present' : a.response}
               </span>
             </div>
@@ -511,8 +511,8 @@ function CreateMeeting({ users, userId, onBack, onCreated }) {
               <div key={u._id} onClick={() => toggleAttendee(u._id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 500, cursor: 'pointer',
                   background: form.attendeeIds.includes(u._id) ? 'rgba(99,102,241,0.08)' : '#fff',
-                  color: form.attendeeIds.includes(u._id) ? '#6366F1' : '#64748B',
-                  border: `1px solid ${form.attendeeIds.includes(u._id) ? 'rgba(99,102,241,0.2)' : '#E2E8F0'}` }}>
+                  color: form.attendeeIds.includes(u._id) ? '#6366F1' : 'var(--ink-2)',
+                  border: `1px solid ${form.attendeeIds.includes(u._id) ? 'rgba(99,102,241,0.2)' : 'var(--line)'}` }}>
                 {form.attendeeIds.includes(u._id) ? '✓ ' : ''}{u.name}
               </div>
             ))}

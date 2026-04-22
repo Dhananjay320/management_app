@@ -5,7 +5,7 @@ import { useSocket } from '../context/SocketContext';
 import api from '../services/api';
 import './WhiteboardPage.css';
 
-const COLORS = ['#1E293B', '#6366F1', '#EF4444', '#10B981', '#F59E0B', '#EC4899'];
+const COLORS = ['var(--ink)', '#6366F1', '#EF4444', '#10B981', '#F59E0B', '#EC4899'];
 const TOOLS = [
   { key: 'select', icon: '\u2B9C', label: 'Select' },
   { key: 'rectangle', icon: '\u25AD', label: 'Rectangle' },
@@ -410,7 +410,7 @@ export default function WhiteboardPage() {
           ) : (
             <text
               x={shape.x} y={shape.y}
-              fill={shape.color || '#1E293B'}
+              fill={shape.color || 'var(--ink)'}
               fontSize={14} fontFamily="Inter, sans-serif" fontWeight={500}
             >
               {shape.text || 'Text'}
@@ -425,7 +425,7 @@ export default function WhiteboardPage() {
       return (
         <g key={shape.id} onMouseDown={(e) => handleShapeClick(e, shape.id)}>
           <path
-            d={d} fill="none" stroke={shape.color || '#1E293B'}
+            d={d} fill="none" stroke={shape.color || 'var(--ink)'}
             strokeWidth={isSelected ? 3 : 2} strokeLinecap="round" strokeLinejoin="round"
           />
           {isSelected && (
