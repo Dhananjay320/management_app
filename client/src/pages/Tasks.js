@@ -195,6 +195,7 @@ function TaskCard({ task, onClick }) {
 }
 
 function TaskDetail({ task, onBack, onUpdate, onReload }) {
+  const { user } = useAuth();
   const pc = PRIORITY_CONFIG[task.priority];
   const sc = STATUS_CONFIG[task.status];
   const [progress, setProgress] = useState(task.progress);
@@ -205,6 +206,56 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
   const fileInputRef = useRef(null);
   const [showWatcherPicker, setShowWatcherPicker] = useState(false);
   const [watcherUsers, setWatcherUsers] = useState([]);
+
+  // Task discussion thread
+  const [showDiscussion, setShowDiscussion] = useState(false);
+  const [threadMessages, setThreadMessages] = useState([]);
+  const [threadInput, setThreadInput] = useState('');
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [threadSummary, setThreadSummary] = useState(null);
+  const [summarizing, setSummarizing] = useState(false);
+
+  const openDiscussion = async () => {
+    setShowDiscussion(true);
+    setThreadLoading(true);
+    try {
+      // If task has a linked chat, load messages from it
+      if (task.linkedChat) {
+        const { data } = await api.get(`/messages/${task.linkedChat}`);
+        setThreadMessages(data);
+      } else {
+        // Create a task thread channel
+        const { data: channel } = await api.post('/messages/channels', {
+          name: `Task: ${task.title}`, type: 'channel', isPrivate: true,
+          members: task.assignees?.map(a => a._id) || []
+        });
+        await onUpdate(task._id, { linkedChat: channel._id });
+        setThreadMessages([]);
+      }
+    } catch {} finally { setThreadLoading(false); }
+  };
+
+  const sendThreadMessage = async () => {
+    if (!threadInput.trim() || !task.linkedChat) return;
+    try {
+      await api.post(`/messages/${task.linkedChat}`, { content: threadInput.trim() });
+      setThreadInput('');
+      const { data } = await api.get(`/messages/${task.linkedChat}`);
+      setThreadMessages(data);
+    } catch {}
+  };
+
+  const summarizeThread = async () => {
+    if (threadMessages.length === 0) { alert('No messages to summarize'); return; }
+    setSummarizing(true);
+    try {
+      const { data } = await api.post('/ai/summarize', {
+        messages: threadMessages.map(m => ({ sender: m.sender?.name, content: m.content }))
+      });
+      setThreadSummary(data.summary || data.result || 'No summary generated.');
+    } catch { setThreadSummary('AI not available. Activate in Settings.'); }
+    finally { setSummarizing(false); }
+  };
 
   const handleEstTimeUpdate = () => {
     const totalMins = (parseInt(estHours) || 0) * 60 + (parseInt(estMins) || 0);
@@ -413,6 +464,66 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
               </div>
             )) : (
               <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>No attachments</div>
+            )}
+          </div>
+
+          {/* Discussion Thread */}
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>💬 Discussion</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {showDiscussion && threadMessages.length > 0 && (
+                  <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: 10 }} onClick={summarizeThread} disabled={summarizing}>
+                    {summarizing ? '⏳ Summarizing...' : '✨ Summarize Thread'}
+                  </button>
+                )}
+                <button className="btn btn-primary-sm" style={{ padding: '4px 10px', fontSize: 10 }} onClick={showDiscussion ? () => setShowDiscussion(false) : openDiscussion}>
+                  {showDiscussion ? 'Close' : '💬 Discuss'}
+                </button>
+              </div>
+            </div>
+
+            {threadSummary && (
+              <div style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, padding: 10, marginBottom: 10, fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.7 }}>
+                <div style={{ fontWeight: 700, color: 'var(--violet)', marginBottom: 4 }}>✨ AI Summary</div>
+                {threadSummary}
+              </div>
+            )}
+
+            {showDiscussion && (
+              <div>
+                {threadLoading ? (
+                  <div style={{ textAlign: 'center', padding: 16, color: 'var(--ink-3)', fontSize: 11 }}>Loading discussion...</div>
+                ) : (
+                  <>
+                    <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 10 }}>
+                      {threadMessages.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: 16, color: 'var(--ink-4)', fontSize: 11 }}>No messages yet. Start the discussion!</div>
+                      )}
+                      {threadMessages.filter(m => m.type !== 'system').map(m => (
+                        <div key={m._id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: getGrad(m.sender?._id), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
+                            {initials(m.sender?.name)}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>{m.sender?.name}</span>
+                              <span style={{ fontSize: 9, color: 'var(--ink-4)' }}>{new Date(m.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.6 }}>{m.content}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input className="ad-input" value={threadInput} onChange={e => setThreadInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') sendThreadMessage(); }}
+                        placeholder="Type a message..." style={{ flex: 1, fontSize: 11 }} />
+                      <button className="btn btn-primary-sm" style={{ padding: '6px 12px', fontSize: 10 }} onClick={sendThreadMessage} disabled={!threadInput.trim()}>Send</button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
 
