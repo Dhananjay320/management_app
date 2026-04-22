@@ -133,7 +133,7 @@ export default function AppLayout() {
                   setSearchQuery('');
                 }
               }}
-              style={{ width: '100%', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 12, fontFamily: 'Inter,sans-serif', outline: 'none', background: 'var(--glass)', color: 'var(--ink)' }}
+              style={{ width: '100%', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 12, fontFamily: 'Inter,sans-serif', outline: 'none', background: 'var(--bg-1)', color: 'var(--ink)' }}
             />
           </div>
           <div className="topbar-right">

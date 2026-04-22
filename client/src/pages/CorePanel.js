@@ -592,11 +592,11 @@ const S = {
   },
   btn: {
     padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 6,
-    background: 'var(--glass)', color: 'var(--ink-2)', fontSize: 11, fontWeight: 600, cursor: 'pointer'
+    background: 'var(--bg-1)', color: 'var(--ink-2)', fontSize: 11, fontWeight: 600, cursor: 'pointer'
   },
   btnSm: {
     padding: '3px 8px', border: '1px solid var(--line)', borderRadius: 4,
-    background: 'var(--glass)', color: 'var(--ink-2)', fontSize: 9, fontWeight: 600, cursor: 'pointer'
+    background: 'var(--bg-1)', color: 'var(--ink-2)', fontSize: 9, fontWeight: 600, cursor: 'pointer'
   },
   btnPrimary: {
     padding: '6px 14px', border: 'none', borderRadius: 6,

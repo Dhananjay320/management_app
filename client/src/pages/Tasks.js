@@ -270,7 +270,7 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
                   {task.team && <span className="badge-pill" style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981' }}>{task.team.name}</span>}
                 </div>
               </div>
-              <select style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--line)', fontSize: 11, color: 'var(--ink-2)' }}
+              <select style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--line)', fontSize: 11, color: 'var(--ink-2)', background: 'var(--bg-1)', fontFamily: 'var(--font)' }}
                 value={task.status} onChange={e => onUpdate(task._id, { status: e.target.value })}>
                 {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
@@ -387,7 +387,7 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
             {task.linkedChat && (
               <div className="task-field">
                 <div className="task-field-label">Linked Chat</div>
-                <div style={{ fontSize: 12, color: '#6366F1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div onClick={() => window.location.href = `/messages?channel=${task.linkedChat}`} style={{ fontSize: 12, color: 'var(--indigo)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                   💬 <span style={{ textDecoration: 'underline' }}>Open linked chat</span>
                 </div>
               </div>
@@ -676,7 +676,7 @@ function CreateTask({ onBack, onCreated }) {
             <div className="form-field">
               <label>Team</label>
               <select value={form.team} onChange={e => setForm(p => ({ ...p, team: e.target.value }))}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 12, background: 'var(--glass)', color: 'var(--ink-2)', fontFamily: 'Inter' }}>
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 12, background: 'var(--bg-1)', color: 'var(--ink-2)', fontFamily: 'Inter' }}>
                 <option value="">No team</option>
                 {allTeams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
               </select>
@@ -754,19 +754,19 @@ function LabelsModal({ onClose }) {
   }, []);
 
   const createLabel = async () => {
-    if (!newName.trim()) return;
+    if (!newName.trim()) { alert('Enter a label name'); return; }
     try {
-      const { data } = await api.post('/tasks/labels', { name: newName.trim(), color: newColor });
+      const { data } = await api.post('/tasks/labels', { name: newName.trim(), color: newColor, type: 'company' });
       setLabels(prev => [...prev, data]);
       setNewName('');
       setNewColor('#6366F1');
-    } catch {}
+    } catch (e) { alert('❌ ' + (e.response?.data?.error || 'Failed to create label')); }
   };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.3)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={onClose}>
-      <div style={{ background: 'var(--glass)', borderRadius: 12, padding: 20, width: 380, maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
+      <div style={{ background: 'var(--bg-1)', backdropFilter: 'blur(20px)', border: '1px solid var(--line-2)', borderRadius: 12, padding: 20, width: 380, maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
         onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Manage Labels</div>

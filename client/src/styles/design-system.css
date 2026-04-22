@@ -302,3 +302,14 @@ body::before {
 .ad-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ad-soft-shadow { box-shadow: 0 8px 32px rgba(0,0,0,0.30); }
 .ad-glow-indigo { box-shadow: 0 0 40px rgba(99,102,241,0.30), 0 8px 32px rgba(0,0,0,0.3); }
+
+/* Fix all select dropdowns for dark theme */
+select, .ad-select {
+  background: var(--bg-1) !important;
+  color: var(--ink) !important;
+}
+select option {
+  background: var(--bg-1);
+  color: var(--ink);
+}
+
