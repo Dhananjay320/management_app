@@ -14,6 +14,7 @@ const EVENT_COLORS = {
   activity: '#F59E0B',   // Yellow
   meeting: '#8B5CF6',    // Indigo-purple
   reminder: '#06B6D4',
+  announcement: '#EC4899', // Pink
   custom: 'var(--ink-2)'
 };
 // Task priority colors per spec Section 5.2.2
@@ -172,9 +173,9 @@ export default function CalendarHome() {
       </div>
 
       {/* Views */}
-      {view === 'weekly' && <WeeklyView dates={weekDates} getEvents={getEventsForDate} navigate={navigate} />}
+      {view === 'weekly' && <WeeklyView dates={weekDates} getEvents={getEventsForDate} navigate={navigate} setView={setView} setCurrentDate={setCurrentDate} />}
       {view === 'monthly' && <MonthlyView currentDate={currentDate} getEvents={getEventsForDate} events={events} setView={setView} setCurrentDate={setCurrentDate} />}
-      {view === 'daily' && <DailyView date={currentDate} events={getEventsForDate(currentDate)} todayAtt={todayAtt} navigate={navigate} />}
+      {view === 'daily' && <DailyView date={currentDate} events={getEventsForDate(currentDate)} todayAtt={todayAtt} navigate={navigate} setView={setView} setCurrentDate={setCurrentDate} />}
 
       {/* Today's Events Summary */}
       {(() => {
@@ -207,13 +208,27 @@ export default function CalendarHome() {
   );
 }
 
-function handleEventClick(ev, navigate) {
-  if (ev.type === 'task') navigate('/tasks');
-  else if (ev.type === 'meeting') navigate('/meetings');
-  else if (ev.type === 'activity') navigate('/activity');
+function handleEventClick(ev, navigate, setView, setCurrentDate) {
+  if (ev.type === 'task' && ev.sourceId) {
+    navigate(`/tasks?id=${ev.sourceId}`);
+  } else if (ev.type === 'task') {
+    navigate('/tasks');
+  } else if (ev.type === 'meeting' && ev.sourceId) {
+    navigate(`/meetings?highlight=${ev.sourceId}`);
+  } else if (ev.type === 'meeting') {
+    navigate('/meetings');
+  } else if (ev.type === 'activity') {
+    navigate('/activity');
+  } else {
+    // Holiday, announcement, or anything without detail page → switch to daily view
+    if (ev.date && setView && setCurrentDate) {
+      setCurrentDate(new Date(ev.date));
+      setView('daily');
+    }
+  }
 }
 
-function WeeklyView({ dates, getEvents, navigate }) {
+function WeeklyView({ dates, getEvents, navigate, setView, setCurrentDate }) {
   return (
     <div className="cal-week-grid">
       {dates.map(d => {
@@ -232,7 +247,7 @@ function WeeklyView({ dates, getEvents, navigate }) {
               const eventCol = EVENT_COLORS[ev.type] || '#3B82F6';
               const priorityCol = ev.priority ? PRIORITY_COLORS[ev.priority] : null;
               return (
-                <div key={i} className="cal-event" style={{ background: eventCol + '0D', borderLeft: `2px solid ${eventCol}`, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleEventClick(ev, navigate); }}>
+                <div key={i} className="cal-event" style={{ background: eventCol + '0D', borderLeft: `2px solid ${eventCol}`, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleEventClick(ev, navigate, setView, setCurrentDate); }}>
                   <div className="cal-event-title" style={{ color: eventCol }}>
                     {isTask && priorityCol && (
                       <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: priorityCol, marginRight: 4, verticalAlign: 'middle' }} />
@@ -311,7 +326,7 @@ function MonthlyView({ currentDate, events, setView, setCurrentDate }) {
   );
 }
 
-function DailyView({ date, events, todayAtt, navigate }) {
+function DailyView({ date, events, todayAtt, navigate, setView, setCurrentDate }) {
   const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8 AM to 8 PM
 
   // Separate tasks (for priority grouping) from timed events
@@ -343,7 +358,7 @@ function DailyView({ date, events, todayAtt, navigate }) {
                 {hourEvents.map((ev, i) => {
                   const col = EVENT_COLORS[ev.type] || '#3B82F6';
                   return (
-                    <div key={i} className="cal-time-event" style={{ background: col + '0A', borderLeft: `3px solid ${col}`, cursor: 'pointer' }} onClick={() => handleEventClick(ev, navigate)}>
+                    <div key={i} className="cal-time-event" style={{ background: col + '0A', borderLeft: `3px solid ${col}`, cursor: 'pointer' }} onClick={() => handleEventClick(ev, navigate, setView, setCurrentDate)}>
                       <div className="cal-time-event-title" style={{ color: 'var(--ink)' }}>{ev.title}</div>
                       <div className="cal-time-event-sub" style={{ color: 'var(--ink-3)' }}>
                         {ev.startTime}{ev.endTime ? ` – ${ev.endTime}` : ''} · {ev.type}

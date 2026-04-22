@@ -134,8 +134,23 @@ router.get('/events', protect, async (req, res) => {
       sourceId: m._id
     }));
 
+    // Get announcements for this range
+    const Announcement = require('../models/Announcement');
+    const announcements = await Announcement.find({
+      isActive: true,
+      createdAt: { $gte: new Date(start), $lte: new Date(end + 'T23:59:59') }
+    }).select('title content createdAt');
+
+    const announcementEvents = announcements.map(a => ({
+      title: '📢 ' + a.title,
+      date: a.createdAt.toISOString().split('T')[0],
+      type: 'announcement',
+      sourceType: 'announcement',
+      sourceId: a._id
+    }));
+
     res.json({
-      events: [...events, ...activityEvents, ...taskEvents, ...noDeadlineEvents, ...meetingEvents],
+      events: [...events, ...activityEvents, ...taskEvents, ...noDeadlineEvents, ...meetingEvents, ...announcementEvents],
       attendance,
       leaves
     });
