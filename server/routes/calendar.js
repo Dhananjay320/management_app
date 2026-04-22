@@ -59,6 +59,49 @@ router.get('/events', protect, async (req, res) => {
       startTime: a.date.toTimeString().slice(0, 5)
     }));
 
+    // Get user's tasks with deadlines in this range
+    const Task = require('../models/Task');
+    const tasks = await Task.find({
+      assignees: req.user._id,
+      isActive: true,
+      status: { $nin: ['cancelled'] },
+      deadline: { $gte: new Date(start), $lte: new Date(end + 'T23:59:59') }
+    }).select('title deadline deadlineTime priority status taskType count countUnit');
+
+    const taskEvents = tasks.map(t => ({
+      title: t.title,
+      date: t.deadline.toISOString().split('T')[0],
+      type: 'task',
+      priority: t.priority,
+      startTime: t.deadlineTime || null,
+      sourceType: 'task',
+      sourceId: t._id,
+      _taskStatus: t.status,
+      _taskType: t.taskType,
+      _count: t.count,
+      _countUnit: t.countUnit
+    }));
+
+    // Get tasks assigned to user (by startDate or creation date if no deadline)
+    const tasksNoDeadline = await Task.find({
+      assignees: req.user._id,
+      isActive: true,
+      status: { $nin: ['cancelled', 'done'] },
+      $or: [{ deadline: null }, { deadline: { $exists: false } }],
+      createdAt: { $gte: new Date(start), $lte: new Date(end + 'T23:59:59') }
+    }).select('title createdAt priority status taskType');
+
+    const noDeadlineEvents = tasksNoDeadline.map(t => ({
+      title: t.title,
+      date: t.createdAt.toISOString().split('T')[0],
+      type: 'task',
+      priority: t.priority,
+      startTime: null,
+      sourceType: 'task',
+      sourceId: t._id,
+      _taskStatus: t.status
+    }));
+
     // Also get attendance records for this range
     const attendance = await Attendance.find({
       user: req.user._id,
@@ -73,7 +116,29 @@ router.get('/events', protect, async (req, res) => {
       endDate: { $gte: start }
     });
 
-    res.json({ events: [...events, ...activityEvents], attendance, leaves });
+    // Get meetings for this range
+    const { Meeting } = require('../models/Meeting');
+    const meetings = await Meeting.find({
+      'attendees.user': req.user._id,
+      isActive: true,
+      date: { $gte: new Date(start), $lte: new Date(end + 'T23:59:59') }
+    }).select('title date startTime endTime type status');
+
+    const meetingEvents = meetings.map(m => ({
+      title: m.title,
+      date: m.date.toISOString().split('T')[0],
+      type: 'meeting',
+      startTime: m.startTime,
+      endTime: m.endTime,
+      sourceType: 'meeting',
+      sourceId: m._id
+    }));
+
+    res.json({
+      events: [...events, ...activityEvents, ...taskEvents, ...noDeadlineEvents, ...meetingEvents],
+      attendance,
+      leaves
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }
