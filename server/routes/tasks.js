@@ -210,6 +210,36 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
+// POST /api/v1/tasks/:id/increment — increment counter for counter-type tasks
+router.post('/:id/increment', protect, async (req, res) => {
+  try {
+    const { amount = 1, note } = req.body;
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ error: 'Task not found.' });
+    if (task.taskType !== 'counter') return res.status(400).json({ error: 'Not a counter task.' });
+
+    task.count += Number(amount);
+    const today = new Date().toISOString().split('T')[0];
+    const todayEntry = task.countHistory.find(h => h.date === today);
+    if (todayEntry) {
+      todayEntry.count += Number(amount);
+      if (note) todayEntry.note = note;
+    } else {
+      task.countHistory.push({ date: today, count: Number(amount), note: note || '' });
+    }
+
+    task.activity.push({ user: req.user._id, action: 'counter_increment', detail: `+${amount} (total: ${task.count})` });
+
+    if (task.status === 'not_started') task.status = 'in_progress';
+    await task.save();
+
+    const populated = await Task.findById(task._id).populate('assignees', 'name email avatar');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // DELETE /api/v1/tasks/:id
 router.delete('/:id', protect, async (req, res) => {
   try {

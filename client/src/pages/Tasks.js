@@ -186,10 +186,25 @@ function TaskCard({ task, onClick }) {
         {task.isRecurring && <span style={{ fontSize: 9, color: '#6366F1' }}>🔄</span>}
       </div>
       {task.statusNote && <div style={{ fontSize: 10, color: 'var(--ink-2)', marginBottom: 4, fontStyle: 'italic' }}>{task.statusNote}</div>}
-      <div className="task-card-progress">
-        <div className="task-card-progress-bar"><div className="task-card-progress-fill" style={{ width: task.progress + '%', background: pc.color }} /></div>
-        <div className="task-card-progress-text">{task.progress}%</div>
-      </div>
+      {task.taskType === 'counter' ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+          <span style={{ fontSize: 18, fontWeight: 800, color: (() => {
+            if (!task.dailyTarget) return '#6366F1';
+            const ratio = (task.count || 0) / task.dailyTarget;
+            return ratio >= 1 ? '#10B981' : ratio >= 0.5 ? '#F59E0B' : '#EF4444';
+          })() }}>
+            {task.count || 0}
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--ink-2)' }}>
+            {task.dailyTarget ? `/ ${task.dailyTarget} ${task.countUnit || ''} today` : `${task.countUnit || ''}`}
+          </span>
+        </div>
+      ) : (
+        <div className="task-card-progress">
+          <div className="task-card-progress-bar"><div className="task-card-progress-fill" style={{ width: task.progress + '%', background: pc.color }} /></div>
+          <div className="task-card-progress-text">{task.progress}%</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -206,6 +221,7 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
   const fileInputRef = useRef(null);
   const [showWatcherPicker, setShowWatcherPicker] = useState(false);
   const [watcherUsers, setWatcherUsers] = useState([]);
+  const [customIncrement, setCustomIncrement] = useState('');
 
   // Task discussion thread
   const [showDiscussion, setShowDiscussion] = useState(false);
@@ -302,6 +318,13 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
     onUpdate(task._id, { watchers: currentIds });
   };
 
+  const handleIncrement = async (amount) => {
+    try {
+      await api.post(`/tasks/${task._id}/increment`, { amount });
+      onReload();
+    } catch {}
+  };
+
   return (
     <div>
       <button className="btn btn-secondary" style={{ marginBottom: 16 }} onClick={onBack}>← Back to Tasks</button>
@@ -343,18 +366,61 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
               <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
                 <div className="task-field-label">Deadline</div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: task.deadline && new Date(task.deadline) < new Date() ? '#EF4444' : 'var(--ink)' }}>
-                  {task.deadline ? new Date(task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                  {task.deadline ? (
+                    new Date(task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    + (task.deadlineTime ? ` at ${new Date('2000-01-01T' + task.deadlineTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : '')
+                  ) : '—'}
                 </div>
               </div>
-              <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
-                <div className="task-field-label">Progress</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="range" min="0" max="100" value={progress} onChange={e => setProgress(Number(e.target.value))}
-                    onMouseUp={() => onUpdate(task._id, { progress })}
-                    style={{ flex: 1, accentColor: pc.color }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: pc.color }}>{progress}%</span>
+              {task.taskType === 'counter' ? (
+                <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
+                  <div className="task-field-label">Counter</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: (() => {
+                      if (!task.dailyTarget) return '#6366F1';
+                      const ratio = (task.count || 0) / task.dailyTarget;
+                      return ratio >= 1 ? '#10B981' : ratio >= 0.5 ? '#F59E0B' : '#EF4444';
+                    })() }}>{task.count || 0}</span>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-2)', fontWeight: 600 }}>{task.countUnit || 'count'}</div>
+                      {task.dailyTarget > 0 && <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>Target: {task.dailyTarget}</div>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                    {[1, 5, 10].map(n => (
+                      <button key={n} className="btn btn-primary-sm" style={{ padding: '4px 10px', fontSize: 10 }}
+                        onClick={() => handleIncrement(n)}>+{n}</button>
+                    ))}
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <input type="number" min="1" value={customIncrement} onChange={e => setCustomIncrement(e.target.value)}
+                        placeholder="#" style={{ width: 48, padding: '4px 6px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 10, textAlign: 'center', background: 'var(--glass)' }} />
+                      <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: 10 }}
+                        onClick={() => { if (customIncrement && Number(customIncrement) > 0) { handleIncrement(Number(customIncrement)); setCustomIncrement(''); } }}>Add</button>
+                    </div>
+                  </div>
+                  {task.countHistory && task.countHistory.length > 0 && (
+                    <div style={{ marginTop: 6, borderTop: '1px solid var(--line)', paddingTop: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>Last 7 days</div>
+                      {task.countHistory.slice(-7).map((entry, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink-2)', padding: '1px 0' }}>
+                          <span>{new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          <span style={{ fontWeight: 600 }}>{entry.count} {task.countUnit || ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div style={{ background: 'var(--glass)', borderRadius: 8, padding: 10 }}>
+                  <div className="task-field-label">Progress</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type="range" min="0" max="100" value={progress} onChange={e => setProgress(Number(e.target.value))}
+                      onMouseUp={() => onUpdate(task._id, { progress })}
+                      style={{ flex: 1, accentColor: pc.color }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: pc.color }}>{progress}%</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* More fields row */}
@@ -653,13 +719,16 @@ function SubtaskSection({ task, onUpdate, onReload }) {
 function CreateTask({ onBack, onCreated }) {
   const { user } = useAuth();
   const [form, setForm] = useState({
-    title: '', description: '', priority: 'medium', deadline: '', statusNote: '',
+    title: '', description: '', priority: 'medium', deadline: '', deadlineTime: '', statusNote: '',
     assignees: [user._id],
     team: '',
     labels: [],
     isRecurring: false,
     recurringPattern: 'daily',
-    isPrivate: false
+    isPrivate: false,
+    taskType: 'standard',
+    dailyTarget: '',
+    countUnit: ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -709,7 +778,11 @@ function CreateTask({ onBack, onCreated }) {
         assignees: form.assignees.length > 0 ? form.assignees : [user._id],
         team: form.team || undefined,
         labels: form.labels.length > 0 ? form.labels : undefined,
-        recurringPattern: form.isRecurring ? form.recurringPattern : undefined
+        recurringPattern: form.isRecurring ? form.recurringPattern : undefined,
+        deadlineTime: form.deadlineTime || undefined,
+        taskType: form.taskType,
+        dailyTarget: form.taskType === 'counter' && form.dailyTarget ? Number(form.dailyTarget) : undefined,
+        countUnit: form.taskType === 'counter' && form.countUnit ? form.countUnit : undefined
       };
       if (!payload.isRecurring) {
         delete payload.recurringPattern;
@@ -727,6 +800,28 @@ function CreateTask({ onBack, onCreated }) {
       <div className="form-card" style={{ maxWidth: '100%' }}>
         <form onSubmit={handleSubmit}>
           <div className="form-field" style={{ marginBottom: 14 }}>
+            <label>Task Type</label>
+            <div className="chip-group">
+              {[['standard', 'Standard (progress 0-100%)'], ['counter', 'Counter (track count)']].map(([k, l]) => (
+                <div key={k} className={`chip ${form.taskType === k ? 'active' : ''}`}
+                  style={form.taskType === k ? { background: '#6366F1' + '14', color: '#6366F1', borderColor: '#6366F1' + '33' } : {}}
+                  onClick={() => setForm(p => ({ ...p, taskType: k }))}>{l}</div>
+              ))}
+            </div>
+          </div>
+          {form.taskType === 'counter' && (
+            <div className="form-grid" style={{ marginBottom: 14 }}>
+              <div className="form-field">
+                <label>Daily Target</label>
+                <input type="number" min="0" value={form.dailyTarget} onChange={e => setForm(p => ({ ...p, dailyTarget: e.target.value }))} placeholder="e.g. 50" />
+              </div>
+              <div className="form-field">
+                <label>Unit</label>
+                <input value={form.countUnit} onChange={e => setForm(p => ({ ...p, countUnit: e.target.value }))} placeholder='e.g. "calls", "customers"' />
+              </div>
+            </div>
+          )}
+          <div className="form-field" style={{ marginBottom: 14 }}>
             <label>Task Title *</label>
             <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="What needs to be done?" required />
           </div>
@@ -742,7 +837,10 @@ function CreateTask({ onBack, onCreated }) {
             </div>
             <div className="form-field">
               <label>Deadline</label>
-              <input type="date" value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="date" value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} style={{ flex: 1 }} />
+                <input type="time" value={form.deadlineTime} onChange={e => setForm(p => ({ ...p, deadlineTime: e.target.value }))} placeholder="Reminder time" style={{ flex: 1 }} />
+              </div>
             </div>
           </div>
 

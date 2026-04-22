@@ -11,14 +11,29 @@ const taskSchema = new mongoose.Schema({
   team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
+  // Task type: 'standard' (0-100% progress) or 'counter' (infinite, track count)
+  taskType: { type: String, enum: ['standard', 'counter'], default: 'standard' },
+
   // Priority & Status
   priority: { type: String, enum: ['top', 'high', 'medium', 'low'], default: 'medium' },
   status: { type: String, enum: ['not_started', 'in_progress', 'on_hold', 'done', 'cancelled', 'reopened'], default: 'not_started' },
   progress: { type: Number, default: 0, min: 0, max: 100 },
   statusNote: { type: String, default: '' },
 
+  // Counter task fields (for taskType: 'counter')
+  count: { type: Number, default: 0 },
+  dailyTarget: { type: Number },
+  countUnit: { type: String, default: '' }, // e.g. "calls", "customers", "units"
+  countHistory: [{
+    date: { type: String },
+    count: { type: Number },
+    note: { type: String }
+  }],
+
   // Dates
   deadline: { type: Date },
+  deadlineTime: { type: String }, // optional HH:MM for reminder
+  reminderSent: { type: Boolean, default: false },
   startDate: { type: Date },
   estimatedTime: { type: Number }, // minutes
   completedAt: { type: Date },

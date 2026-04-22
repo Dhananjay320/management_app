@@ -187,13 +187,93 @@ function startDeepSearchCleanupScheduler() {
   }, 60000);
 }
 
+// ─── Task Deadline Reminder Scheduler ───
+function startTaskDeadlineReminderScheduler(io) {
+  const Task = require('../models/Task');
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      const timeNow = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const today = now.toISOString().split('T')[0];
+
+      // Find tasks with deadline today + matching time + not yet reminded
+      const tasks = await Task.find({
+        deadline: { $gte: new Date(today), $lt: new Date(today + 'T23:59:59') },
+        deadlineTime: timeNow,
+        reminderSent: { $ne: true },
+        status: { $nin: ['done', 'cancelled'] },
+        isActive: true
+      }).populate('assignees', '_id name');
+
+      for (const task of tasks) {
+        task.reminderSent = true;
+        await task.save();
+
+        for (const assignee of (task.assignees || [])) {
+          if (io) {
+            io.to(`user:${assignee._id}`).emit('notification:new', {
+              type: 'task',
+              title: '⏰ Task Deadline Reminder',
+              message: `"${task.title}" is due now!`,
+              entityType: 'task',
+              entityId: task._id
+            });
+          }
+
+          try {
+            await Notification.create({
+              user: assignee._id,
+              type: 'task',
+              title: '⏰ Task Deadline Reminder',
+              message: `"${task.title}" is due now!`,
+              entityType: 'task',
+              entityId: task._id
+            });
+          } catch {}
+        }
+      }
+
+      // Also send reminders for tasks with deadline today but no specific time (send at 9 AM)
+      if (timeNow === '09:00') {
+        const dayTasks = await Task.find({
+          deadline: { $gte: new Date(today), $lt: new Date(today + 'T23:59:59') },
+          deadlineTime: { $exists: false },
+          reminderSent: { $ne: true },
+          status: { $nin: ['done', 'cancelled'] },
+          isActive: true
+        }).populate('assignees', '_id name');
+
+        for (const task of dayTasks) {
+          task.reminderSent = true;
+          await task.save();
+
+          for (const assignee of (task.assignees || [])) {
+            if (io) {
+              io.to(`user:${assignee._id}`).emit('notification:new', {
+                type: 'task',
+                title: '📅 Task Due Today',
+                message: `"${task.title}" is due today!`,
+                entityType: 'task',
+                entityId: task._id
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Task deadline reminder error:', err);
+    }
+  }, 60000);
+}
+
 function startSchedulers(io) {
   startNoEntryAlertScheduler(io);
   startWrapUpReminderScheduler(io);
   startMeetingUnseenAlertScheduler(io);
+  startTaskDeadlineReminderScheduler(io);
   startNotificationCleanupScheduler();
   startDeepSearchCleanupScheduler();
-  console.log('All schedulers started (attendance, meeting alerts, retention cleanup)');
+  console.log('All schedulers started (attendance, meeting, task reminders, retention cleanup)');
 }
 
 module.exports = { startSchedulers };
