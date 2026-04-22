@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TaskList from '@tiptap/extension-task-list';
@@ -15,6 +16,7 @@ function initials(n) { return (n||'?').split(' ').map(w=>w[0]).join('').slice(0,
 
 export default function MeetingsPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState('upcoming');
   const [view, setView] = useState('list'); // list, create, detail, mom
   const [meetings, setMeetings] = useState([]);
@@ -34,6 +36,18 @@ export default function MeetingsPage() {
   useEffect(() => {
     api.get('/users').then(r => setUsers(r.data)).catch(() => {});
   }, []);
+
+  // Auto-open meeting from URL param ?highlight=<meetingId>
+  const meetingIdParam = searchParams.get('highlight');
+  useEffect(() => {
+    if (meetingIdParam && !loading) {
+      openMeeting(meetingIdParam);
+      const next = new URLSearchParams(searchParams);
+      next.delete('highlight');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingIdParam, loading]);
 
   const openMeeting = async (id) => {
     try {

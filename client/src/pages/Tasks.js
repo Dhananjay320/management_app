@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import '../styles/tasks.css';
@@ -40,6 +41,7 @@ function formatMinutes(mins) {
 export default function Tasks() {
   // eslint-disable-next-line no-unused-vars
   const { user: _user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState('tasks'); // tasks, create, detail, todo
   const [view, setView] = useState('my');
   const [tasks, setTasks] = useState([]);
@@ -57,6 +59,18 @@ export default function Tasks() {
   }, [view]);
 
   useEffect(() => { loadTasks(); }, [loadTasks]);
+
+  // Auto-open task from URL param ?id=<taskId>
+  const taskIdParam = searchParams.get('id');
+  useEffect(() => {
+    if (taskIdParam && !loading) {
+      openTask(taskIdParam);
+      const next = new URLSearchParams(searchParams);
+      next.delete('id');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskIdParam, loading]);
 
   const openTask = async (id) => {
     try {
