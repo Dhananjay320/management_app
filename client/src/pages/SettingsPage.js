@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import usePushNotifications from '../hooks/usePushNotifications';
 import '../styles/ai.css';
 import '../styles/settings.css';
 
@@ -59,7 +60,7 @@ function SettingsSelect({ label, value, onChange, options }) {
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, fetchUser } = useAuth();
 
   /* ---- User settings state ---- */
   const [settings, setSettings] = useState({
@@ -144,7 +145,7 @@ export default function SettingsPage() {
     setError(''); setMessage('');
     try {
       const { data } = await api.post('/ai/activate', { activationCode });
-      setMessage(data.message); setActivationCode(''); loadConfig();
+      setMessage(data.message); setActivationCode(''); loadConfig(); fetchUser();
     } catch (err) { setError(err.response?.data?.error || 'Activation failed.'); }
   };
 
@@ -152,12 +153,12 @@ export default function SettingsPage() {
     setError(''); setMessage('');
     try {
       const { data } = await api.post('/ai/activate-direct', { provider: directProvider, apiKey: directKey });
-      setMessage(data.message); setDirectKey(''); loadConfig();
+      setMessage(data.message); setDirectKey(''); loadConfig(); fetchUser();
     } catch (err) { setError(err.response?.data?.error || 'Activation failed.'); }
   };
 
   const deactivate = async () => {
-    try { await api.delete('/ai/config'); setMessage('AI deactivated.'); loadConfig(); } catch {}
+    try { await api.delete('/ai/config'); setMessage('AI deactivated.'); loadConfig(); fetchUser(); } catch {}
   };
 
   if (loading) return <div style={{ padding: 20, color: 'var(--ink-3)' }}>Loading...</div>;
@@ -251,6 +252,7 @@ export default function SettingsPage() {
 
       {/* 4. Notifications */}
       <SectionCard title="Notifications">
+        <PushNotificationToggle />
         <Toggle
           label="Notification sound"
           checked={settings.notificationSound}
@@ -504,6 +506,91 @@ export default function SettingsPage() {
           </div>
         </div>
       </SectionCard>
+    </div>
+  );
+}
+
+function PushNotificationToggle() {
+  const { permission, subscribed, loading, subscribe, unsubscribe } = usePushNotifications();
+  const supported = 'serviceWorker' in navigator && 'PushManager' in window;
+  const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+
+  if (isElectron) {
+    return (
+      <div style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Push Notifications</div>
+        <div style={{ fontSize: 10, color: '#10B981', marginTop: 2 }}>
+          ✅ Native desktop notifications active — no setup needed
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 4 }}>
+          The desktop app shows macOS notifications via the live socket connection. You'll get them as long as the app is open.
+        </div>
+      </div>
+    );
+  }
+
+  // Detect Expo WebView wrapper — native push handles it, ignore browser API gap
+  const inExpoWebView = typeof window !== 'undefined' && (window.__EXPO_PUSH_TOKEN__ || window.__EXPO_PUSH_REGISTERED__);
+  if (inExpoWebView) {
+    return (
+      <div style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Push Notifications</div>
+        <div style={{ fontSize: 10, color: '#10B981', marginTop: 2 }}>
+          ✅ Native mobile notifications active
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 4 }}>
+          The mobile app delivers notifications via Expo Push — no browser permission needed.
+        </div>
+      </div>
+    );
+  }
+
+  if (!supported) {
+    return (
+      <div style={{ padding: '8px 0', fontSize: 11, color: 'var(--ink-3)' }}>
+        Push notifications not supported in this browser.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Push Notifications</div>
+          <div style={{ fontSize: 10, color: subscribed ? '#10B981' : permission === 'denied' ? '#EF4444' : 'var(--ink-3)' }}>
+            {subscribed ? '✅ Enabled — receiving browser push notifications' :
+             permission === 'denied' ? '🚫 Blocked by browser' :
+             'Get notified even when the app is in background'}
+          </div>
+        </div>
+        {subscribed ? (
+          <button onClick={unsubscribe} disabled={loading}
+            style={{ padding: '6px 16px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid #EF4444', background: 'rgba(239,68,68,0.08)', color: '#EF4444', cursor: 'pointer', fontFamily: 'Inter' }}>
+            Disable
+          </button>
+        ) : permission === 'denied' ? (
+          <button onClick={() => window.open('chrome://settings/content/notifications', '_blank')}
+            style={{ padding: '6px 16px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid #F59E0B', background: 'rgba(245,158,11,0.08)', color: '#F59E0B', cursor: 'pointer', fontFamily: 'Inter' }}>
+            Fix in Browser
+          </button>
+        ) : (
+          <button onClick={subscribe} disabled={loading}
+            style={{ padding: '6px 16px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid #6366F1', background: 'rgba(99,102,241,0.08)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter' }}>
+            {loading ? 'Enabling...' : 'Enable'}
+          </button>
+        )}
+      </div>
+      {permission === 'denied' && (
+        <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.12)', borderRadius: 6, fontSize: 10, color: 'var(--ink-2)', lineHeight: 1.6 }}>
+          <strong style={{ color: '#EF4444' }}>Notifications are blocked.</strong> To fix:
+          <ol style={{ margin: '4px 0 0 16px', padding: 0 }}>
+            <li>Click the 🔒 lock icon in the browser address bar (left of the URL)</li>
+            <li>Find "Notifications" → change from "Block" to "Allow"</li>
+            <li>Refresh the page and click Enable again</li>
+          </ol>
+        </div>
+      )}
     </div>
   );
 }

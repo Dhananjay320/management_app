@@ -1,0 +1,29 @@
+{
+  "short_name": "Avadeti Team",
+  "name": "Avadeti Team — Company Management",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0A0B1A",
+  "background_color": "#0A0B1A",
+  "orientation": "any",
+  "categories": ["business", "productivity"],
+  "description": "Company management platform — calendar, messaging, tasks, meetings, and more."
+}

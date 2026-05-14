@@ -2,7 +2,7 @@
 
 **Status: ✅ Build-verified.** Client: 319.65 kB main.js (-57 B — minifier fluctuation), 34.71 kB CSS (+14 B). All Electron files syntax-verified; package.json + release.yml schemas validated.
 
-**This is the final session.** The Avadeti Team rebuild is complete.
+**This is the final session.** The Niyoq rebuild is complete.
 
 ---
 
@@ -156,7 +156,7 @@ In `electron/package.json`, update:
 ```json
 "publish": {
   "provider": "github",
-  "owner": "avadeti",           ← your GitHub org/user
+  "owner": "niyoq",           ← your GitHub org/user
   "repo": "team",               ← your repo name
   "releaseType": "draft"
 }
@@ -284,7 +284,7 @@ If you add runtime dependencies later (native modules, etc.), you'll need to ext
 
 ---
 
-## 🏆 Project complete — Avadeti Team rebuild
+## 🏆 Project complete — Niyoq rebuild
 
 This was the final session. Congrats!
 

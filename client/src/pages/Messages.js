@@ -1,17 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import api from '../services/api';
+import api, { getFileUrl } from '../services/api';
 import FileViewer from '../components/FileViewer';
+import { useAlert } from '../components/AlertModal';
+import EmojiPicker, { pushRecentEmoji } from '../components/EmojiPicker';
+import ReactionPill from '../components/ReactionPill';
+import InlineVideoPlayer from '../components/InlineVideoPlayer';
+import Avatar from '../components/Avatar';
+import { MessageCircle, Pin, SmilePlus, ListPlus, Forward, Pencil, Trash2 } from 'lucide-react';
 import '../styles/messaging.css';
 
 const GRADIENTS = [
-  'linear-gradient(135deg,#6366F1,#8B5CF6)',
-  'linear-gradient(135deg,#10B981,#06B6D4)',
-  'linear-gradient(135deg,#F59E0B,#F97316)',
-  'linear-gradient(135deg,#EC4899,#8B5CF6)',
-  'linear-gradient(135deg,#EF4444,#F97316)',
-  'linear-gradient(135deg,#06B6D4,#10B981)',
+  'linear-gradient(135deg,#4F46E5,#6366F1)',
+  'linear-gradient(135deg,#059669,#10B981)',
+  'linear-gradient(135deg,#D97706,#F59E0B)',
+  'linear-gradient(135deg,#7C3AED,#8B5CF6)',
+  'linear-gradient(135deg,#0891B2,#06B6D4)',
+  'linear-gradient(135deg,#DB2777,#EC4899)',
 ];
 
 function getGradient(id) {
@@ -25,6 +31,7 @@ function getInitials(name) {
 
 export default function Messages() {
   const { user } = useAuth();
+  const dialog = useAlert();
   const { socket, onlineUsers, joinChannel, leaveChannel, emitTyping, emitStopTyping } = useSocket();
   const [channels, setChannels] = useState([]);
   const [activeChannel, setActiveChannel] = useState(null);
@@ -36,6 +43,7 @@ export default function Messages() {
   const typingTimeout = useRef(null);
   const prevChannelRef = useRef(null);
   const fileInputRef = useRef(null);
+  const messageInputRef = useRef(null);
 
   // Right panel state
   const [rightPanel, setRightPanel] = useState(null); // null | 'pinned' | 'files' | 'members' | 'search'
@@ -73,6 +81,10 @@ export default function Messages() {
   const [composeCode, setComposeCode] = useState({ language: 'javascript', code: '' });
   const [composePoll, setComposePoll] = useState({ question: '', options: ['', ''] });
 
+  // Mobile sidebar toggle
+  const [mobileSidebar, setMobileSidebar] = useState(false);
+  const [showMemberPicker, setShowMemberPicker] = useState(false);
+
   // Create channel/DM/group/room/broadcast modals
   const [createModal, setCreateModal] = useState(null); // null | 'channel' | 'dm' | 'group' | 'room' | 'broadcast'
   const [createForm, setCreateForm] = useState({ name: '', description: '', members: [], message: '' });
@@ -95,25 +107,25 @@ export default function Messages() {
         const { data } = await api.post('/messages/channels', { name: '#' + createForm.name.replace(/^#/, '').replace(/\s+/g, '-').toLowerCase(), type: 'channel', description: createForm.description, members: createForm.members });
         selectChannel(data);
       } else if (createModal === 'dm') {
-        if (createForm.members.length !== 1) { alert('Select exactly one person for DM'); return; }
+        if (createForm.members.length !== 1) { dialog.alert('Select exactly one person for DM'); return; }
         const { data } = await api.post('/messages/dm', { userId: createForm.members[0] });
         selectChannel(data);
       } else if (createModal === 'group') {
-        if (createForm.members.length < 2) { alert('Select at least 2 people for group'); return; }
+        if (createForm.members.length < 2) { dialog.alert('Select at least 2 people for group'); return; }
         const { data } = await api.post('/messages/channels', { name: createForm.name || 'Group Chat', type: 'group', members: createForm.members });
         selectChannel(data);
       } else if (createModal === 'room') {
         const { data } = await api.post('/messages/channels', { name: createForm.name, type: 'room', description: createForm.description, members: createForm.members, isPrivate: true });
         selectChannel(data);
       } else if (createModal === 'broadcast') {
-        if (createForm.members.length === 0 || !createForm.message.trim()) { alert('Select recipients and type a message'); return; }
+        if (createForm.members.length === 0 || !createForm.message.trim()) { dialog.alert('Select recipients and type a message'); return; }
         await api.post('/messages/broadcast/send', { content: createForm.message, recipientIds: createForm.members, visibility: 'hidden' });
-        alert('✅ Broadcast sent to ' + createForm.members.length + ' people');
+        dialog.alert('Broadcast sent to ' + createForm.members.length + ' people');
       }
       setCreateModal(null);
       setCreateForm({ name: '', description: '', members: [], message: '' });
       loadChannels();
-    } catch (e) { alert('❌ ' + (e.response?.data?.error || 'Failed')); }
+    } catch (e) { dialog.alert(e.response?.data?.error || 'Failed'); }
   };
   const [channelUsers, setChannelUsers] = useState([]);
 
@@ -203,12 +215,64 @@ export default function Messages() {
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionResults, setMentionResults] = useState([]);
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+
+  // Forward modal
+  const [forwardMsg, setForwardMsg] = useState(null);
+  const [forwardTargets, setForwardTargets] = useState([]);
+  const [forwardNote, setForwardNote] = useState('');
+  const [forwardBusy, setForwardBusy] = useState(false);
+  const sendForward = async () => {
+    if (forwardTargets.length === 0) return;
+    setForwardBusy(true);
+    try {
+      const r = await api.post('/messages/forward', {
+        messageId: forwardMsg._id,
+        targetChannelIds: forwardTargets,
+        note: forwardNote
+      });
+      setForwardMsg(null);
+      setForwardTargets([]);
+      setForwardNote('');
+      dialog.alert(`✓ Forwarded to ${r.data.forwarded} ${r.data.forwarded === 1 ? 'chat' : 'chats'}`);
+    } catch (e) {
+      dialog.alert('Forward failed: ' + (e.response?.data?.error || e.message), 'Error');
+    }
+    setForwardBusy(false);
+  };
+
+  // Close inline dropdowns (mention, emoji, compose picker) on any outside click.
+  // The EmojiPicker itself stops propagation on its own mousedown, so clicks
+  // inside it never bubble here. Clicks on the toggle buttons (😊 / 😀 / +)
+  // are handled by their own onClick after this fires — they re-open as needed.
+  useEffect(() => {
+    const onDoc = (e) => {
+      const inInputBar = !!e.target.closest?.('.msg-input-bar');
+      const inActionBtn = !!e.target.closest?.('.msg-action-btn');
+      // Always close mention + compose picker outside input bar
+      if (!inInputBar) {
+        setShowMentionDropdown(false);
+        setShowComposePicker(false);
+      }
+      // Close ANY emoji picker (input or per-message reaction) on any outside
+      // click — except clicks on the action button itself (it toggles)
+      if (!inActionBtn && !inInputBar) {
+        setEmojiPickerMsg(null);
+      } else if (inInputBar && !e.target.closest?.('.msg-input-action')) {
+        // Click inside input bar but not on the 😊 toggle — close input picker
+        setEmojiPickerMsg(prev => prev === 'input' ? null : prev);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
   const [mentions, setMentions] = useState([]);
 
   // Format switching per spec Section 6.4.1
   const [displayFormat, setDisplayFormat] = useState('chat'); // chat | email | table | calendar | document
   const [aiSummary, setAiSummary] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedMsgIds, setSelectedMsgIds] = useState(new Set());
 
   const loadChannels = useCallback(async () => {
     try {
@@ -233,6 +297,10 @@ export default function Messages() {
     prevChannelRef.current = channel._id;
     joinChannel(channel._id);
     loadMessages(channel._id);
+    // Pre-load channel members so @mentions work without opening the side panel
+    api.get(`/messages/${channel._id}/members`)
+      .then(r => setChannelMembers(r.data || []))
+      .catch(() => setChannelMembers([]));
     setTyping(null);
     setThreadParent(null);
     setRightPanel(null);
@@ -240,6 +308,7 @@ export default function Messages() {
     setTaskMsg(null);
     setMsgSearch('');
     setMsgSearchResults([]);
+    setMobileSidebar(false);
   }, [joinChannel, leaveChannel, loadMessages]);
 
   // Socket listeners
@@ -290,12 +359,19 @@ export default function Messages() {
       setThreadReplies(prev => prev.map(m => m._id === data.messageId ? { ...m, isDeleted: true, content: 'This message has been deleted.' } : m));
     };
 
+    // Server emits this when async work patches a message (e.g. link preview)
+    const handleUpdated = (msg) => {
+      setMessages(prev => prev.map(m => m._id === msg._id ? { ...m, ...msg } : m));
+      setThreadReplies(prev => prev.map(m => m._id === msg._id ? { ...m, ...msg } : m));
+    };
+
     socket.on('message:received', handleMessage);
     socket.on('user:typing', handleTyping);
     socket.on('user:stop-typing', handleStopTyping);
     socket.on('message:reaction', handleReaction);
     socket.on('message:edited', handleEdited);
     socket.on('message:deleted', handleDeleted);
+    socket.on('message:updated', handleUpdated);
 
     return () => {
       socket.off('message:received', handleMessage);
@@ -304,16 +380,34 @@ export default function Messages() {
       socket.off('message:reaction', handleReaction);
       socket.off('message:edited', handleEdited);
       socket.off('message:deleted', handleDeleted);
+      socket.off('message:updated', handleUpdated);
     };
   }, [socket, activeChannel, user._id, loadChannels, threadParent]);
 
   const sendMessage = async () => {
-    if (!input.trim() || !activeChannel) return;
+    if (!activeChannel) return;
+    const text = input.trim();
+    const filesToSend = pendingFiles;
+    if (!text && filesToSend.length === 0) return;
+    // Optimistic clear (both React state AND DOM) — avoids flash of stale text
+    setInput('');
+    setMentions([]);
+    setPendingFiles([]);
+    if (messageInputRef.current) {
+      messageInputRef.current.value = '';
+      messageInputRef.current.style.height = 'auto';
+    }
+    emitStopTyping(activeChannel._id);
     try {
-      await api.post(`/messages/${activeChannel._id}`, { content: input.trim(), mentions: mentions.length > 0 ? mentions : undefined });
-      setInput('');
-      setMentions([]);
-      emitStopTyping(activeChannel._id);
+      if (filesToSend.length > 0) {
+        // First file carries the caption; rest are bare uploads
+        for (let i = 0; i < filesToSend.length; i++) {
+          const caption = i === 0 ? text : '';
+          await uploadFile(filesToSend[i], caption);
+        }
+      } else {
+        await api.post(`/messages/${activeChannel._id}`, { content: text, mentions: mentions.length > 0 ? mentions : undefined });
+      }
     } catch {}
   };
 
@@ -327,10 +421,30 @@ export default function Messages() {
     if (atMatch) {
       const q = atMatch[1].toLowerCase();
       setMentionQuery(q);
-      const members = channelMembers.length > 0 ? channelMembers : (activeChannel?.members || []);
-      const filtered = members.filter(m => m.name?.toLowerCase().includes(q) && m._id !== user._id).slice(0, 6);
-      setMentionResults(filtered);
-      setShowMentionDropdown(filtered.length > 0);
+      const hydrated = channelMembers.filter(m => m && m.name);
+      console.log('[@mention] @ detected. q=', q, 'hydrated=', hydrated.length, 'activeChannel=', activeChannel?._id);
+
+      const showFiltered = (list, source) => {
+        const filtered = list.filter(m => m.name?.toLowerCase().includes(q) && m._id !== user._id).slice(0, 8);
+        console.log('[@mention]', source, '→', filtered.length, 'matches');
+        setMentionResults(filtered);
+        setShowMentionDropdown(filtered.length > 0);
+      };
+
+      // Always show what we already have immediately so the dropdown never lags
+      if (hydrated.length > 0) showFiltered(hydrated, 'cached');
+
+      // And fetch fresh in the background if cache empty or stale
+      if (activeChannel?._id) {
+        api.get(`/messages/${activeChannel._id}/members`)
+          .then(r => {
+            const list = r.data || [];
+            console.log('[@mention] fetched members:', list.length);
+            setChannelMembers(list);
+            showFiltered(list, 'fetched');
+          })
+          .catch(err => console.warn('[@mention] members fetch failed:', err?.response?.status, err?.message));
+      }
     } else {
       setShowMentionDropdown(false);
     }
@@ -384,26 +498,68 @@ export default function Messages() {
 
   // Delete message
   const deleteMessage = async (messageId) => {
-    if (!window.confirm('Delete this message?')) return;
+    if (!(await dialog.confirm('Delete this message?'))) return;
     try {
       await api.delete(`/messages/${activeChannel._id}/${messageId}`);
     } catch {}
   };
 
-  // File upload
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
+  // File upload — also called by drag-and-drop
+  const uploadFile = async (file, caption = '') => {
     if (!file || !activeChannel) return;
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('content', '');
+    formData.append('content', caption || '');
     try {
       await api.post(`/messages/${activeChannel._id}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-    } catch {}
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to upload file.');
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    // Stage the files — user reviews preview + hits Send (consistent with drop/paste)
+    setPendingFiles(prev => [...prev, ...files]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  // Drag-and-drop file handlers
+  const [isDragOver, setIsDragOver] = useState(false);
+  const handleDragOver = (e) => {
+    if (!activeChannel) return;
+    if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isDragOver) setIsDragOver(true);
+    }
+  };
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+  // Staged files: shown above the input as previews; only upload when user hits Send
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    if (!activeChannel) return;
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length === 0) return;
+    setPendingFiles(prev => [...prev, ...files]);
+  };
+  const sendPendingFiles = async () => {
+    if (pendingFiles.length === 0) return;
+    const files = pendingFiles;
+    setPendingFiles([]);
+    for (const f of files) { try { await uploadFile(f); } catch (_) {} }
+  };
+  const removePendingFile = (idx) => setPendingFiles(prev => prev.filter((_, i) => i !== idx));
 
   // Task from chat
   const openTaskForm = (msg) => {
@@ -494,21 +650,55 @@ export default function Messages() {
 
   const getChannelDisplayName = (ch) => {
     if (ch.type === 'dm') {
-      const other = ch.members?.find(m => m._id !== user._id);
+      // Self-DM (only one member = you) → friendly label
+      const isSelf = ch.members?.length === 1 && (ch.members[0]._id || ch.members[0]) === user._id;
+      if (isSelf) return `📌 Saved · ${user.name}`;
+      const other = ch.members?.find(m => (m._id || m) !== user._id);
       return other?.name || ch.name;
     }
     return ch.name;
   };
 
-  const getOtherDMUser = (ch) => ch.members?.find(m => m._id !== user._id);
+  // For a normal 2-person DM, return the OTHER member.
+  // For a self-DM (1 member = you), return yourself so the UI shows your name
+  // (e.g. "📌 Saved — Yourself"), not "Unknown".
+  const getOtherDMUser = (ch) => {
+    if (!ch?.members) return null;
+    if (ch.members.length === 1) return ch.members[0];
+    return ch.members.find(m => (m._id || m) !== user._id) || ch.members[0];
+  };
 
-  const handleAiSummarize = async () => {
+  const handleAiSummarize = async (specificMsgIds) => {
     if (!user.aiActive || !activeChannel) return;
     setAiLoading(true);
     try {
-      const { data } = await api.post('/ai/summarize', { messages: messages.map(m => ({ sender: m.sender?.name, content: m.content })) });
+      let msgsToSummarize;
+      if (specificMsgIds?.size > 0) {
+        msgsToSummarize = messages.filter(m => specificMsgIds.has(m._id));
+      } else {
+        msgsToSummarize = messages;
+      }
+
+      // Sort by timestamp to ensure chronological order
+      msgsToSummarize.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+      // Build text with timestamps and sequence numbers
+      const isTaskThread = activeChannel.name?.startsWith('Task:');
+      const maxWords = isTaskThread ? null : 2000;
+      let text = msgsToSummarize.map((m, i) => {
+        const time = new Date(m.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        return `[${i + 1}] ${m.sender?.name || 'Unknown'} (${time}): ${m.content}`;
+      }).join('\n');
+      if (maxWords) {
+        const words = text.split(/\s+/);
+        if (words.length > maxWords) text = words.slice(0, maxWords).join(' ') + '...';
+      }
+
+      const { data } = await api.post('/ai/summarize', { text });
       setAiSummary(data.summary || data.result || 'No summary generated.');
-    } catch { setAiSummary('Failed to generate summary.'); }
+      setSelectMode(false);
+      setSelectedMsgIds(new Set());
+    } catch (err) { setAiSummary(err.response?.data?.error || 'Failed to generate summary. Check AI configuration in Settings.'); }
     finally { setAiLoading(false); }
   };
 
@@ -614,25 +804,243 @@ export default function Messages() {
       );
     }
 
-    // Default — plain text with @mention highlighting
-    return content.split(/(@\w[\w\s]*?)(?=\s|$)/g).map((part, i) =>
-      part.startsWith('@') ? <span key={i} style={{ color: 'var(--indigo)', fontWeight: 600 }}>{part}</span> : part
-    );
+    // Default — plain text with @mention + URL highlighting.
+    // Tokenize by mentions first, then linkify each non-mention chunk.
+    const URL_RE = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/gi;
+    const linkify = (text, keyPrefix) => {
+      if (!text) return text;
+      const parts = text.split(URL_RE);
+      return parts.map((p, i) => {
+        if (URL_RE.test(p)) {
+          // Reset regex state — split() doesn't but test() does
+          URL_RE.lastIndex = 0;
+          // Trim trailing punctuation that often gets caught at sentence end
+          const trailing = p.match(/[.,!?;)]+$/);
+          const url = trailing ? p.slice(0, -trailing[0].length) : p;
+          const tail = trailing ? trailing[0] : '';
+          const href = url.startsWith('http') ? url : `https://${url}`;
+          return (
+            <span key={`${keyPrefix}-${i}`}>
+              <a href={href} target="_blank" rel="noopener noreferrer"
+                 onClick={e => e.stopPropagation()}
+                 style={{ color: 'var(--indigo)', textDecoration: 'underline', wordBreak: 'break-all' }}>
+                {url}
+              </a>
+              {tail}
+            </span>
+          );
+        }
+        return p;
+      });
+    };
+
+    // WhatsApp-style inline formatting: **bold** *italic* ~strike~ `code`
+    const renderInline = (text, keyPrefix) => {
+      if (!text) return text;
+      // Tokenize: each formatting type alternates with plain text
+      const tokens = [];
+      let cursor = 0;
+      const RE = /\*\*([^*\n]+?)\*\*|__([^_\n]+?)__|\*([^*\n]+?)\*|_([^_\n]+?)_|~([^~\n]+?)~|`([^`\n]+?)`/g;
+      let m;
+      while ((m = RE.exec(text))) {
+        if (m.index > cursor) tokens.push({ t: 'plain', v: text.slice(cursor, m.index) });
+        if (m[1] || m[2]) tokens.push({ t: 'b', v: m[1] || m[2] });
+        else if (m[3] || m[4]) tokens.push({ t: 'i', v: m[3] || m[4] });
+        else if (m[5]) tokens.push({ t: 's', v: m[5] });
+        else if (m[6]) tokens.push({ t: 'c', v: m[6] });
+        cursor = m.index + m[0].length;
+      }
+      if (cursor < text.length) tokens.push({ t: 'plain', v: text.slice(cursor) });
+      return tokens.map((tk, i) => {
+        const k = `${keyPrefix}-i-${i}`;
+        if (tk.t === 'b') return <strong key={k}>{tk.v}</strong>;
+        if (tk.t === 'i') return <em key={k}>{tk.v}</em>;
+        if (tk.t === 's') return <span key={k} style={{ textDecoration: 'line-through' }}>{tk.v}</span>;
+        if (tk.t === 'c') return <code key={k} style={{ background: 'rgba(99,102,241,0.12)', padding: '1px 5px', borderRadius: 4, fontSize: '0.92em', fontFamily: 'monospace' }}>{tk.v}</code>;
+        return <span key={k}>{linkify(tk.v, k)}</span>;
+      });
+    };
+
+    // Convert keycap emojis to plain digits — they look unprofessional and
+    // don't handle 11+ correctly (1️⃣1️⃣ = 11 renders as two side-by-side keycaps).
+    // Map 0️⃣–9️⃣ to "0"–"9" and 🔟 to "10", then collapse adjacent digits.
+    const stripKeycaps = (text) => {
+      if (!text) return text;
+      return text
+        // 🔟 → 10
+        .replace(/🔟/g, '10')
+        // 0️⃣–9️⃣ → 0–9
+        .replace(/([0-9])️⃣/gu, '$1');
+    };
+
+    // Detect bullet/numbered/quote line prefix (post-keycap-strip)
+    const renderLine = (line, lineKey) => {
+      const cleaned = stripKeycaps(line);
+      // Promote inline "1)" or "1." style numbered prefix
+      const bullet = cleaned.match(/^([*•\-])\s+(.*)$/);
+      const numbered = cleaned.match(/^(\d+)[.)]\s*(.*)$/);
+      const quote = cleaned.match(/^>\s+(.*)$/);
+      // Bare leading number (was a keycap) without a delimiter: e.g. "11 Megha Roy — ..."
+      const bareNum = cleaned.match(/^(\d{1,2})\s+([A-Z].*)$/);
+      if (bullet) {
+        return (
+          <div key={lineKey} style={{ display: 'flex', gap: 10, paddingLeft: 4, marginBottom: 4 }}>
+            <span style={{ color: 'var(--indigo)', fontWeight: 700 }}>•</span>
+            <span style={{ flex: 1 }}>{withMentions(bullet[2], lineKey)}</span>
+          </div>
+        );
+      }
+      if (numbered) {
+        return (
+          <div key={lineKey} style={{ display: 'flex', gap: 10, paddingLeft: 4, marginBottom: 4 }}>
+            <span style={{ color: 'var(--indigo)', fontWeight: 700, minWidth: 22 }}>{numbered[1]}.</span>
+            <span style={{ flex: 1 }}>{withMentions(numbered[2], lineKey)}</span>
+          </div>
+        );
+      }
+      if (bareNum) {
+        return (
+          <div key={lineKey} style={{ display: 'flex', gap: 10, paddingLeft: 4, marginBottom: 4 }}>
+            <span style={{ color: 'var(--indigo)', fontWeight: 700, minWidth: 22 }}>{bareNum[1]}.</span>
+            <span style={{ flex: 1 }}>{withMentions(bareNum[2], lineKey)}</span>
+          </div>
+        );
+      }
+      if (quote) {
+        return (
+          <div key={lineKey} style={{ borderLeft: '3px solid var(--indigo)', paddingLeft: 8, color: 'var(--ink-2)', fontStyle: 'italic', marginBottom: 4 }}>
+            {withMentions(quote[1], lineKey)}
+          </div>
+        );
+      }
+      // Heading: whole line wrapped in ** ** → render bigger/bolder
+      const headingMatch = cleaned.match(/^\*\*(.+?)\*\*\s*$/);
+      if (headingMatch) {
+        return (
+          <div key={lineKey} style={{
+            fontSize: 14, fontWeight: 800, color: 'var(--ink)',
+            marginTop: 8, marginBottom: 4, letterSpacing: -0.2
+          }}>
+            {withMentions(headingMatch[1], lineKey)}
+          </div>
+        );
+      }
+      // Plain paragraph — give blank lines proper spacing
+      if (!cleaned.trim()) return <div key={lineKey} style={{ height: 6 }} />;
+      return <div key={lineKey} style={{ marginBottom: 2 }}>{withMentions(cleaned, lineKey)}</div>;
+    };
+
+    const withMentions = (segment, keyPrefix) => {
+      return segment.split(/(@\w[\w\s]*?)(?=\s|$)/g).map((part, i) => {
+        const k = `${keyPrefix}-m-${i}`;
+        if (part.startsWith('@')) {
+          return <span key={k} style={{ color: 'var(--indigo)', fontWeight: 600 }}>{part}</span>;
+        }
+        return <span key={k}>{renderInline(part, k)}</span>;
+      });
+    };
+
+    // Auto-paragraph the source content so inline list markers render as a list.
+    // Step 1: collapse keycap-digit sequences (incl. multi-digit like 1️⃣1️⃣=11) → plain "N. "
+    let normalized = (content || '')
+      .replace(/(?:(?:[0-9]️⃣)+|🔟)/gu, (m) => {
+        const num = m === '🔟' ? '10' : m.replace(/️⃣/g, '');
+        return `${num}. `;
+      })
+      // Step 2: each "N. " inline becomes a new line so renderLine can format it
+      .replace(/(\S)\s+(\d{1,2}\.\s)/g, '$1\n$2');
+
+    let lines = normalized.split('\n');
+
+    // Step 3: heuristic auto-bullet detection for copy-pasted text that lost
+    // its list formatting. Triggers:
+    //   (a) Line ending in ":" followed by 2+ short non-empty lines  → heading + bullets
+    //   (b) 3+ consecutive lines matching "Word — description" or "Word - description"
+    //   (c) 3+ consecutive short lines (<80 chars), no other inline marker
+    const isAlreadyMarked = (l) => /^([*•\-]\s|>\s|\d+[.)]\s)/.test(l.trim());
+    const isHeading = (l) => /:\s*$/.test(l.trim()) && l.trim().length < 80;
+    const isDashItem = (l) => /^[^—\-•*]{2,40}\s+[—-]\s+\S/.test(l.trim());
+    const isShortLine = (l) => l.trim().length > 0 && l.trim().length < 90 && !isAlreadyMarked(l);
+
+    const out = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // (a) heading + followers
+      if (isHeading(line)) {
+        // Look ahead — count how many short followers
+        let j = i + 1;
+        const followers = [];
+        while (j < lines.length && lines[j].trim() && !isAlreadyMarked(lines[j]) && !isHeading(lines[j]) && lines[j].trim().length < 200) {
+          followers.push(lines[j]);
+          j++;
+          if (followers.length >= 30) break;
+        }
+        if (followers.length >= 2) {
+          out.push('**' + line.trim() + '**'); // bold heading
+          followers.forEach(f => out.push('• ' + f.trim()));
+          i = j - 1;
+          continue;
+        }
+      }
+      // (b)(c) consecutive list-like lines — bulletize them as a group
+      if (!isAlreadyMarked(line) && (isDashItem(line) || isShortLine(line))) {
+        let j = i;
+        const group = [];
+        const allDash = [];
+        while (j < lines.length && lines[j].trim() && !isAlreadyMarked(lines[j]) && !isHeading(lines[j])) {
+          if (isDashItem(lines[j]) || isShortLine(lines[j])) {
+            group.push(lines[j]);
+            if (isDashItem(lines[j])) allDash.push(true);
+            j++;
+          } else break;
+        }
+        if (group.length >= 3) {
+          group.forEach(g => out.push('• ' + g.trim()));
+          i = j - 1;
+          continue;
+        }
+      }
+      out.push(line);
+    }
+
+    return out.map((line, idx) => renderLine(line.trim(), `l-${idx}`));
   };
 
-  const renderMessageBubble = (msg, isThread = false) => {
+  const renderMessageBubble = (msg, isThread = false, opts = {}) => {
     if (msg.type === 'system') return <div key={msg._id} className="msg-system">{msg.content}</div>;
     const sender = msg.sender;
     const isMe = sender?._id === user._id;
     const isEditing = editingMsg === msg._id;
     const canDelete = isMe || isAdmin;
+    const grouped = !!opts.grouped;
+
+    // Emoji-only detection: render content much bigger (WhatsApp/iMessage style)
+    const trimmed = (msg.content || '').trim();
+    // Strip variation selectors + ZWJ to count emoji count vs other chars
+    const stripped = trimmed.replace(/[︀-️‍\s]/g, '');
+    // Match emoji blocks (very rough but good enough for vast majority)
+    const EMOJI_RE = /\p{Extended_Pictographic}/u;
+    const emojiOnly =
+      trimmed.length > 0 &&
+      stripped.length > 0 &&
+      // Replace all emoji-like chars with empty, what's left should be empty
+      stripped.replace(/[\p{Extended_Pictographic}\p{Emoji_Component}]/gu, '') === '' &&
+      EMOJI_RE.test(trimmed) &&
+      // Cap at a few "characters" so big paragraphs of emoji don't blow up
+      [...stripped].length <= 6 &&
+      !msg.file && !msg.linkPreview?.title;
 
     return (
-      <div key={msg._id} className={`msg-bubble ${msg.isDeleted ? 'deleted' : ''}`}>
-        <div className="msg-bubble-avatar" style={{ background: getGradient(sender?._id) }}>
-          {getInitials(sender?.name)}
-        </div>
+      <div key={msg._id} className={`msg-bubble ${msg.isDeleted ? 'deleted' : ''} ${grouped ? 'grouped' : ''} ${isMe ? 'mine' : ''} ${emojiOnly ? 'emoji-only' : ''}`}
+        style={selectMode ? { cursor: 'pointer', background: selectedMsgIds.has(msg._id) ? 'rgba(99,102,241,0.06)' : undefined, borderRadius: 8, padding: '4px 8px', margin: '-4px -8px', marginBottom: 10 } : undefined}
+        onClick={selectMode ? () => setSelectedMsgIds(prev => { const n = new Set(prev); n.has(msg._id) ? n.delete(msg._id) : n.add(msg._id); return n; }) : undefined}>
+        {grouped ? (
+          <div className="msg-bubble-avatar-spacer" />
+        ) : (
+          <Avatar user={sender} size={38} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }} />
+        )}
         <div className="msg-bubble-content">
+          {!grouped && (
           <div className="msg-bubble-header">
             <span className="msg-bubble-name">{sender?.name || 'Unknown'}</span>
             <span className="msg-bubble-time">
@@ -641,6 +1049,7 @@ export default function Messages() {
             {msg.isEdited && !msg.isDeleted && <span className="msg-edited-tag">(edited)</span>}
             {msg.isPinned && !msg.isDeleted && <span className="msg-pinned-tag">pinned</span>}
           </div>
+          )}
 
           {isEditing ? (
             <div className="msg-edit-form">
@@ -660,64 +1069,223 @@ export default function Messages() {
             <div className="msg-bubble-text">{renderRichContent(msg.content)}</div>
           )}
 
-          {msg.file && (
-            <div className="msg-file" style={{ cursor: 'pointer' }} onClick={() => setViewingFile({ url: msg.file.path || msg.file.url, name: msg.file.name, mimeType: msg.file.mimeType, size: msg.file.originalSize })}>
-              <span>📎</span>
-              <div>
-                <div className="msg-file-name">{msg.file.name}</div>
-                {msg.file.originalSize && <div className="msg-file-size">{(msg.file.originalSize / 1024 / 1024).toFixed(1)}MB</div>}
+          {/* Link preview card — click-through opens the actual link */}
+          {msg.linkPreview?.title && !msg.isDeleted && (
+            <a href={msg.linkPreview.url} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{
+                display: 'block', marginTop: 6, maxWidth: 480,
+                background: 'var(--glass)', border: '1px solid var(--line)',
+                borderLeft: '3px solid var(--indigo)', borderRadius: 8,
+                overflow: 'hidden', textDecoration: 'none', color: 'inherit',
+                cursor: 'pointer'
+              }}>
+              {/* Header row: thumbnail + title/description */}
+              <div style={{ display: 'flex' }}>
+                {msg.linkPreview.image && (
+                  <img src={msg.linkPreview.image} alt=""
+                    style={{ width: 96, height: 96, objectFit: 'cover', flexShrink: 0 }}
+                    onError={e => { e.target.style.display = 'none'; }} />
+                )}
+                <div style={{ padding: '8px 10px', flex: 1, minWidth: 0 }}>
+                  {msg.linkPreview.siteName && (
+                    <div style={{ fontSize: 9, color: 'var(--ink-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
+                      {msg.linkPreview.siteName}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                    {msg.linkPreview.title}
+                  </div>
+                  {msg.linkPreview.description && (
+                    <div style={{ fontSize: 10, color: 'var(--ink-2)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {msg.linkPreview.description}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+
+              {/* Tweet / X media gallery (up to 4 images) */}
+              {msg.linkPreview.gallery && msg.linkPreview.gallery.length > 0 && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: msg.linkPreview.gallery.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                  gap: 2, background: 'var(--line)', padding: 0, borderTop: '1px solid var(--line)'
+                }}>
+                  {msg.linkPreview.gallery.slice(0, 4).map((g, gi) => (
+                    <div key={gi} style={{ position: 'relative', aspectRatio: msg.linkPreview.gallery.length === 1 ? '16 / 9' : '1 / 1', overflow: 'hidden' }}>
+                      <img src={g.url} alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={e => { e.target.style.display = 'none'; }} />
+                      {g.type === 'video' && (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.25)', fontSize: 28, color: '#fff' }}>▶</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </a>
           )}
+
+          {msg.file && (() => {
+            const fileUrl = getFileUrl(msg.file.path || msg.file.url);
+            const mime = msg.file.mimeType || '';
+            const ext = (msg.file.name || '').split('.').pop().toLowerCase();
+            const isImage = mime.startsWith('image/');
+            const isVideo = mime.startsWith('video/');
+            const isPdf = mime === 'application/pdf' || ext === 'pdf';
+            const isOffice = ['xlsx','xls','xlsm','docx','doc','pptx','ppt','odt','ods','odp','rtf'].includes(ext)
+              || mime.includes('spreadsheet') || mime.includes('wordprocessingml') || mime.includes('presentation');
+            const officeIcon = ['xlsx','xls','xlsm','ods','csv'].includes(ext) ? '📊'
+              : ['docx','doc','odt','rtf'].includes(ext) ? '📝'
+              : ['pptx','ppt','odp'].includes(ext) ? '📽'
+              : '📄';
+            const officeLabel = ['xlsx','xls','xlsm','ods'].includes(ext) ? 'Spreadsheet'
+              : ['docx','doc','odt','rtf'].includes(ext) ? 'Document'
+              : ['pptx','ppt','odp'].includes(ext) ? 'Presentation'
+              : 'File';
+            const openViewer = () => setViewingFile({ url: fileUrl, name: msg.file.name, mimeType: mime, size: msg.file.originalSize });
+            const sizeStr = msg.file.originalSize
+              ? (msg.file.originalSize > 1024 * 1024
+                  ? `${(msg.file.originalSize / 1024 / 1024).toFixed(1)} MB`
+                  : `${Math.round(msg.file.originalSize / 1024)} KB`)
+              : '';
+
+            return (
+              <div style={{ marginTop: 6, maxWidth: 460 }}>
+                {/* Inline image preview — full bleed thumbnail */}
+                {isImage && (
+                  <img src={fileUrl} alt={msg.file.name}
+                    onClick={openViewer}
+                    style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 10, cursor: 'pointer', objectFit: 'cover', display: 'block', border: '1px solid var(--line)' }}
+                    onError={e => { e.target.src = ''; e.target.alt = '🖼️ Image preview unavailable — click to view'; e.target.style.padding = '20px'; e.target.style.fontSize = '11px'; e.target.style.color = 'var(--ink-3)'; e.target.style.background = 'var(--glass)'; e.target.style.maxHeight = '60px'; }}
+                  />
+                )}
+                {/* Inline video preview */}
+                {isVideo && (
+                  <video src={fileUrl} controls style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 10, display: 'block', border: '1px solid var(--line)' }} />
+                )}
+                {/* PDF — inline first-page preview using <embed> */}
+                {isPdf && (
+                  <div onClick={openViewer}
+                    style={{ cursor: 'pointer', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--line)', background: '#1a1a2e' }}>
+                    <embed src={fileUrl + '#toolbar=0&navpanes=0&view=FitH'} type="application/pdf"
+                      style={{ width: '100%', height: 280, border: 'none', display: 'block', pointerEvents: 'none' }} />
+                    <div style={{ padding: '8px 12px', background: 'var(--glass)', display: 'flex', alignItems: 'center', gap: 10, borderTop: '1px solid var(--line)' }}>
+                      <span style={{ fontSize: 22 }}>📕</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{msg.file.name}</div>
+                        <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>PDF · {sizeStr} · click to open</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* Office — big visual card */}
+                {isOffice && (
+                  <div onClick={openViewer}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, padding: 16, borderRadius: 10, background: 'linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.06))', border: '1px solid rgba(99,102,241,0.18)' }}>
+                    <div style={{ fontSize: 38, lineHeight: 1, flexShrink: 0 }}>{officeIcon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{msg.file.name}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 2 }}>{officeLabel} · {sizeStr}</div>
+                      <div style={{ fontSize: 10, color: 'var(--indigo)', marginTop: 4, fontWeight: 600 }}>Click to preview →</div>
+                    </div>
+                  </div>
+                )}
+                {/* Generic fallback for everything else */}
+                {!isImage && !isVideo && !isPdf && !isOffice && (
+                  <div className="msg-file" onClick={openViewer}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--line)' }}>
+                    <span style={{ fontSize: 24 }}>📎</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="msg-file-name">{msg.file.name}</div>
+                      <div className="msg-file-size">{sizeStr}</div>
+                    </div>
+                    <button onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        const resp = await fetch(fileUrl);
+                        const blob = await resp.blob();
+                        const u = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = u; a.download = msg.file.name; a.click();
+                        URL.revokeObjectURL(u);
+                      } catch { window.open(fileUrl, '_blank'); }
+                    }}
+                      style={{ fontSize: 10, color: '#6366F1', fontWeight: 700, padding: '4px 10px', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 5, background: 'rgba(99,102,241,0.08)', cursor: 'pointer', fontFamily: 'Inter' }}>
+                      Download
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Message hover actions */}
           {!msg.isDeleted && !isEditing && (
             <div className="msg-hover-actions">
               {!isThread && (
                 <button className="msg-action-btn" onClick={() => openThread(msg)} title="Reply in thread">
-                  💬{msg.replyCount > 0 ? ` ${msg.replyCount}` : ''}
+                  <MessageCircle size={14} strokeWidth={2.2} />
+                  {msg.replyCount > 0 && <span style={{ fontSize: 10, fontWeight: 700, marginLeft: 4 }}>{msg.replyCount}</span>}
                 </button>
               )}
               <button className="msg-action-btn" onClick={() => togglePin(msg._id)} title={msg.isPinned ? 'Unpin' : 'Pin'}>
-                📌
+                <Pin size={14} strokeWidth={2.2} fill={msg.isPinned ? 'currentColor' : 'none'} />
               </button>
               <button className="msg-action-btn" onClick={() => setEmojiPickerMsg(emojiPickerMsg === msg._id ? null : msg._id)} title="React">
-                😊
+                <SmilePlus size={14} strokeWidth={2.2} />
               </button>
               {!isThread && (
                 <button className="msg-action-btn" onClick={() => openTaskForm(msg)} title="Create task">
-                  📋
+                  <ListPlus size={14} strokeWidth={2.2} />
                 </button>
               )}
+              <button className="msg-action-btn" onClick={() => { setForwardMsg(msg); setForwardTargets([]); setForwardNote(''); }} title="Forward">
+                <Forward size={14} strokeWidth={2.2} />
+              </button>
               {isMe && (
                 <button className="msg-action-btn" onClick={() => startEdit(msg)} title="Edit">
-                  ✏️
+                  <Pencil size={14} strokeWidth={2.2} />
                 </button>
               )}
               {canDelete && (
                 <button className="msg-action-btn msg-action-danger" onClick={() => deleteMessage(msg._id)} title="Delete">
-                  🗑️
+                  <Trash2 size={14} strokeWidth={2.2} />
                 </button>
               )}
             </div>
           )}
 
-          {/* Emoji quick picker */}
+          {/* Emoji full picker for reactions */}
           {emojiPickerMsg === msg._id && (
-            <div className="msg-emoji-picker">
-              {['👍','❤️','😂','🎉','✅','👀','🔥','💯'].map(em => (
-                <span key={em} className="msg-emoji-option" onClick={() => react(msg._id, em)}>{em}</span>
-              ))}
+            <div style={{ position: 'relative' }}>
+              <EmojiPicker
+                position="top"
+                anchor={isMe ? 'right' : 'left'}
+                onPick={(em) => { react(msg._id, em); pushRecentEmoji(em); setEmojiPickerMsg(null); }}
+              />
             </div>
           )}
 
-          {/* Reactions display */}
+          {/* Reactions display — hover any pill to see who reacted */}
           {msg.reactions?.length > 0 && (
             <div className="msg-reactions">
               {msg.reactions.map((r, ri) => (
-                <span key={ri} className={`msg-reaction ${r.users.includes(user._id) ? 'mine' : ''}`} onClick={() => react(msg._id, r.emoji)}>
-                  {r.emoji} {r.users.length}
-                </span>
+                <ReactionPill
+                  key={ri}
+                  emoji={r.emoji}
+                  users={r.users}
+                  mine={r.users.includes(user._id)}
+                  align={isMe ? 'right' : 'left'}
+                  resolveName={(id) => {
+                    if (String(id) === String(user._id)) return 'You';
+                    const u = allUsers.find(x => String(x._id) === String(id))
+                      || channelMembers.find(x => String(x._id) === String(id));
+                    return u?.name || 'Someone';
+                  }}
+                  className="msg-reaction"
+                  onClick={() => react(msg._id, r.emoji)}
+                />
               ))}
             </div>
           )}
@@ -735,8 +1303,10 @@ export default function Messages() {
 
   return (
     <div className="msg-layout">
+      {/* Mobile sidebar overlay */}
+      <div className={`msg-sidebar-overlay ${mobileSidebar ? 'mobile-open' : ''}`} onClick={() => setMobileSidebar(false)} />
       {/* Conversation Sidebar */}
-      <div className="msg-sidebar">
+      <div className={`msg-sidebar ${mobileSidebar ? 'mobile-open' : ''}`}>
         <div className="msg-sidebar-search">
           <input placeholder="Search conversations..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
@@ -754,15 +1324,21 @@ export default function Messages() {
           {/* Direct Messages */}
           <div className="msg-section-title"><span>Direct Messages</span><span className="msg-section-add" onClick={() => setCreateModal('dm')}>+</span></div>
           {grouped.dm.map(ch => {
+            const isSelfDM = ch.members?.length === 1 && (ch.members[0]._id || ch.members[0]) === user._id;
             const other = getOtherDMUser(ch);
             const isOnline = onlineUsers.includes(other?._id);
+            const label = isSelfDM ? '📌 Saved (you)' : (other?.name || 'Unknown');
             return (
               <div key={ch._id} className={`msg-conv-item ${activeChannel?._id === ch._id ? 'active' : ''} ${ch.unreadCount > 0 ? 'unread' : ''}`} onClick={() => selectChannel(ch)}>
                 <div className="msg-avatar-wrap">
-                  <div className="avatar-sm" style={{ background: getGradient(other?._id), width: 24, height: 24, fontSize: 9 }}>{getInitials(other?.name)}</div>
-                  <div className="msg-status-dot" style={{ background: isOnline ? '#10B981' : 'var(--ink-4)' }} />
+                  {isSelfDM ? (
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(99,102,241,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>📌</div>
+                  ) : (
+                    <Avatar user={other} size={24} />
+                  )}
+                  {!isSelfDM && <div className="msg-status-dot" style={{ background: isOnline ? '#10B981' : 'var(--ink-4)' }} />}
                 </div>
-                <span className="msg-conv-name">{other?.name || 'Unknown'}</span>
+                <span className="msg-conv-name">{label}</span>
                 {ch.unreadCount > 0 && <span className="msg-unread-badge">{ch.unreadCount}</span>}
               </div>
             );
@@ -851,6 +1427,19 @@ export default function Messages() {
                 {createModal === 'dm' ? 'Select Person' : 'Select People'} {createModal !== 'channel' ? '*' : ''}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: 10, background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, maxHeight: 200, overflow: 'auto' }}>
+                {/* In DM mode, show "📌 Saved (Yourself)" as the first option */}
+                {createModal === 'dm' && (
+                  <div onClick={() => setCreateForm(p => ({ ...p, members: [user._id] }))}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 6,
+                      fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                      background: createForm.members.includes(user._id) ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.08)',
+                      color: createForm.members.includes(user._id) ? 'var(--indigo)' : '#F59E0B',
+                      border: `1px solid ${createForm.members.includes(user._id) ? 'rgba(99,102,241,0.3)' : 'rgba(245,158,11,0.3)'}`
+                    }}>
+                    {createForm.members.includes(user._id) ? '✓ ' : '📌 '}Saved (yourself)
+                  </div>
+                )}
                 {allUsers.filter(u => u._id !== user._id).map(u => (
                   <div key={u._id} onClick={() => {
                     if (createModal === 'dm') setCreateForm(p => ({ ...p, members: [u._id] }));
@@ -872,10 +1461,26 @@ export default function Messages() {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button className="ad-btn ad-btn-ghost" onClick={() => setCreateModal(null)}>Cancel</button>
-              <button className="ad-btn ad-btn-primary" onClick={handleCreate}>
-                {createModal === 'broadcast' ? '📢 Send Broadcast' : 'Create'}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
+              <button
+                onClick={() => setCreateModal(null)}
+                style={{
+                  padding: '8px 18px', fontSize: 13, fontWeight: 600, fontFamily: 'Inter, sans-serif',
+                  border: '1px solid var(--line)', borderRadius: 8, background: 'transparent',
+                  color: 'var(--ink-2)', cursor: 'pointer'
+                }}
+              >Cancel</button>
+              <button
+                onClick={handleCreate}
+                disabled={createModal !== 'channel' && createForm.members.length === 0}
+                style={{
+                  padding: '8px 18px', fontSize: 13, fontWeight: 700, fontFamily: 'Inter, sans-serif',
+                  border: 'none', borderRadius: 8,
+                  background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', color: '#fff',
+                  cursor: 'pointer', opacity: (createModal !== 'channel' && createForm.members.length === 0) ? 0.5 : 1
+                }}
+              >
+                {createModal === 'broadcast' ? '📢 Send Broadcast' : createModal === 'dm' ? '💬 Start Chat' : 'Create'}
               </button>
             </div>
           </div>
@@ -884,14 +1489,43 @@ export default function Messages() {
 
       {/* Chat Area */}
       {activeChannel ? (
-        <div className="msg-chat">
+        <div
+          className="msg-chat"
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          style={{ position: 'relative' }}
+        >
+          {isDragOver && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 50,
+              background: 'rgba(99,102,241,0.12)',
+              border: '2px dashed var(--indigo)',
+              borderRadius: 12,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'var(--bg-1)', padding: '14px 22px', borderRadius: 10, border: '1px solid var(--line-2)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
+                <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 4 }}>📥</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Drop file to upload</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>Up to 50 MB per file</div>
+              </div>
+            </div>
+          )}
           <div className="msg-chat-header">
             <div style={{ display: 'flex', alignItems: 'center' }}>
+              <button className="msg-mobile-menu-btn" onClick={() => setMobileSidebar(true)}
+                style={{ display: 'none', background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--ink-2)', marginRight: 8, padding: '4px' }}>☰</button>
               <span className="msg-chat-title">
                 {activeChannel.type === 'room' ? '🔒 ' : ''}{getChannelDisplayName(activeChannel)}
               </span>
               <span className="msg-chat-sub">
-                {activeChannel.type === 'dm' ? (onlineUsers.includes(getOtherDMUser(activeChannel)?._id) ? '🟢 Online' : 'Offline') :
+                {activeChannel.type === 'dm' ? (
+                  (activeChannel.members?.length === 1 && (activeChannel.members[0]._id || activeChannel.members[0]) === user._id)
+                    ? 'Personal space'
+                    : (onlineUsers.includes(getOtherDMUser(activeChannel)?._id) ? '🟢 Online' : 'Offline')
+                ) :
                   `${activeChannel.members?.length || 0} members`}
               </span>
             </div>
@@ -908,25 +1542,22 @@ export default function Messages() {
               </div>
               <button
                 disabled={!user.aiActive}
-                title={user.aiActive ? 'Summarize conversation with AI' : 'AI not activated \u2014 go to Settings'}
-                onClick={() => user.aiActive ? handleAiSummarize() : void 0}
-                style={{ padding: '4px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 10, background: user.aiActive ? 'rgba(99,102,241,0.08)' : 'var(--glass)', color: user.aiActive ? '#6366F1' : 'var(--ink-3)', cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
+                title={selectMode ? 'Summarize selected messages' : (user.aiActive ? 'Select messages to summarize' : 'AI not activated')}
+                onClick={() => {
+                  if (!user.aiActive) return;
+                  if (selectMode) {
+                    if (selectedMsgIds.size === 0) { dialog.alert('Select at least one message to summarize.'); return; }
+                    handleAiSummarize(selectedMsgIds);
+                  } else {
+                    // For task threads, summarize all directly. For DMs/channels, enter select mode
+                    const isTaskThread = activeChannel.name?.startsWith('Task:');
+                    if (isTaskThread) { handleAiSummarize(); } else { setSelectMode(true); }
+                  }
+                }}
+                style={{ padding: '4px 10px', border: `1px solid ${selectMode ? '#10B981' : 'var(--line)'}`, borderRadius: 6, fontSize: 10, background: selectMode ? 'rgba(16,185,129,0.12)' : (user.aiActive ? 'rgba(99,102,241,0.08)' : 'var(--glass)'), color: selectMode ? '#10B981' : (user.aiActive ? '#6366F1' : 'var(--ink-3)'), cursor: user.aiActive ? 'pointer' : 'not-allowed', opacity: user.aiActive ? 1 : 0.4, fontFamily: 'Inter,sans-serif' }}
               >
-                {aiLoading ? 'Summarizing...' : '\u2728 Summarize'}
+                {aiLoading ? 'Summarizing...' : selectMode ? `Summarize (${selectedMsgIds.size})` : '\u2728 Summarize'}
               </button>
-              {/* Format switching per spec Section 6.4.1 */}
-              <select
-                value={displayFormat}
-                onChange={e => setDisplayFormat(e.target.value)}
-                style={{ padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 10, color: 'var(--ink-2)', background: 'var(--glass)', fontFamily: 'Inter,sans-serif', cursor: 'pointer' }}
-                title="Switch display format"
-              >
-                <option value="chat">💬 Chat</option>
-                <option value="email">✉️ Email</option>
-                <option value="table">📊 Table</option>
-                <option value="calendar">📅 Calendar</option>
-                <option value="document">📄 Document</option>
-              </select>
               <button className={`msg-header-btn ${rightPanel === 'pinned' ? 'active' : ''}`} onClick={() => openRightPanel('pinned')} title="Pinned messages">📌</button>
               <button className={`msg-header-btn ${rightPanel === 'files' ? 'active' : ''}`} onClick={() => openRightPanel('files')} title="Files">📁</button>
               <button className={`msg-header-btn ${rightPanel === 'members' ? 'active' : ''}`} onClick={() => openRightPanel('members')} title="Members">👥</button>
@@ -935,8 +1566,57 @@ export default function Messages() {
 
           <div className="msg-chat-main">
             <div className="msg-chat-body-wrap">
+              {/* Select mode bar */}
+              {selectMode && (
+                <div style={{ padding: '6px 14px', background: 'rgba(99,102,241,0.08)', borderBottom: '1px solid rgba(99,102,241,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, color: '#6366F1', fontWeight: 600 }}>
+                    Click messages to select ({selectedMsgIds.size} selected)
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setSelectedMsgIds(new Set(messages.map(m => m._id)))}
+                      style={{ padding: '3px 8px', fontSize: 9, border: '1px solid #6366F1', borderRadius: 4, background: 'rgba(99,102,241,0.06)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter' }}>Select All</button>
+                    <button onClick={() => { setSelectMode(false); setSelectedMsgIds(new Set()); }}
+                      style={{ padding: '3px 8px', fontSize: 9, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--glass)', color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'Inter' }}>Cancel</button>
+                  </div>
+                </div>
+              )}
               <div className="msg-chat-body">
-                {displayFormat === 'chat' && messages.map(msg => renderMessageBubble(msg, false))}
+                {displayFormat === 'chat' && (() => {
+                  // Insert date separators + collapse consecutive messages from same sender within 3 min
+                  const fmtDay = (d) => {
+                    const t = new Date(d);
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const y = new Date(today); y.setDate(today.getDate() - 1);
+                    const dt = new Date(t); dt.setHours(0,0,0,0);
+                    if (dt.getTime() === today.getTime()) return 'Today';
+                    if (dt.getTime() === y.getTime()) return 'Yesterday';
+                    return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                  };
+                  const out = [];
+                  let lastDay = null;
+                  let lastSender = null;
+                  let lastTime = 0;
+                  messages.forEach((m, i) => {
+                    const day = fmtDay(m.createdAt);
+                    const ts = new Date(m.createdAt).getTime();
+                    if (day !== lastDay) {
+                      out.push(
+                        <div key={`day-${day}-${i}`} className="msg-day-separator">
+                          <span>{day}</span>
+                        </div>
+                      );
+                      lastDay = day;
+                      lastSender = null;
+                    }
+                    const sameAuthor = lastSender === (m.sender?._id || m.sender);
+                    const closeInTime = ts - lastTime < 3 * 60 * 1000; // 3 min
+                    const grouped = sameAuthor && closeInTime && m.type !== 'system';
+                    lastSender = m.sender?._id || m.sender;
+                    lastTime = ts;
+                    out.push(renderMessageBubble(m, false, { grouped }));
+                  });
+                  return out;
+                })()}
 
                 {displayFormat === 'email' && messages.filter(m => m.type !== 'system').map(msg => (
                   <div key={msg._id} style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 14, marginBottom: 8 }}>
@@ -1162,6 +1842,29 @@ export default function Messages() {
                 </div>
               )}
 
+              {/* Pending file previews — shown above the input when user drops files */}
+              {pendingFiles.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: 10, background: 'rgba(99,102,241,0.06)', borderTop: '1px solid var(--line)' }}>
+                  {pendingFiles.map((f, i) => {
+                    const isImg = f.type.startsWith('image/');
+                    const url = isImg ? URL.createObjectURL(f) : null;
+                    return (
+                      <div key={i} style={{ position: 'relative', background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 6, minWidth: 120, maxWidth: 180 }}>
+                        {isImg ? (
+                          <img src={url} alt={f.name} style={{ width: '100%', maxHeight: 80, objectFit: 'cover', borderRadius: 4 }} onLoad={() => URL.revokeObjectURL(url)} />
+                        ) : (
+                          <div style={{ fontSize: 22, textAlign: 'center' }}>📄</div>
+                        )}
+                        <div style={{ fontSize: 10, color: 'var(--ink-2)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                        <div style={{ fontSize: 9, color: 'var(--ink-4)' }}>{(f.size / 1024).toFixed(1)} KB</div>
+                        <button onClick={() => removePendingFile(i)}
+                          style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>×</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="msg-input-bar">
                 <div className="msg-input-actions">
                   <div className="msg-input-action" onClick={() => setEmojiPickerMsg(emojiPickerMsg === 'input' ? null : 'input')}>😊</div>
@@ -1169,7 +1872,7 @@ export default function Messages() {
                   {/* Format picker toggle */}
                   <div className="msg-input-action" onClick={() => setShowComposePicker(!showComposePicker)} style={showComposePicker ? { background: 'rgba(99,102,241,0.15)', color: 'var(--indigo)' } : {}}>➕</div>
                 </div>
-                <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
+                <input type="file" ref={fileInputRef} multiple style={{ display: 'none' }} onChange={handleFileUpload} />
 
                 {/* Format picker dropdown */}
                 {showComposePicker && (
@@ -1193,41 +1896,90 @@ export default function Messages() {
                   </div>
                 )}
 
-                <input
+                <textarea
+                  ref={messageInputRef}
                   className="msg-input-field"
-                  placeholder={composeMode ? `${composeMode} mode active — use panel above` : 'Type a message...'}
+                  rows={1}
+                  placeholder={
+                    composeMode ? `${composeMode} mode active — use panel above` :
+                    pendingFiles.length > 0 ? 'Add a caption (optional)…' :
+                    'Type a message... (drop or paste files)'
+                  }
                   value={input}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    // Auto-grow: reset → measure → cap
+                    const el = e.target;
+                    el.style.height = 'auto';
+                    el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+                  }}
+                  onKeyDown={(e) => {
+                    // Enter sends; Shift+Enter adds a newline (like Slack)
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                      // Reset height after send
+                      requestAnimationFrame(() => { e.target.style.height = 'auto'; });
+                    }
+                  }}
+                  onPaste={async (e) => {
+                    if (!activeChannel) return;
+                    const items = Array.from(e.clipboardData?.items || []);
+                    const files = [];
+                    for (const it of items) {
+                      if (it.kind === 'file') {
+                        const f = it.getAsFile();
+                        if (f) {
+                          // Give pasted screenshots a sensible name
+                          const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                          const ext = (f.type.split('/')[1] || 'png').split('+')[0];
+                          const named = new File([f], `screenshot-${stamp}.${ext}`, { type: f.type });
+                          files.push(named);
+                        }
+                      }
+                    }
+                    if (files.length > 0) {
+                      e.preventDefault();
+                      // Stage the pasted file(s) — user reviews + hits Send
+                      setPendingFiles(prev => [...prev, ...files]);
+                    }
+                  }}
                   disabled={!!composeMode}
                 />
-                <button className="msg-send-btn" onClick={sendMessage} disabled={!input.trim() || !!composeMode}>Send</button>
+                <button className="msg-send-btn" onClick={sendMessage} disabled={(!input.trim() && pendingFiles.length === 0) || !!composeMode}>
+                  {pendingFiles.length > 0 ? `Send (${pendingFiles.length})` : 'Send'}
+                </button>
+
+                {/* @mention dropdown — inside msg-input-bar so position: relative
+                    on the bar anchors it directly above the input */}
+                {showMentionDropdown && (
+                  <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 60, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', maxHeight: 240, overflowY: 'auto', zIndex: 50, minWidth: 220 }}>
+                    <div style={{ padding: '6px 12px', fontSize: 9, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid var(--line)' }}>
+                      Mention someone ({mentionResults.length})
+                    </div>
+                    {mentionResults.map(m => (
+                      <div key={m._id} onClick={() => selectMention(m)}
+                        style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <div style={{ width: 26, height: 26, borderRadius: '50%', background: getGradient(m._id), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff', fontWeight: 700 }}>
+                          {getInitials(m.name)}
+                        </div>
+                        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{m.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* @mention dropdown */}
-              {showMentionDropdown && (
-                <div style={{ position: 'absolute', bottom: '100%', left: 60, background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', maxHeight: 180, overflowY: 'auto', zIndex: 20, minWidth: 180 }}>
-                  {mentionResults.map(m => (
-                    <div key={m._id} onClick={() => selectMention(m)}
-                      style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line)' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.06)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: getGradient(m._id), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: 'var(--ink)', fontWeight: 700 }}>
-                        {getInitials(m.name)}
-                      </div>
-                      <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{m.name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Emoji picker for input */}
+              {/* Full emoji picker for input — categories + recent */}
               {emojiPickerMsg === 'input' && (
-                <div className="msg-input-emoji-picker">
-                  {['👍','❤️','😂','🎉','✅','👀','🔥','💯','😊','🙏','💪','👏'].map(em => (
-                    <span key={em} className="msg-emoji-option" onClick={() => { setInput(prev => prev + em); setEmojiPickerMsg(null); }}>{em}</span>
-                  ))}
+                <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: 8, zIndex: 60 }}>
+                  <EmojiPicker
+                    position="bottom"
+                    onPick={(em) => { setInput(prev => prev + em); pushRecentEmoji(em); }}
+                  />
                 </div>
               )}
             </div>
@@ -1297,7 +2049,7 @@ export default function Messages() {
                       <div className="msg-right-panel-empty">No files shared</div>
                     ) : (
                       channelFiles.map(msg => (
-                        <div key={msg._id} className="msg-right-panel-file-item" style={{ cursor: 'pointer' }} onClick={() => msg.file && setViewingFile({ url: msg.file.path || msg.file.url, name: msg.file.name, mimeType: msg.file.mimeType, size: msg.file.originalSize })}>
+                        <div key={msg._id} className="msg-right-panel-file-item" style={{ cursor: 'pointer' }} onClick={() => msg.file && setViewingFile({ url: getFileUrl(msg.file.path || msg.file.url), name: msg.file.name, mimeType: msg.file.mimeType, size: msg.file.originalSize })}>
                           <div className="msg-file">
                             <span>📎</span>
                             <div>
@@ -1315,22 +2067,70 @@ export default function Messages() {
 
                   {/* Members */}
                   {rightPanel === 'members' && (
-                    channelMembers.length === 0 ? (
-                      <div className="msg-right-panel-empty">No members</div>
-                    ) : (
-                      channelMembers.map(member => (
-                        <div key={member._id} className="msg-right-panel-member">
-                          <div className="msg-bubble-avatar" style={{ background: getGradient(member._id), width: 28, height: 28, fontSize: 10 }}>
-                            {getInitials(member.name)}
+                    <>
+                      {/* Delete channel — creator or main_admin only, not for DMs */}
+                      {activeChannel && activeChannel.type !== 'dm' && (
+                        (activeChannel.createdBy === user._id || activeChannel.createdBy?._id === user._id || user.role === 'main_admin') && (
+                          <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--line)' }}>
+                            <button onClick={async () => {
+                              if (!window.confirm(`Delete channel "${activeChannel.name}" and all its messages? This cannot be undone.`)) return;
+                              try {
+                                await api.delete(`/messages/channels/${activeChannel._id}`);
+                                setActiveChannel(null);
+                                setMessages([]);
+                                setRightPanel(null);
+                                loadChannels();
+                              } catch (e) {
+                                dialog.alert(e.response?.data?.error || 'Failed to delete.', 'Error');
+                              }
+                            }} style={{ width: '100%', padding: '8px 10px', fontSize: 11, fontWeight: 700, border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, background: 'rgba(239,68,68,0.08)', color: '#EF4444', cursor: 'pointer', fontFamily: 'Inter' }}>
+                              🗑 Delete this channel
+                            </button>
                           </div>
+                        )
+                      )}
+                      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)' }}>{channelMembers.length} members</span>
+                        {activeChannel?.type !== 'dm' && (
+                          <button onClick={() => {
+                            const addableUsers = allUsers.filter(u => !channelMembers.some(m => m._id === u._id));
+                            if (addableUsers.length === 0) { dialog.alert('No more users to add.'); return; }
+                            setShowMemberPicker(prev => !prev);
+                          }} style={{ padding: '3px 10px', fontSize: 9, fontWeight: 600, border: '1px solid #6366F1', borderRadius: 5, background: 'rgba(99,102,241,0.08)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter' }}>
+                            + Add
+                          </button>
+                        )}
+                      </div>
+                      {showMemberPicker && (
+                        <div style={{ padding: 8, borderBottom: '1px solid var(--line)', maxHeight: 160, overflowY: 'auto' }}>
+                          {allUsers.filter(u => !channelMembers.some(m => m._id === u._id)).map(u => (
+                            <div key={u._id} onClick={async () => {
+                              try {
+                                await api.post(`/messages/${activeChannel._id}/members`, { userIds: [u._id] });
+                                openRightPanel('members');
+                                setShowMemberPicker(false);
+                              } catch (e) { dialog.alert(e.response?.data?.error || 'Failed to add member.', 'Error'); }
+                            }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 6px', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: 'var(--ink)' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.06)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              <Avatar user={u} size={22} />
+                              {u.name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {channelMembers.map(member => (
+                        <div key={member._id} className="msg-right-panel-member">
+                          <Avatar user={member} size={28} />
                           <div className="msg-right-panel-member-info">
                             <div className="msg-right-panel-member-name">{member.name}</div>
                             <div className="msg-right-panel-member-title">{member.jobTitle || member.email}</div>
                           </div>
                           <div className="msg-status-indicator" style={{ background: onlineUsers.includes(member._id) ? '#10B981' : 'var(--ink-4)' }} />
                         </div>
-                      ))
-                    )
+                      ))}
+                    </>
                   )}
 
                   {/* Search Results */}
@@ -1360,6 +2160,91 @@ export default function Messages() {
             <div className="msg-empty-icon">💬</div>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Select a conversation</h3>
             <p style={{ fontSize: 12, color: 'var(--ink-3)' }}>Choose a channel, DM, or room from the sidebar</p>
+            <button className="msg-mobile-menu-btn" onClick={() => setMobileSidebar(true)}
+              style={{ display: 'none', marginTop: 12, padding: '8px 20px', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              Open Conversations
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Forward Message Modal */}
+      {forwardMsg && (
+        <div className="msg-task-overlay" onClick={() => setForwardMsg(null)}>
+          <div className="msg-task-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div className="msg-task-modal-header">
+              <span>➤ Forward Message</span>
+              <button className="msg-task-modal-close" onClick={() => setForwardMsg(null)}>✕</button>
+            </div>
+            <div style={{ padding: 16 }}>
+              {/* Preview of message being forwarded */}
+              <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, marginBottom: 12, borderLeft: '3px solid var(--indigo)' }}>
+                <div style={{ fontSize: 10, color: 'var(--ink-3)', fontWeight: 700, marginBottom: 4 }}>
+                  From {forwardMsg.sender?.name || 'Unknown'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink)', whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {forwardMsg.content || (forwardMsg.file ? `📎 ${forwardMsg.file.name}` : '(no content)')}
+                </div>
+              </div>
+
+              {/* Optional note */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>Add a note (optional)</div>
+                <textarea
+                  value={forwardNote}
+                  onChange={e => setForwardNote(e.target.value)}
+                  placeholder="Why are you sharing this?"
+                  rows={2}
+                  style={{ width: '100%', padding: 8, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--bg-1)', color: 'var(--ink)', fontSize: 12, fontFamily: 'Inter, sans-serif', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Channel picker */}
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>
+                Select chats to forward to ({forwardTargets.length} selected)
+              </div>
+              <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 6 }}>
+                {channels.filter(c => c._id !== forwardMsg.channel).map(ch => {
+                  const isSelected = forwardTargets.includes(ch._id);
+                  const isDM = ch.type === 'dm';
+                  const otherUser = isDM ? ch.members?.find(m => (m._id || m) !== user._id) : null;
+                  const displayName = isDM ? (otherUser?.name || ch.name || 'DM') : ch.name;
+                  const icon = isDM ? '💬' : ch.type === 'group' ? '👥' : ch.type === 'room' ? '🚪' : '#';
+                  return (
+                    <div key={ch._id} onClick={() =>
+                      setForwardTargets(prev => isSelected ? prev.filter(id => id !== ch._id) : [...prev, ch._id])
+                    } style={{
+                      padding: '8px 12px', cursor: 'pointer',
+                      background: isSelected ? 'rgba(99,102,241,0.1)' : 'transparent',
+                      borderBottom: '1px solid var(--line)',
+                      display: 'flex', alignItems: 'center', gap: 10, fontSize: 12
+                    }}>
+                      <input type="checkbox" checked={isSelected} readOnly
+                        style={{ accentColor: 'var(--indigo)', pointerEvents: 'none' }} />
+                      <span style={{ fontSize: 14 }}>{icon}</span>
+                      <span style={{ flex: 1, color: isSelected ? 'var(--indigo)' : 'var(--ink)', fontWeight: isSelected ? 700 : 500 }}>{displayName}</span>
+                      <span style={{ fontSize: 9, color: 'var(--ink-4)' }}>{ch.type}</span>
+                    </div>
+                  );
+                })}
+                {channels.filter(c => c._id !== forwardMsg.channel).length === 0 && (
+                  <div style={{ padding: 16, textAlign: 'center', fontSize: 11, color: 'var(--ink-3)' }}>
+                    No other chats available.
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+                <button onClick={() => setForwardMsg(null)}
+                  style={{ padding: '8px 14px', fontSize: 12, fontWeight: 600, background: 'transparent', color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+                <button onClick={sendForward} disabled={forwardBusy || forwardTargets.length === 0}
+                  style={{ padding: '8px 16px', fontSize: 12, fontWeight: 700, background: forwardTargets.length === 0 ? '#475569' : 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', border: 'none', borderRadius: 6, cursor: forwardTargets.length === 0 ? 'not-allowed' : 'pointer' }}>
+                  {forwardBusy ? 'Forwarding…' : `Forward to ${forwardTargets.length}`}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

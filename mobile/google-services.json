@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "744090175826",
+    "project_id": "avadeti-team-c7f0c",
+    "storage_bucket": "avadeti-team-c7f0c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744090175826:android:ece10a255f02105469d28b",
+        "android_client_info": {
+          "package_name": "com.avadetimedia.niyoq"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0Pp1wSzE2Gqes1JIdNOZ8b7T_VKQN42o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -6,7 +6,7 @@ import TaskItem from '@tiptap/extension-task-item';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
-import api from '../services/api';
+import api, { getFileUrl } from '../services/api';
 import FileViewer from '../components/FileViewer';
 import '../styles/workspace.css';
 
@@ -67,7 +67,7 @@ export default function WorkspacePage() {
 
   const addMember = async (userId) => {
     try {
-      await api.post(`/workspace/${selectedWs}/members`, { userId });
+      await api.put(`/workspace/${selectedWs}/members`, { userIds: [userId] });
       openWorkspace(selectedWs);
       setShowAddMember(false);
       setMemberSearch('');
@@ -175,12 +175,13 @@ export default function WorkspacePage() {
                   .filter(u => !wsDetail?.members?.some(m => (m._id || m) === u._id))
                   .filter(u => u.name.toLowerCase().includes(memberSearch.toLowerCase()) || u.email.toLowerCase().includes(memberSearch.toLowerCase()))
                   .map(u => (
-                    <div key={u._id} onClick={() => addMember(u._id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: 'var(--ink)' }}
-                      onMouseOver={e => e.currentTarget.style.background = 'var(--glass)'}
-                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                      <span style={{ fontWeight: 600 }}>{u.name}</span>
-                      <span style={{ color: 'var(--ink-3)', fontSize: 10, marginLeft: 'auto' }}>{u.email}</span>
+                    <div key={u._id}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', borderRadius: 6, fontSize: 11, color: 'var(--ink)' }}>
+                      <span style={{ fontWeight: 600, flex: 1 }}>{u.name}</span>
+                      <button onClick={() => addMember(u._id)}
+                        style={{ padding: '2px 6px', fontSize: 8, border: '1px solid #10B981', borderRadius: 3, background: 'rgba(16,185,129,0.06)', color: '#10B981', cursor: 'pointer', fontFamily: 'Inter' }}>Editor</button>
+                      <button onClick={() => { api.put(`/workspace/${selectedWs}/members`, { userIds: [u._id], role: 'viewer' }).then(() => { openWorkspace(selectedWs); setShowAddMember(false); }).catch(() => {}); }}
+                        style={{ padding: '2px 6px', fontSize: 8, border: '1px solid #F59E0B', borderRadius: 3, background: 'rgba(245,158,11,0.06)', color: '#F59E0B', cursor: 'pointer', fontFamily: 'Inter' }}>Viewer</button>
                     </div>
                   ))}
                 {memberUsers.filter(u => !wsDetail?.members?.some(m => (m._id || m) === u._id)).length === 0 && (
@@ -274,7 +275,7 @@ export default function WorkspacePage() {
             </label>
           </div>
           {wsDetail?.files?.map(file => (
-            <div key={file._id} className="ws-doc-item" style={{ cursor: 'pointer' }} onClick={() => setViewingFile({ url: file.path || file.url, name: file.originalName || file.name, mimeType: file.mimeType, size: file.originalSize })}>
+            <div key={file._id} className="ws-doc-item" style={{ cursor: 'pointer' }} onClick={() => setViewingFile({ url: getFileUrl(file.path || file.url), name: file.originalName || file.name, mimeType: file.mimeType, size: file.originalSize })}>
               <div className="ws-doc-icon">📎</div>
               <div style={{ flex: 1 }}>
                 <div className="ws-doc-title">{file.originalName || file.name}</div>

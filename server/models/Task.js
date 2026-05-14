@@ -30,6 +30,17 @@ const taskSchema = new mongoose.Schema({
     note: { type: String }
   }],
 
+  // Checklist (lightweight inline items, separate from subtasks)
+  checklist: [{
+    _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
+    text: { type: String, required: true },
+    done: { type: Boolean, default: false },
+    group: { type: String, default: '' },        // group name for grouping items
+    order: { type: Number, default: 0 },          // sort order within group
+    sequential: { type: Boolean, default: false }, // if true, previous item must be done first
+    doneAt: { type: Date }
+  }],
+
   // Dates
   deadline: { type: Date },
   deadlineTime: { type: String }, // optional HH:MM for reminder
@@ -87,7 +98,8 @@ const taskSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
   }],
 
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  _overdueNotified: { type: Boolean, default: false }
 }, {
   timestamps: true
 });

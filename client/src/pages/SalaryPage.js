@@ -95,9 +95,27 @@ export default function SalaryPage() {
         <h2>Salary Summary</h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {adminMode && user.role !== 'employee' && (
-            <button className="sal-detail-btn primary" onClick={() => { setShowBonusForm(true); loadEmployees(); }}>
-              Award Bonus
-            </button>
+            <>
+              <button className="sal-detail-btn primary" onClick={() => { setShowBonusForm(true); loadEmployees(); }}>
+                Award Bonus
+              </button>
+              <button className="sal-detail-btn primary" style={{ background: 'linear-gradient(135deg,#10B981,#06B6D4)' }}
+                onClick={async () => {
+                  const now = new Date();
+                  const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+                  const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+                  if (!window.confirm(`Generate salary records for ${prevMonth}/${prevYear} for all employees?`)) return;
+                  try {
+                    const r = await api.post('/salary/generate-all', { month: prevMonth, year: prevYear });
+                    alert(`✓ Generated ${r.data.generated || 0}/${r.data.total || 0} (${r.data.failed || 0} failed)`);
+                    loadRecords();
+                  } catch (e) {
+                    alert('Failed: ' + (e.response?.data?.error || e.message));
+                  }
+                }}>
+                ⚙️ Generate Now
+              </button>
+            </>
           )}
           <select className="sal-year-select" value={year} onChange={e => setYear(parseInt(e.target.value))}>
             <option value={2026}>2026</option>

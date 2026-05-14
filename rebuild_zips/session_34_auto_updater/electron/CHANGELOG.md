@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Avadeti Team will be documented in this file.
+All notable changes to Niyoq will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 `MAJOR.MINOR.PATCH`.
@@ -29,7 +29,7 @@ Each released version gets a section below. Keep entries user-facing and concise
 
 ## [1.0.0] — 2026-04-20
 
-Initial public release. Rebuild of Avadeti Team across 34 sessions.
+Initial public release. Rebuild of Niyoq across 34 sessions.
 
 ### Added
 
@@ -51,7 +51,7 @@ Initial public release. Rebuild of Avadeti Team across 34 sessions.
   - Whiteboard (infinite canvas, sticky notes, shapes, drawing, real-time collab, export)
 - **Desktop apps (Phase G):**
   - Electron wrapper with frameless window + custom titlebar
-  - `avadeti://` deep-link protocol
+  - `niyoq://` deep-link protocol
   - Auto-updater with GitHub Releases feed
   - Signed builds for Windows + macOS (+ notarization)
 

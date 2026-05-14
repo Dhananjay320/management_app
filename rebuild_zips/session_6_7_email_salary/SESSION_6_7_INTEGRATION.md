@@ -99,7 +99,7 @@ npm start
 
 **Expected boot output:**
 ```
-Avadeti Team server running on port 3000
+Niyoq server running on port 3000
 [email] IMAP poller started (every 300s).
 ```
 

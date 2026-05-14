@@ -31,6 +31,7 @@ export default function FloatingStickyNote({ note, onClose, onSave }) {
   const [content, setContent] = useState(note.content || '');
   const [color, setColor] = useState(note.color || NOTE_COLORS[0]);
   const [minimized, setMinimized] = useState(false);
+  const isLocal = !!note.screenPath;
   const dragRef = useRef(null);
   const dragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -66,31 +67,78 @@ export default function FloatingStickyNote({ note, onClose, onSave }) {
     handleChange(title, content, c);
   };
 
-  // Drag handlers
-  const onMouseDown = (e) => {
-    // Only drag from header, not inputs
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') return;
+  // Drag handlers — start (mouse + touch)
+  const startDrag = (clientX, clientY, target) => {
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA')) return false;
     dragging.current = true;
-    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+    dragOffset.current = { x: clientX - pos.x, y: clientY - pos.y };
     document.body.style.userSelect = 'none';
+    return true;
+  };
+
+  const onMouseDown = (e) => { startDrag(e.clientX, e.clientY, e.target); };
+  const onTouchStart = (e) => {
+    const t = e.touches[0];
+    if (startDrag(t.clientX, t.clientY, e.target)) {
+      // prevent page scroll while dragging the note
+      try { e.preventDefault(); } catch (_) {}
+    }
   };
 
   useEffect(() => {
-    const onMouseMove = (e) => {
+    // Pick a reasonable note width based on viewport — mobile-aware clamp
+    const noteWidth = () => Math.min(220, window.innerWidth - 16);
+
+    const handleMove = (clientX, clientY) => {
       if (!dragging.current) return;
-      const newX = Math.max(0, Math.min(window.innerWidth - 220, e.clientX - dragOffset.current.x));
-      const newY = Math.max(0, Math.min(window.innerHeight - 50, e.clientY - dragOffset.current.y));
+      const w = noteWidth();
+      const newX = Math.max(0, Math.min(window.innerWidth - w, clientX - dragOffset.current.x));
+      const newY = Math.max(0, Math.min(window.innerHeight - 50, clientY - dragOffset.current.y));
       setPos({ x: newX, y: newY });
     };
-    const onMouseUp = () => {
+
+    const onMouseMove = (e) => handleMove(e.clientX, e.clientY);
+    const onTouchMove = (e) => {
+      if (!dragging.current) return;
+      const t = e.touches[0];
+      handleMove(t.clientX, t.clientY);
+      try { e.preventDefault(); } catch (_) {}
+    };
+    const stop = () => {
       dragging.current = false;
       document.body.style.userSelect = '';
     };
     window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('mouseup', stop);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', stop);
+    window.addEventListener('touchcancel', stop);
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('mouseup', stop);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', stop);
+      window.removeEventListener('touchcancel', stop);
+    };
+  }, []);
+
+  // If viewport shrinks (rotate, resize), nudge the note back into bounds.
+  useEffect(() => {
+    const reclamp = () => {
+      setPos(p => {
+        const w = Math.min(220, window.innerWidth - 16);
+        return {
+          x: Math.max(0, Math.min(window.innerWidth - w, p.x)),
+          y: Math.max(0, Math.min(window.innerHeight - 50, p.y))
+        };
+      });
+    };
+    window.addEventListener('resize', reclamp);
+    window.addEventListener('orientationchange', reclamp);
+    reclamp();
+    return () => {
+      window.removeEventListener('resize', reclamp);
+      window.removeEventListener('orientationchange', reclamp);
     };
   }, []);
 
@@ -100,8 +148,19 @@ export default function FloatingStickyNote({ note, onClose, onSave }) {
       className={`floating-sticky-note ${minimized ? 'minimized' : ''}`}
       style={{ left: pos.x, top: pos.y, background: color }}
     >
-      <div className="floating-sticky-header" onMouseDown={onMouseDown}>
+      <div className="floating-sticky-header" onMouseDown={onMouseDown} onTouchStart={onTouchStart}>
         <span className="floating-sticky-drag-handle">:::</span>
+        {/* Scope indicator */}
+        <span
+          onClick={() => {
+            const newPath = note.screenPath ? null : (window.location.pathname + window.location.search);
+            onSave({ ...note, title, content, color, screenPath: newPath, noteScope: newPath ? 'local' : 'global' });
+          }}
+          title={isLocal ? 'Local note — click to make global' : 'Global note — click to pin to this screen'}
+          style={{ cursor: 'pointer', fontSize: 11, flexShrink: 0, marginRight: 2 }}
+        >
+          {isLocal ? '📌' : '🌐'}
+        </span>
         <input
           className="floating-sticky-title-input"
           value={title}

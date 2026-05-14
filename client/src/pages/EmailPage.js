@@ -3,6 +3,7 @@ import DOMPurify from 'dompurify';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import api from '../services/api';
+import { useAlert } from '../components/AlertModal';
 import '../styles/email.css';
 
 const GRADIENTS = [
@@ -53,7 +54,11 @@ const FOLDERS = [
 
 export default function EmailPage() {
   const { user } = useAuth();
+  const dialog = useAlert();
   const { socket } = useSocket();
+
+  // Email configuration status
+  const [emailStatus, setEmailStatus] = useState(null); // null=loading, {configured, canSend, canReceive, message}
 
   // State
   const [accounts, setAccounts] = useState([]);
@@ -72,6 +77,43 @@ export default function EmailPage() {
   const [composeMode, setComposeMode] = useState('new'); // 'new', 'reply', 'replyAll', 'forward'
   const [composeData, setComposeData] = useState({ to: '', cc: '', bcc: '', subject: '', body: '', accountId: '' });
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
+  const [templateForm, setTemplateForm] = useState({ name: '', subject: '', bodyText: '', scope: 'personal' });
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [templateSaving, setTemplateSaving] = useState(false);
+
+  const saveTemplate = async () => {
+    if (!templateForm.name.trim()) return;
+    setTemplateSaving(true);
+    try {
+      if (editingTemplate) {
+        await api.put(`/email/templates/${editingTemplate._id}`, templateForm);
+      } else {
+        await api.post('/email/templates', templateForm);
+      }
+      setTemplateForm({ name: '', subject: '', bodyText: '', scope: 'personal' });
+      setEditingTemplate(null);
+      loadTemplates();
+    } catch (err) {
+      dialog.alert(err.response?.data?.error || 'Failed to save template.');
+    } finally { setTemplateSaving(false); }
+  };
+
+  const deleteTemplate = async (id) => {
+    if (!(await dialog.confirm('Delete this template?'))) return;
+    try { await api.delete(`/email/templates/${id}`); loadTemplates(); } catch {}
+  };
+
+  const startEditTemplate = (t) => {
+    setEditingTemplate(t);
+    setTemplateForm({ name: t.name, subject: t.subject || '', bodyText: t.bodyText || '', scope: t.scope || 'personal' });
+  };
+
+  const saveCurrentAsTemplate = () => {
+    setTemplateForm({ name: '', subject: composeData.subject, bodyText: composeData.body, scope: 'personal' });
+    setEditingTemplate(null);
+    setShowTemplateManager(true);
+  };
 
   // Drafts
   const [drafts, setDrafts] = useState([]);
@@ -141,7 +183,11 @@ export default function EmailPage() {
     } catch {}
   }, []);
 
-  useEffect(() => { loadAccounts(); loadCategories(); loadTemplates(); }, [loadAccounts, loadCategories, loadTemplates]);
+  useEffect(() => {
+    // Check email config status first
+    api.get('/email/accounts/status').then(r => setEmailStatus(r.data)).catch(() => setEmailStatus({ configured: false, message: 'Could not check email status.' }));
+    loadAccounts(); loadCategories(); loadTemplates();
+  }, [loadAccounts, loadCategories, loadTemplates]);
   useEffect(() => { loadEmails(); loadUnreadCounts(); }, [loadEmails, loadUnreadCounts]);
 
   // Socket: new email notification
@@ -332,12 +378,58 @@ export default function EmailPage() {
     : emails;
 
   // ─── Render ───
+  // Show "not configured" full page if no email account
+  if (emailStatus && !emailStatus.configured) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center', maxWidth: 420, padding: 40 }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>✉️</div>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>Email Not Configured</h2>
+          <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.7, marginBottom: 20 }}>
+            Your email account has not been set up for use in this app. Please contact your <strong>admin</strong> or <strong>developer</strong> to configure your SMTP/IMAP email settings.
+          </p>
+          <div style={{ padding: '14px 18px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 10, textAlign: 'left' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#6366F1', marginBottom: 6 }}>What needs to happen:</div>
+            <ul style={{ fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.8, paddingLeft: 16, margin: 0 }}>
+              <li>Admin or developer adds your email address</li>
+              <li>SMTP server configured for sending emails</li>
+              <li>IMAP server configured for receiving emails</li>
+              <li>Once done, you'll see your inbox here</li>
+            </ul>
+          </div>
+          <div style={{ marginTop: 16, fontSize: 11, color: 'var(--ink-3)' }}>
+            Your email: <strong>{user.email}</strong>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="email-layout">
+      {/* Email config warnings */}
+      {emailStatus && emailStatus.configured && (!emailStatus.canSend || !emailStatus.canReceive) && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+          padding: '6px 16px', fontSize: 11, fontWeight: 500,
+          background: 'rgba(245,158,11,0.1)', borderBottom: '1px solid rgba(245,158,11,0.2)',
+          color: '#F59E0B', display: 'flex', alignItems: 'center', gap: 6
+        }}>
+          <span>⚠️</span>
+          {!emailStatus.canSend && !emailStatus.canReceive && 'SMTP and IMAP not configured — you cannot send or receive emails.'}
+          {emailStatus.canSend && !emailStatus.canReceive && 'IMAP not configured — you can send but cannot receive emails.'}
+          {!emailStatus.canSend && emailStatus.canReceive && 'SMTP not configured — you can receive but cannot send emails.'}
+          <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>Contact admin to complete setup.</span>
+        </div>
+      )}
+
       {/* ═══ Left Sidebar ═══ */}
       <div className="email-sidebar">
         <div className="email-sidebar-header">
-          <button className="email-compose-btn" onClick={() => openCompose('new')}>
+          <button className="email-compose-btn" onClick={async () => {
+            if (!emailStatus?.canSend) { await dialog.alert('Your email SMTP is not configured. Contact your admin to set it up.'); return; }
+            openCompose('new');
+          }}>
             ✏️ <span>Compose</span>
           </button>
         </div>
@@ -691,15 +783,108 @@ export default function EmailPage() {
               )}
 
               {/* Template picker */}
-              {showTemplates && templates.length > 0 && (
-                <div className="email-template-picker">
+              {showTemplates && (
+                <div className="email-template-picker" style={{ maxHeight: 280, overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)' }}>Templates</span>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button onClick={saveCurrentAsTemplate}
+                        style={{ fontSize: 8, padding: '2px 6px', border: '1px solid #10B981', borderRadius: 4, background: 'rgba(16,185,129,0.08)', color: '#10B981', cursor: 'pointer', fontFamily: 'Inter' }}>
+                        Save Current
+                      </button>
+                      <button onClick={() => { setShowTemplates(false); setShowTemplateManager(true); }}
+                        style={{ fontSize: 8, padding: '2px 6px', border: '1px solid #6366F1', borderRadius: 4, background: 'rgba(99,102,241,0.08)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter' }}>
+                        Manage
+                      </button>
+                    </div>
+                  </div>
+                  {templates.length === 0 && (
+                    <div style={{ padding: '12px 8px', fontSize: 11, color: 'var(--ink-3)', textAlign: 'center' }}>No templates yet. Click "Manage" to create one.</div>
+                  )}
                   {templates.map(t => (
                     <div key={t._id} className="email-template-item" onClick={() => applyTemplate(t)}>
                       <div className="email-template-name">{t.name}</div>
-                      <div className="email-template-scope">{t.scope === 'company' ? 'Company Template' : 'Personal'}</div>
+                      <div className="email-template-scope">
+                        {t.scope === 'company' ? '🏢 Company' : t.scope === 'team' ? '👥 Team' : '👤 Personal'}
+                      </div>
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* Template Manager Modal */}
+              {showTemplateManager && (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }} onClick={() => setShowTemplateManager(false)} />
+                  <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 1000, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 14, width: 540, maxWidth: '90vw', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+                    <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
+                        {editingTemplate ? 'Edit Template' : 'Email Templates'}
+                      </div>
+                      <button style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--ink-3)' }} onClick={() => { setShowTemplateManager(false); setEditingTemplate(null); }}>&times;</button>
+                    </div>
+                    <div style={{ padding: 18 }}>
+                      {/* Create/Edit Form */}
+                      <div style={{ marginBottom: 16, padding: 14, background: 'var(--glass)', borderRadius: 8, border: '1px solid var(--line)' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 8 }}>
+                          {editingTemplate ? 'Edit Template' : 'Create New Template'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <input value={templateForm.name} onChange={e => setTemplateForm(p => ({ ...p, name: e.target.value }))}
+                            placeholder="Template name *"
+                            style={{ flex: 2, padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--bg-1)', outline: 'none', color: 'var(--ink)' }} />
+                          <select value={templateForm.scope} onChange={e => setTemplateForm(p => ({ ...p, scope: e.target.value }))}
+                            style={{ flex: 1, padding: '7px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--bg-1)', color: 'var(--ink)' }}>
+                            <option value="personal">Personal</option>
+                            <option value="team">Team</option>
+                            {['main_admin', 'admin'].includes(user.role) && <option value="company">Company</option>}
+                          </select>
+                        </div>
+                        <input value={templateForm.subject} onChange={e => setTemplateForm(p => ({ ...p, subject: e.target.value }))}
+                          placeholder="Email subject"
+                          style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--bg-1)', outline: 'none', marginBottom: 8, color: 'var(--ink)', boxSizing: 'border-box' }} />
+                        <textarea value={templateForm.bodyText} onChange={e => setTemplateForm(p => ({ ...p, bodyText: e.target.value }))}
+                          placeholder="Email body text..." rows={4}
+                          style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--bg-1)', outline: 'none', resize: 'vertical', color: 'var(--ink)', boxSizing: 'border-box' }} />
+                        <div style={{ display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }}>
+                          {editingTemplate && (
+                            <button onClick={() => { setEditingTemplate(null); setTemplateForm({ name: '', subject: '', bodyText: '', scope: 'personal' }); }}
+                              style={{ padding: '5px 12px', fontSize: 10, border: '1px solid var(--line)', borderRadius: 6, background: 'var(--glass)', color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'Inter' }}>Cancel</button>
+                          )}
+                          <button onClick={saveTemplate} disabled={templateSaving || !templateForm.name.trim()}
+                            style={{ padding: '5px 14px', fontSize: 10, fontWeight: 600, border: 'none', borderRadius: 6, background: '#6366F1', color: '#fff', cursor: 'pointer', fontFamily: 'Inter' }}>
+                            {templateSaving ? '...' : editingTemplate ? 'Update' : 'Create Template'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Template list */}
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 8 }}>
+                        Existing Templates ({templates.length})
+                      </div>
+                      {templates.length === 0 && (
+                        <div style={{ padding: '16px 0', textAlign: 'center', fontSize: 11, color: 'var(--ink-3)' }}>No templates yet.</div>
+                      )}
+                      {templates.map(t => (
+                        <div key={t._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
+                          <span style={{ fontSize: 14 }}>
+                            {t.scope === 'company' ? '🏢' : t.scope === 'team' ? '👥' : '👤'}
+                          </span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{t.name}</div>
+                            <div style={{ fontSize: 10, color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {t.subject || 'No subject'} — {t.scope}
+                            </div>
+                          </div>
+                          <button onClick={() => startEditTemplate(t)}
+                            style={{ fontSize: 9, padding: '2px 8px', border: '1px solid var(--line)', borderRadius: 4, background: 'var(--glass)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter' }}>Edit</button>
+                          <button onClick={() => deleteTemplate(t._id)}
+                            style={{ fontSize: 9, padding: '2px 8px', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 4, background: 'rgba(239,68,68,0.06)', color: '#EF4444', cursor: 'pointer', fontFamily: 'Inter' }}>Del</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>

@@ -9,23 +9,23 @@ async function seedCompany() {
 
   await CompanyInfo.deleteMany({});
 
-  const admin = await User.findOne({ email: 'admin@avadeti.com' });
+  const admin = await User.findOne({ email: 'admin@niyoq.com' });
 
   await CompanyInfo.create({
-    name: 'Avadeti Technologies',
+    name: 'Niyoq Demo Co.',
     about: 'We build innovative tools that help teams collaborate better, work smarter, and stay connected — all from one unified platform.',
     tagline: 'Your team, one platform.',
-    email: 'contact@avadeti.com',
+    email: 'contact@niyoq.com',
     phone: '+91 40 1234 5678',
     address: '123 Business Park, HITEC City, Hyderabad, India',
-    website: 'https://avadeti.com',
+    website: 'https://niyoq.com',
     social: {
-      linkedin: 'https://linkedin.com/company/avadeti',
-      twitter: 'https://twitter.com/avadeti',
-      instagram: 'https://instagram.com/avadeti',
-      github: 'https://github.com/avadeti'
+      linkedin: 'https://linkedin.com/company/niyoq',
+      twitter: 'https://twitter.com/niyoq',
+      instagram: 'https://instagram.com/niyoq',
+      github: 'https://github.com/niyoq'
     },
-    welcomeMessage: 'Welcome to Avadeti Technologies! We\'re thrilled to have you join our team. Together, we\'re building something amazing.',
+    welcomeMessage: 'Welcome to Niyoq Demo Co.! We\'re thrilled to have you join our team. Together, we\'re building something amazing.',
     updatedBy: admin?._id
   });
 

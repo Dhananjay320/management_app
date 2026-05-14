@@ -1,12 +1,12 @@
 // ============================================================================
-// main.js — Electron main process for Avadeti Team desktop app.
+// main.js — Electron main process for Niyoq desktop app.
 // ============================================================================
 // Session 33 (Phase G part 1). This is the entry point Electron spawns.
 // Responsibilities:
 //   1. Create the BrowserWindow (frameless, custom titlebar)
 //   2. Load the client (dev: localhost:3000, prod: bundled build)
 //   3. Install app menu with platform-appropriate shortcuts
-//   4. Register `avadeti://` deep-link protocol
+//   4. Register `niyoq://` deep-link protocol
 //   5. Handle IPC from renderer — window controls, auto-start toggle, etc.
 //   6. Handle second-instance events (single-instance lock)
 //
@@ -29,7 +29,7 @@ const PROD_INDEX = path.join(__dirname, '..', 'client', 'build', 'index.html');
 let mainWindow = null;
 
 // ─── Single-instance lock ────────────────────────────────────────────────
-// If a user double-clicks the app or opens an `avadeti://` link while it's
+// If a user double-clicks the app or opens an `niyoq://` link while it's
 // already running, we focus the existing window instead of spawning a new one.
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -40,18 +40,18 @@ if (!gotLock) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
       // On Windows, the deep-link URL comes as a command-line arg
-      const deepLinkArg = argv.find(a => a.startsWith('avadeti://'));
+      const deepLinkArg = argv.find(a => a.startsWith('niyoq://'));
       if (deepLinkArg) mainWindow.webContents.send('deep-link', deepLinkArg);
     }
   });
 }
 
 // ─── Deep link protocol ─────────────────────────────────────────────────
-// Register `avadeti://` so URLs like `avadeti://meeting/abc123` can launch
+// Register `niyoq://` so URLs like `niyoq://meeting/abc123` can launch
 // or focus the app. On macOS, the OS hands us these via `open-url`. On
 // Windows/Linux, they arrive as command-line args to the second instance.
-if (!app.isDefaultProtocolClient('avadeti')) {
-  app.setAsDefaultProtocolClient('avadeti');
+if (!app.isDefaultProtocolClient('niyoq')) {
+  app.setAsDefaultProtocolClient('niyoq');
 }
 
 app.on('open-url', (event, url) => {
@@ -206,11 +206,11 @@ function buildMenu() {
         { type: 'separator' },
         {
           label: 'Documentation',
-          click: () => shell.openExternal('https://github.com/avadeti/team-docs'),
+          click: () => shell.openExternal('https://github.com/niyoq/team-docs'),
         },
         {
           label: 'Report Issue',
-          click: () => shell.openExternal('https://github.com/avadeti/team/issues'),
+          click: () => shell.openExternal('https://github.com/niyoq/team/issues'),
         },
       ],
     },

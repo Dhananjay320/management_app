@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import api from '../services/api';
+import api, { getFileUrl } from '../services/api';
+import ReactionPill from '../components/ReactionPill';
+import Avatar from '../components/Avatar';
 import '../styles/teamfeed.css';
 // TODO: Add FormatSwitcher from '../components/FormatSwitcher' to allow switching feed posts between chat/email/table/calendar/document views
 
@@ -46,6 +48,8 @@ export default function TeamFeedPage() {
   const [mediaFile, setMediaFile] = useState(null);
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState('');
+  const [allUsers, setAllUsers] = useState([]);
+  useEffect(() => { api.get('/users').then(r => setAllUsers(r.data || [])).catch(() => {}); }, []);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -71,6 +75,20 @@ export default function TeamFeedPage() {
     socket.on('feed:new', handleNew);
     return () => socket.off('feed:new', handleNew);
   }, [socket, loadPosts]);
+
+  // Polling fallback every 45s in case socket isn't connected
+  useEffect(() => {
+    const t = setInterval(loadPosts, 45000);
+    return () => clearInterval(t);
+  }, [loadPosts]);
+
+  // Per-post "expanded" state for long text
+  const [expandedPosts, setExpandedPosts] = useState(new Set());
+  const toggleExpanded = (id) => setExpandedPosts(prev => {
+    const n = new Set(prev);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
 
   const createPost = async () => {
     if (!newPost.trim() && !mediaFile) return;
@@ -149,9 +167,7 @@ export default function TeamFeedPage() {
       {/* Create Post */}
       <div className="feed-create">
         <div className="feed-create-top">
-          <div className="feed-create-avatar" style={{ background: getGradient(user._id) }}>
-            {getInitials(user.name)}
-          </div>
+          <Avatar user={user} size={36} />
           <textarea
             className="feed-create-input"
             placeholder="Share something with the team..."
@@ -213,9 +229,7 @@ export default function TeamFeedPage() {
           <div key={post._id} className="feed-card">
             {/* Header */}
             <div className="feed-card-header">
-              <div className="feed-card-avatar" style={{ background: getGradient(post.author?._id) }}>
-                {getInitials(post.author?.name)}
-              </div>
+              <Avatar user={post.author} size={36} />
               <div className="feed-card-author">
                 <div className="feed-card-name">{post.author?.name}</div>
                 <div className="feed-card-sub">
@@ -244,40 +258,60 @@ export default function TeamFeedPage() {
 
             {/* Body */}
             <div className="feed-card-body">
-              <div className="feed-card-text">{post.content}</div>
-              {post.media?.url && post.contentType === 'image' && (
-                <img src={post.media.url} alt={post.media.name} style={{ maxWidth: '100%', borderRadius: 8, marginTop: 8 }} />
-              )}
-              {post.media?.url && post.contentType === 'video' && (
-                <video src={post.media.url} controls style={{ maxWidth: '100%', borderRadius: 8, marginTop: 8 }} />
-              )}
-              {post.media?.url && post.contentType === 'file' && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 6, marginTop: 8, fontSize: 11 }}>
-                  📎 <span style={{ fontWeight: 600 }}>{post.media.name}</span>
-                </div>
-              )}
-              {post.linkPreview?.url && (
-                <div className="feed-link-preview">
-                  <div>
-                    <div className="feed-link-title">{post.linkPreview.title}</div>
-                    <div className="feed-link-desc">{post.linkPreview.description}</div>
-                    <div className="feed-link-url">{post.linkPreview.url}</div>
-                  </div>
-                </div>
-              )}
+              {(() => {
+                const isLong = (post.content || '').length > 280 || (post.content || '').split('\n').length > 5;
+                const expanded = expandedPosts.has(post._id);
+                return (
+                  <>
+                    <div className={`feed-card-text ${isLong && !expanded ? 'clamped' : ''}`}>{post.content}</div>
+                    {post.media?.url && post.contentType === 'image' && (
+                      <img src={getFileUrl(post.media.url || post.media.path)} alt={post.media.name} style={{ maxWidth: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 8, marginTop: 8, display: 'block' }} />
+                    )}
+                    {post.media?.url && post.contentType === 'video' && (
+                      <video src={getFileUrl(post.media.url || post.media.path)} controls style={{ maxWidth: '100%', borderRadius: 8, marginTop: 8 }} />
+                    )}
+                    {post.media?.url && post.contentType === 'file' && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 6, marginTop: 8, fontSize: 11 }}>
+                        📎 <span style={{ fontWeight: 600 }}>{post.media.name}</span>
+                      </div>
+                    )}
+                    {post.linkPreview?.url && (
+                      <div className="feed-link-preview">
+                        <div>
+                          <div className="feed-link-title">{post.linkPreview.title}</div>
+                          <div className="feed-link-desc">{post.linkPreview.description}</div>
+                          <div className="feed-link-url">{post.linkPreview.url}</div>
+                        </div>
+                      </div>
+                    )}
+                    {isLong && (
+                      <button onClick={() => toggleExpanded(post._id)}
+                        style={{ marginTop: 8, background: 'none', border: 'none', color: 'var(--indigo)', fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                        {expanded ? 'Show less ▲' : 'Show more ▼'}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
-            {/* Reactions */}
+            {/* Reactions — hover any pill to see who reacted */}
             {post.reactions?.length > 0 && (
               <div className="feed-reactions">
                 {post.reactions.map((r, ri) => (
-                  <span
+                  <ReactionPill
                     key={ri}
-                    className={`feed-reaction ${r.users?.some(u => u.toString() === user._id || u === user._id) ? 'mine' : ''}`}
+                    emoji={r.emoji}
+                    users={r.users}
+                    mine={r.users?.some(u => String(u._id || u) === String(user._id))}
+                    resolveName={(id) => {
+                      if (String(id) === String(user._id)) return 'You';
+                      const u = (allUsers || []).find(x => String(x._id) === String(id));
+                      return u?.name || 'Someone';
+                    }}
+                    className="feed-reaction"
                     onClick={() => react(post._id, r.emoji)}
-                  >
-                    {r.emoji} <span className="feed-reaction-count">{r.users?.length || 0}</span>
-                  </span>
+                  />
                 ))}
               </div>
             )}
@@ -302,9 +336,7 @@ export default function TeamFeedPage() {
               <div className="feed-comments">
                 {post.comments?.map(c => (
                   <div key={c._id} className="feed-comment">
-                    <div className="feed-comment-avatar" style={{ background: getGradient(c.author?._id) }}>
-                      {getInitials(c.author?.name)}
-                    </div>
+                    <Avatar user={c.author} size={24} />
                     <div className="feed-comment-body">
                       <span className="feed-comment-name">{c.author?.name}</span>
                       <div className="feed-comment-text">{c.content}</div>

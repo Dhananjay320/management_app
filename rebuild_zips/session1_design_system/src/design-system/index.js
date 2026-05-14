@@ -1,5 +1,5 @@
 // ============================================================================
-// Avadeti Design System — Barrel Export
+// Niyoq Design System — Barrel Export
 // ============================================================================
 // Usage across the app:
 //   import { GlassPanel, PrimaryButton, Avatar, LiveDot } from '../design-system';

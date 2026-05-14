@@ -39,6 +39,9 @@ export default function SearchPanel({ defaultScope = 'workspace', onResultClick 
   const [deepResults, setDeepResults] = useState([]);
   const [deepMessage, setDeepMessage] = useState('');
 
+  // Deep Research toggle — searches inside file contents (PDF, DOCX, TXT)
+  const [searchFiles, setSearchFiles] = useState(false);
+
   // Search history (localStorage)
   const historyKey = `search_history_${scope}`;
   const [history, setHistory] = useState(() => {
@@ -94,7 +97,7 @@ export default function SearchPanel({ defaultScope = 'workspace', onResultClick 
     setDeepProgress(null);
     setDeepMessage('');
     try {
-      const { data } = await api.post('/search/deep', { query, scope });
+      const { data } = await api.post('/search/deep', { query, scope, searchFiles });
       setDeepJob(data.jobId);
     } catch (err) {
       if (err.response?.status === 429) {
@@ -182,6 +185,42 @@ export default function SearchPanel({ defaultScope = 'workspace', onResultClick 
         </button>
       </div>
 
+      {/* Deep Research toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', marginBottom: 4 }}>
+        <div
+          onClick={() => setSearchFiles(!searchFiles)}
+          style={{
+            width: 38, height: 20, borderRadius: 10,
+            background: searchFiles ? '#6366F1' : 'var(--line)',
+            cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
+            flexShrink: 0
+          }}
+        >
+          <div style={{
+            width: 16, height: 16, borderRadius: 8, background: '#fff',
+            position: 'absolute', top: 2,
+            left: searchFiles ? 20 : 2,
+            transition: 'left 0.2s',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+          }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: searchFiles ? '#6366F1' : 'var(--ink-2)' }}>
+            Deep Research {searchFiles ? 'ON' : 'OFF'}
+          </div>
+          <div style={{ fontSize: 9, color: 'var(--ink-3)' }}>
+            {searchFiles
+              ? 'Will search inside PDF, DOCX, TXT and other document contents'
+              : 'Toggle ON to search inside uploaded file contents'}
+          </div>
+        </div>
+        {searchFiles && (
+          <span className="badge-pill" style={{ background: 'rgba(99,102,241,0.08)', color: '#6366F1', fontSize: 9 }}>
+            PDF + DOCX + TXT
+          </span>
+        )}
+      </div>
+
       {/* Deep Search Progress */}
       {deepJob && deepProgress && (
         <div className="search-progress">
@@ -198,6 +237,7 @@ export default function SearchPanel({ defaultScope = 'workspace', onResultClick 
           <div className="search-progress-text">
             {deepProgress.processedChunks}/{deepProgress.totalChunks} chunks processed
             {deepProgress.totalFound > 0 && ` — ${deepProgress.totalFound} found`}
+            {deepProgress.phase === 'files' && ' (scanning file contents...)'}
           </div>
         </div>
       )}

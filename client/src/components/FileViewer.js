@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import './FileViewer.css';
 
@@ -11,7 +11,21 @@ function getMimeCategory(mimeType, name) {
   if (mt.startsWith('audio/') || ['mp3','wav','ogg','aac'].includes(ext)) return 'audio';
   if (mt === 'application/pdf' || ext === 'pdf') return 'pdf';
   if (mt.startsWith('text/') || ['json','csv','md','txt','js','jsx','ts','tsx','css','html','xml','yaml','yml','py','rb','go','rs','sh','sql','log','env','conf','ini','toml'].includes(ext)) return 'text';
+  // Office documents — rendered via Microsoft Office Online viewer
+  if (['xlsx','xls','xlsm','docx','doc','pptx','ppt','odt','ods','odp','rtf'].includes(ext) ||
+      mt.includes('spreadsheet') || mt.includes('wordprocessingml') || mt.includes('presentation') ||
+      mt.includes('msword') || mt.includes('ms-excel') || mt.includes('ms-powerpoint')) return 'office';
   return 'other';
+}
+
+function getOfficeViewerUrl(fileUrl) {
+  // The file URL must be absolute and publicly accessible (no auth).
+  // Microsoft's free viewer renders xlsx/docx/pptx in an iframe.
+  let absoluteUrl = fileUrl;
+  if (!/^https?:\/\//i.test(fileUrl)) {
+    absoluteUrl = window.location.origin + (fileUrl.startsWith('/') ? '' : '/') + fileUrl;
+  }
+  return 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(absoluteUrl);
 }
 
 function formatSize(bytes) {
@@ -19,6 +33,75 @@ function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function OfficeView({ url, name }) {
+  // Try MS viewer first. If iframe doesn't load anything in ~5s
+  // (cross-origin so we can't read content), give the user a one-click
+  // switch to Google Docs viewer.
+  const [provider, setProvider] = useState('ms');
+  const [pollFailed, setPollFailed] = useState(false);
+  const absoluteUrl = useMemo(() => {
+    if (/^https?:\/\//i.test(url)) return url;
+    return window.location.origin + (url.startsWith('/') ? '' : '/') + url;
+  }, [url]);
+
+  // Stall watcher: if user is on localhost or the URL host isn't reachable
+  // by Microsoft (e.g. behind auth), the viewer often shows a blank page.
+  useEffect(() => {
+    const t = setTimeout(() => setPollFailed(true), 6000);
+    return () => clearTimeout(t);
+  }, [provider]);
+
+  const viewerUrl =
+    provider === 'ms'
+      ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(absoluteUrl)}`
+      : `https://docs.google.com/gview?url=${encodeURIComponent(absoluteUrl)}&embedded=true`;
+
+  const isLocalhost = /^(http:\/\/)?(localhost|127\.|192\.168\.)/i.test(absoluteUrl);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '70vh', background: '#fff' }}>
+      {isLocalhost ? (
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-3)' }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>📄</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{name}</div>
+          <div style={{ fontSize: 11 }}>Office preview requires a publicly accessible file URL — this server is local. Download to view.</div>
+        </div>
+      ) : (
+        <>
+          <iframe
+            key={provider}
+            src={viewerUrl}
+            title={name}
+            style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+            onLoad={() => setPollFailed(false)}
+          />
+          {/* Provider switcher overlay (top-right) */}
+          <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4, background: 'rgba(0,0,0,0.55)', borderRadius: 6, padding: 2 }}>
+            <button onClick={() => setProvider('ms')}
+              style={pillStyle(provider === 'ms')}>Microsoft</button>
+            <button onClick={() => setProvider('google')}
+              style={pillStyle(provider === 'google')}>Google</button>
+          </div>
+          {pollFailed && (
+            <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.65)', color: '#fff', padding: '6px 10px', borderRadius: 6, fontSize: 10 }}>
+              Preview slow? Try the {provider === 'ms' ? 'Google' : 'Microsoft'} renderer →
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function pillStyle(active) {
+  return {
+    padding: '4px 10px', fontSize: 10, fontWeight: 700,
+    background: active ? '#fff' : 'transparent',
+    color: active ? '#000' : '#fff',
+    border: 'none', borderRadius: 4, cursor: 'pointer'
+  };
 }
 
 export default function FileViewer({ url, name, mimeType, size, onClose }) {
@@ -55,11 +138,19 @@ export default function FileViewer({ url, name, mimeType, size, onClose }) {
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  const handleDownload = () => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name || 'download';
-    a.click();
+  const handleDownload = async () => {
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = name || 'download';
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
   };
 
   const handleEdit = () => {
@@ -168,6 +259,13 @@ export default function FileViewer({ url, name, mimeType, size, onClose }) {
               alt={name}
               className={zoomed ? 'zoomed' : ''}
               onClick={() => setZoomed(!zoomed)}
+              onError={e => {
+                // Try opening directly if embedded preview fails
+                e.target.alt = 'Preview failed — use Download button';
+                e.target.style.padding = '40px';
+                e.target.style.color = 'var(--ink-3)';
+                e.target.style.fontSize = '13px';
+              }}
             />
           )}
 
@@ -184,7 +282,11 @@ export default function FileViewer({ url, name, mimeType, size, onClose }) {
           )}
 
           {category === 'pdf' && (
-            <iframe src={url} title={name} style={{ width: '100%', height: '70vh' }} />
+            <iframe src={url} title={name} style={{ width: '100%', height: '100%', minHeight: '70vh', border: 'none' }} />
+          )}
+
+          {category === 'office' && (
+            <OfficeView url={url} name={name} />
           )}
 
           {category === 'text' && (

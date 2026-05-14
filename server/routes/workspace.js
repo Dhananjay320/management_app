@@ -1,9 +1,9 @@
 const router = require('express').Router();
 const { Workspace, WorkspaceDocument, WorkspaceNote, WorkspaceFile, WorkspaceLink } = require('../models/Workspace');
 const User = require('../models/User');
-const { protect } = require('../middleware/auth');
+const { protect, requirePower } = require('../middleware/auth');
 
-// Middleware: verify user is a member of the workspace or main_admin
+// Middleware: verify user is a member of the workspace or main_admin or has workspace.viewPrivate
 async function requireWorkspaceMember(req, res, next) {
   try {
     const wsId = req.params.id;
@@ -13,7 +13,8 @@ async function requireWorkspaceMember(req, res, next) {
     const memberEntry = ws.members.find(m => (m.user || m).toString() === req.user._id.toString());
     const isMainAdmin = req.user.role === 'main_admin';
     const isOwner = ws.createdBy.toString() === req.user._id.toString();
-    if (!memberEntry && !isMainAdmin) {
+    const canViewPrivate = req.user.hasPower('workspace', 'viewPrivate');
+    if (!memberEntry && !isMainAdmin && !canViewPrivate) {
       return res.status(403).json({ error: 'You are not a member of this workspace.' });
     }
     req.workspace = ws;
@@ -234,7 +235,7 @@ router.post('/:id/files', protect, requireWorkspaceMember, requireEditor, upload
       workspace: req.params.id,
       name: req.file.filename,
       originalName: req.file.originalname,
-      path: req.file.path,
+      path: 'uploads/workspace/' + req.file.filename,
       mimeType: req.file.mimetype,
       originalSize: req.file.size,
       compressedSize: req.file.size, // No compression yet (future: per-type compression)
@@ -288,7 +289,7 @@ const Message = require('../models/Message');
 // PUT /api/v1/workspace/:id/members — add members (with cross-team invite flow per spec 8.2)
 router.put('/:id/members', protect, requireWorkspaceMember, async (req, res) => {
   try {
-    const { userIds } = req.body;
+    const { userIds, role = 'editor' } = req.body;
     const ws = await Workspace.findById(req.params.id);
     if (!ws) return res.status(404).json({ error: 'Workspace not found.' });
 
@@ -339,7 +340,7 @@ router.put('/:id/members', protect, requireWorkspaceMember, async (req, res) => 
         }
       } else {
         // Team/personal — direct add
-        ws.members.push({ user: uid, role: 'editor' });
+        ws.members.push({ user: uid, role: role || 'editor' });
       }
     }
     await ws.save();

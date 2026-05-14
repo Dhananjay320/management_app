@@ -1,1 +1,47 @@
+# Dependencies
 node_modules/
+
+# Build output
+client/build/
+electron/dist/
+mobile/.expo/
+mobile/dist/
+
+# Environment & secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+server/.env
+server/.env.local
+server/.env.production
+server/google-services.json
+# mobile/google-services.json — un-ignored, EAS needs this committed for FCM push
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS metadata
+.DS_Store
+._*
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Uploads (user content; reseed empty for fresh installs)
+server/uploads/
+!server/uploads/.gitkeep
+
+# Local deploy artefacts (contains production VPS IP)
+*.tar.gz
+deploy-cache/
+deploy.sh
+
+# Personal documentation
+*.docx
+rebuild_zips/
+mobile/fcm-service-account.json

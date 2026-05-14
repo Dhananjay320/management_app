@@ -52,7 +52,7 @@ export default function OTPLogin() {
       <div className="auth-gradient">
         <div className="auth-brand">
           <div className="auth-logo">A</div>
-          <h1 className="auth-brand-name">Avadeti Team</h1>
+          <h1 className="auth-brand-name">Niyoq</h1>
           <p className="auth-tagline">Your company, one platform</p>
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function OTPLogin() {
             {error && <div className="auth-error">{error}</div>}
             <div className="form-group">
               <label>Email Address</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@avadeti.com" required autoFocus />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@niyoq.com" required autoFocus />
             </div>
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Requesting...' : 'Request OTP'}

@@ -79,6 +79,18 @@ export default function MeetingsPage() {
     load();
   };
 
+  const deleteMeeting = async () => {
+    if (!selected) return;
+    if (!window.confirm(`Delete "${selected.title}"? Attendees will be notified if more than 10 seconds have passed since creation.`)) return;
+    try {
+      await api.delete(`/meetings/${selected._id}`);
+      setView('list');
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete meeting.');
+    }
+  };
+
   const addAttendee = async (userId) => {
     if (!selected) return;
     await api.post(`/meetings/${selected._id}/attendees`, { userIds: [userId] });
@@ -159,7 +171,7 @@ export default function MeetingsPage() {
 
       {/* Detail */}
       {view === 'detail' && selected && (
-        <MeetingDetail meeting={selected} user={user} onRespond={respond} onStart={startMeeting} onEnd={endMeeting} onAddAttendee={addAttendee} allUsers={users}
+        <MeetingDetail meeting={selected} user={user} onRespond={respond} onStart={startMeeting} onEnd={endMeeting} onDelete={deleteMeeting} onAddAttendee={addAttendee} allUsers={users}
           onOpenMom={openMom} onCreateMom={createMom} onRefresh={() => openMeeting(selected._id)} />
       )}
 
@@ -174,7 +186,7 @@ export default function MeetingsPage() {
   );
 }
 
-function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee, allUsers, onOpenMom, onCreateMom, onRefresh }) {
+function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onDelete, onAddAttendee, allUsers, onOpenMom, onCreateMom, onRefresh }) {
   const myAttendee = meeting.attendees?.find(a => a.user?._id === user._id);
   const isCreator = meeting.createdBy?._id === user._id;
   const isUpcoming = meeting.status === 'scheduled';
@@ -183,14 +195,84 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
   const [showDeclinePrompt, setShowDeclinePrompt] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
 
+  // Task from meeting
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [taskForm, setTaskForm] = useState({ title: '', priority: 'medium', deadline: '', assignees: [] });
+  const [taskCreating, setTaskCreating] = useState(false);
+
+  const createTaskFromMeeting = async () => {
+    if (!taskForm.title.trim()) return;
+    setTaskCreating(true);
+    try {
+      await api.post('/tasks', {
+        title: taskForm.title,
+        priority: taskForm.priority,
+        deadline: taskForm.deadline || undefined,
+        assignees: taskForm.assignees.length ? taskForm.assignees : [user._id],
+        sourceType: 'meeting',
+        sourceId: meeting._id,
+        description: `Created from meeting: ${meeting.title}`
+      });
+      setShowTaskModal(false);
+      setTaskForm({ title: '', priority: 'medium', deadline: '', assignees: [] });
+      alert('Task created!');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to create task.');
+    } finally { setTaskCreating(false); }
+  };
+
+  // AI Analyse MoM — auto-detect tasks with editable details
+  const [aiDetectedTasks, setAiDetectedTasks] = useState(null);
+  const [aiTasksAccepting, setAiTasksAccepting] = useState(false);
+
   const handleAiMom = async () => {
     if (!user.aiActive) return;
     setAiLoading(true);
+    setAiDetectedTasks(null);
     try {
-      const { data } = await api.post('/ai/summarize', { context: 'meeting', meetingId: meeting._id });
-      setAiResult(data.summary || data.result || 'No analysis generated.');
-    } catch { setAiResult('Failed to analyse MoM.'); }
+      // Collect all MoM text
+      const momTexts = (meeting.moms || []).map(m => m.plainTextContent || '').filter(Boolean).join('\n\n');
+      if (!momTexts.trim()) {
+        setAiResult('No MoM content to analyse. Create and write MoM notes first.');
+        setAiLoading(false);
+        return;
+      }
+      // Use AI extract-tasks endpoint
+      const { data } = await api.post('/ai/extract-tasks', { text: momTexts });
+      if (data.tasks?.length) {
+        // Show tasks with editable fields
+        setAiDetectedTasks(data.tasks.map(t => ({
+          title: t.title || '', description: t.description || '',
+          priority: t.priority || 'medium', deadline: t.deadline || '',
+          assignee: t.assignee || '', accepted: false, editing: false
+        })));
+      } else {
+        setAiResult(data.raw || 'No action items detected in the MoM.');
+      }
+    } catch (err) { setAiResult(err.response?.data?.error || 'Failed to analyse MoM. Check AI configuration in Settings.'); }
     finally { setAiLoading(false); }
+  };
+
+  const acceptAiDetectedTask = async (idx) => {
+    const tasks = [...aiDetectedTasks];
+    const t = tasks[idx];
+    try {
+      await api.post('/tasks', {
+        title: t.title, priority: ['top','high','medium','low'].includes(t.priority) ? t.priority : 'medium',
+        deadline: t.deadline || undefined, description: t.description || `From meeting: ${meeting.title}`,
+        sourceType: 'meeting', sourceId: meeting._id
+      });
+      tasks[idx] = { ...t, accepted: true };
+      setAiDetectedTasks([...tasks]);
+    } catch {}
+  };
+
+  const acceptAllAiDetectedTasks = async () => {
+    setAiTasksAccepting(true);
+    for (let i = 0; i < aiDetectedTasks.length; i++) {
+      if (!aiDetectedTasks[i].accepted) await acceptAiDetectedTask(i);
+    }
+    setAiTasksAccepting(false);
   };
 
   const handleAiSummary = async () => {
@@ -199,7 +281,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
     try {
       const { data } = await api.post('/ai/summarize', { context: 'meeting_summary', meetingId: meeting._id, agenda: meeting.agenda, title: meeting.title });
       setAiResult(data.summary || data.result || 'No summary generated.');
-    } catch { setAiResult('Failed to generate summary.'); }
+    } catch (err) { setAiResult(err.response?.data?.error || 'Failed to generate summary. Check AI configuration in Settings.'); }
     finally { setAiLoading(false); }
   };
 
@@ -221,13 +303,16 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
                 </span>
               </div>
             </div>
-            {isUpcoming && isCreator && (
+            {isCreator && (
               <div style={{ display: 'flex', gap: 6 }}>
                 {meeting.status === 'scheduled' && (
                   <button className="btn btn-primary-sm" onClick={onStart}>Start Meeting</button>
                 )}
                 {meeting.status === 'in_progress' && (
                   <button className="btn btn-danger" onClick={onEnd}>End Meeting</button>
+                )}
+                {meeting.status !== 'completed' && (
+                  <button className="btn btn-danger" onClick={onDelete} title="Delete meeting">🗑 Delete</button>
                 )}
               </div>
             )}
@@ -317,6 +402,7 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
               >
                 {'\u2728'} Generate Summary
               </button>
+              <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: 10, color: '#10B981', borderColor: '#10B981' }} onClick={() => setShowTaskModal(true)}>+ Create Task</button>
               <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: 10 }} onClick={() => onCreateMom('personal')}>+ Personal MoM</button>
               <button className="btn btn-primary-sm" style={{ padding: '4px 10px', fontSize: 10 }} onClick={() => onCreateMom('team')}>+ Team MoM</button>
             </div>
@@ -333,8 +419,79 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
             </div>
           )}
 
-          {aiLoading && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#6366F1' }}>AI is processing...</div>}
-          {aiResult && (
+          {aiLoading && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#6366F1' }}>AI is analysing MoM...</div>}
+
+          {/* AI Detected Tasks — editable cards */}
+          {aiDetectedTasks && (
+            <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: 14, marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#6366F1' }}>Detected Tasks ({aiDetectedTasks.length})</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {aiDetectedTasks.some(t => !t.accepted) && (
+                    <button onClick={acceptAllAiDetectedTasks} disabled={aiTasksAccepting}
+                      style={{ padding: '4px 12px', fontSize: 10, fontWeight: 600, border: 'none', borderRadius: 6, background: '#6366F1', color: '#fff', cursor: 'pointer', fontFamily: 'Inter' }}>
+                      {aiTasksAccepting ? 'Creating...' : `Accept All (${aiDetectedTasks.filter(t => !t.accepted).length})`}
+                    </button>
+                  )}
+                  <button onClick={() => setAiDetectedTasks(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--ink-3)' }}>&times;</button>
+                </div>
+              </div>
+              {aiDetectedTasks.map((t, i) => (
+                <div key={i} style={{
+                  padding: '10px 12px', marginBottom: 6, borderRadius: 8,
+                  background: t.accepted ? 'rgba(16,185,129,0.06)' : 'var(--glass)',
+                  border: `1px solid ${t.accepted ? 'rgba(16,185,129,0.2)' : 'var(--line)'}`,
+                  opacity: t.accepted ? 0.7 : 1
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      {/* Editable title */}
+                      <input value={t.title} onChange={e => {
+                        const upd = [...aiDetectedTasks]; upd[i] = { ...upd[i], title: e.target.value }; setAiDetectedTasks(upd);
+                      }} disabled={t.accepted}
+                        style={{ width: '100%', fontSize: 12, fontWeight: 700, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none', fontFamily: 'Inter', marginBottom: 4, boxSizing: 'border-box' }}
+                        placeholder="Task title..." />
+                      {/* Editable description */}
+                      <input value={t.description} onChange={e => {
+                        const upd = [...aiDetectedTasks]; upd[i] = { ...upd[i], description: e.target.value }; setAiDetectedTasks(upd);
+                      }} disabled={t.accepted}
+                        style={{ width: '100%', fontSize: 10, border: 'none', background: 'transparent', color: 'var(--ink-2)', outline: 'none', fontFamily: 'Inter', marginBottom: 4, boxSizing: 'border-box' }}
+                        placeholder="Description..." />
+                      {/* Priority + Deadline inline editable */}
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <select value={t.priority} onChange={e => {
+                          const upd = [...aiDetectedTasks]; upd[i] = { ...upd[i], priority: e.target.value }; setAiDetectedTasks(upd);
+                        }} disabled={t.accepted}
+                          style={{ padding: '2px 6px', fontSize: 9, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--glass)', color: 'var(--ink)', fontFamily: 'Inter' }}>
+                          <option value="top">Top</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+                        </select>
+                        <input type="date" value={t.deadline} onChange={e => {
+                          const upd = [...aiDetectedTasks]; upd[i] = { ...upd[i], deadline: e.target.value }; setAiDetectedTasks(upd);
+                        }} disabled={t.accepted}
+                          style={{ padding: '2px 6px', fontSize: 9, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--glass)', color: 'var(--ink)', fontFamily: 'Inter' }} />
+                        {t.assignee && <span style={{ fontSize: 9, color: 'var(--ink-3)' }}>Assignee: {t.assignee}</span>}
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, alignSelf: 'center' }}>
+                      {t.accepted ? (
+                        <span style={{ fontSize: 10, color: '#10B981', fontWeight: 700 }}>Created</span>
+                      ) : (
+                        <button onClick={() => acceptAiDetectedTask(i)}
+                          style={{ padding: '5px 12px', fontSize: 10, fontWeight: 600, border: 'none', borderRadius: 6, background: '#10B981', color: '#fff', cursor: 'pointer', fontFamily: 'Inter' }}>
+                          Accept
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {!t.title.trim() && !t.accepted && (
+                    <div style={{ fontSize: 9, color: '#EF4444', marginTop: 4 }}>Title is required — please fill in before accepting</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {aiResult && !aiDetectedTasks && (
             <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 8, padding: 14, marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#6366F1' }}>AI Result</span>
@@ -381,15 +538,94 @@ function MeetingDetail({ meeting, user, onRespond, onStart, onEnd, onAddAttendee
             </div>
           ))}
         </div>
+        {/* Quick Note attached to meeting */}
+        <MeetingQuickNote meetingId={meeting._id} meetingTitle={meeting.title} />
       </div>
+
+      {/* Task creation modal */}
+      {showTaskModal && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }} onClick={() => setShowTaskModal(false)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 1000, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 14, width: 420, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Create Task from Meeting</div>
+              <button style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--ink-3)' }} onClick={() => setShowTaskModal(false)}>&times;</button>
+            </div>
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ padding: '8px 10px', background: 'rgba(99,102,241,0.06)', borderRadius: 6, border: '1px solid rgba(99,102,241,0.1)' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase' }}>From Meeting</div>
+                <div style={{ fontSize: 11, color: 'var(--ink)', fontWeight: 600 }}>{meeting.title}</div>
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Task Title *</label>
+                <input value={taskForm.title} onChange={e => setTaskForm(p => ({ ...p, title: e.target.value }))}
+                  placeholder="What needs to be done?"
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 12, fontFamily: 'Inter', background: 'var(--glass)', outline: 'none', color: 'var(--ink)', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Priority</label>
+                  <select value={taskForm.priority} onChange={e => setTaskForm(p => ({ ...p, priority: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 12, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)' }}>
+                    <option value="top">Top</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Deadline</label>
+                  <input type="date" value={taskForm.deadline} onChange={e => setTaskForm(p => ({ ...p, deadline: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 12, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Assign to (from attendees)</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 120, overflowY: 'auto' }}>
+                  {meeting.attendees?.map(a => (
+                    <div key={a.user?._id} onClick={() => {
+                      setTaskForm(p => ({
+                        ...p,
+                        assignees: p.assignees.includes(a.user?._id)
+                          ? p.assignees.filter(x => x !== a.user?._id)
+                          : [...p.assignees, a.user?._id]
+                      }));
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
+                      background: taskForm.assignees.includes(a.user?._id) ? 'rgba(99,102,241,0.12)' : 'var(--glass)',
+                      color: taskForm.assignees.includes(a.user?._id) ? '#6366F1' : 'var(--ink)',
+                      border: `1px solid ${taskForm.assignees.includes(a.user?._id) ? 'rgba(99,102,241,0.3)' : 'var(--line)'}` }}>
+                      {taskForm.assignees.includes(a.user?._id) ? '✓ ' : ''}{a.user?.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-secondary" onClick={() => setShowTaskModal(false)}>Cancel</button>
+              <button className="btn btn-primary-sm" onClick={createTaskFromMeeting} disabled={taskCreating || !taskForm.title.trim()}>
+                {taskCreating ? 'Creating...' : 'Create Task'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 function MomEditor({ mom, onBack }) {
+  const { user } = useAuth();
   const [title, setTitle] = useState(mom.title);
   const [saving, setSaving] = useState(false);
   const [published, setPublished] = useState(mom.isPublished);
+
+  // Task from MoM — manual inline task card
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskForm, setTaskForm] = useState({ title: '', priority: 'medium', deadline: '', description: '' });
+  const [taskCreating, setTaskCreating] = useState(false);
+
+  // AI Extract Tasks
+  const [aiTasks, setAiTasks] = useState(null); // null = not shown, [] = shown
+  const [aiLoading, setAiLoading] = useState(false);
+  const [acceptingAll, setAcceptingAll] = useState(false);
 
   const editor = useEditor({
     extensions: [StarterKit, TaskList, TaskItem.configure({ nested: true }), Placeholder.configure({ placeholder: 'Write your meeting notes...' })],
@@ -412,11 +648,135 @@ function MomEditor({ mom, onBack }) {
     } catch {} finally { setSaving(false); }
   };
 
+  // Insert a task card into the MoM document AND create the actual task
+  const insertTaskInMom = async () => {
+    if (!taskForm.title.trim() || !editor) return;
+    setTaskCreating(true);
+    try {
+      // Create the real task
+      await api.post('/tasks', {
+        title: taskForm.title,
+        priority: taskForm.priority,
+        deadline: taskForm.deadline || undefined,
+        description: taskForm.description || `From MoM: ${title}`,
+        sourceType: 'mom',
+        sourceId: mom._id,
+      });
+
+      // Insert a styled task block into the editor
+      const taskBlock = `\n📋 TASK: ${taskForm.title}\n  Priority: ${taskForm.priority.toUpperCase()}${taskForm.deadline ? ` | Deadline: ${taskForm.deadline}` : ''}${taskForm.description ? `\n  ${taskForm.description}` : ''}\n`;
+
+      editor.chain().focus().insertContent([
+        { type: 'horizontalRule' },
+        { type: 'blockquote', content: [
+          { type: 'paragraph', content: [
+            { type: 'text', marks: [{ type: 'bold' }], text: `✅ TASK: ${taskForm.title}` }
+          ]},
+          { type: 'paragraph', content: [
+            { type: 'text', text: `Priority: ${taskForm.priority.toUpperCase()}${taskForm.deadline ? ` | Deadline: ${taskForm.deadline}` : ''}` }
+          ]},
+          ...(taskForm.description ? [{ type: 'paragraph', content: [
+            { type: 'text', marks: [{ type: 'italic' }], text: taskForm.description }
+          ]}] : [])
+        ]},
+        { type: 'paragraph' }
+      ]).run();
+
+      // Auto-save after inserting
+      await api.put(`/meetings/mom/${mom._id}`, { tiptapJSON: editor.getJSON() });
+
+      setShowTaskForm(false);
+      setTaskForm({ title: '', priority: 'medium', deadline: '', description: '' });
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to create task.');
+    } finally { setTaskCreating(false); }
+  };
+
+  // AI: analyze MoM and extract tasks with full details
+  const aiExtractTasks = async () => {
+    if (!editor || !user.aiActive) {
+      alert('AI not activated — go to Settings > API Configuration');
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const text = editor.getText();
+      const { data } = await api.post('/ai/extract-tasks', { text });
+      // data.tasks = [{ title, description, priority, assignee, deadline }, ...]
+      const tasks = (data.tasks || []).map(t => ({
+        ...t,
+        title: t.title || 'Untitled task',
+        priority: t.priority || 'medium',
+        description: t.description || '',
+        deadline: t.deadline || '',
+        accepted: false,
+        creating: false,
+      }));
+      setAiTasks(tasks);
+    } catch (err) {
+      alert(err.response?.data?.error || 'AI extraction failed.');
+    } finally { setAiLoading(false); }
+  };
+
+  // Accept a single AI task
+  const acceptAiTask = async (index) => {
+    const tasks = [...aiTasks];
+    const t = tasks[index];
+    tasks[index] = { ...t, creating: true };
+    setAiTasks(tasks);
+    try {
+      await api.post('/tasks', {
+        title: t.title,
+        priority: ['top','high','medium','low'].includes(t.priority) ? t.priority : 'medium',
+        deadline: t.deadline || undefined,
+        description: t.description || `AI-extracted from MoM: ${title}`,
+        sourceType: 'mom',
+        sourceId: mom._id,
+      });
+
+      // Insert into editor
+      editor.chain().focus().insertContent([
+        { type: 'blockquote', content: [
+          { type: 'paragraph', content: [
+            { type: 'text', marks: [{ type: 'bold' }], text: `✅ TASK: ${t.title}` }
+          ]},
+          { type: 'paragraph', content: [
+            { type: 'text', text: `Priority: ${(t.priority || 'medium').toUpperCase()}${t.deadline ? ` | Deadline: ${t.deadline}` : ''}` }
+          ]}
+        ]}
+      ]).run();
+
+      tasks[index] = { ...t, accepted: true, creating: false };
+      setAiTasks([...tasks]);
+    } catch {
+      tasks[index] = { ...t, creating: false };
+      setAiTasks([...tasks]);
+    }
+  };
+
+  // Accept all AI tasks at once
+  const acceptAllAiTasks = async () => {
+    setAcceptingAll(true);
+    const tasks = [...aiTasks];
+    for (let i = 0; i < tasks.length; i++) {
+      if (!tasks[i].accepted) {
+        await acceptAiTask(i);
+        // Re-read latest state
+        tasks[i] = { ...tasks[i], accepted: true };
+      }
+    }
+    setAcceptingAll(false);
+    // Auto-save
+    await api.put(`/meetings/mom/${mom._id}`, { tiptapJSON: editor.getJSON() });
+  };
+
   if (!editor) return null;
+
+  const PRIORITY_DOTS = { top: '#EF4444', high: '#F97316', medium: '#F59E0B', low: '#10B981' };
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button className="btn btn-secondary" onClick={() => { save(); onBack(); }}>← Back</button>
           <input value={title} onChange={e => setTitle(e.target.value)}
@@ -425,12 +785,113 @@ function MomEditor({ mom, onBack }) {
           {published && <span className="badge-pill" style={{ background: 'rgba(139,92,246,0.08)', color: '#8B5CF6' }}>Published</span>}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
+          <button className="btn btn-secondary" style={{ color: '#10B981', borderColor: '#10B981', fontSize: 10, padding: '4px 10px' }}
+            onClick={() => setShowTaskForm(!showTaskForm)}>
+            + Add Task
+          </button>
+          <button className="btn btn-secondary" style={{ color: '#6366F1', borderColor: '#6366F1', fontSize: 10, padding: '4px 10px' }}
+            onClick={aiExtractTasks} disabled={aiLoading}
+            title={user.aiActive ? 'AI analyses notes and suggests tasks' : 'AI not activated'}>
+            {aiLoading ? '...' : '✨ AI Extract Tasks'}
+          </button>
           <button className="btn btn-secondary" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
           {!published && mom.type !== 'scratchpad' && (
             <button className="btn btn-primary-sm" onClick={publish}>Publish</button>
           )}
         </div>
       </div>
+
+      {/* Manual task form — fills details, creates task AND inserts into notes */}
+      {showTaskForm && (
+        <div className="card" style={{ marginBottom: 12, borderLeft: '3px solid #10B981' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Add Task to Notes</div>
+            <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--ink-3)' }} onClick={() => setShowTaskForm(false)}>&times;</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input value={taskForm.title} onChange={e => setTaskForm(p => ({ ...p, title: e.target.value }))}
+              placeholder="Task title *"
+              style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 12, fontFamily: 'Inter', background: 'var(--glass)', outline: 'none', color: 'var(--ink)' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select value={taskForm.priority} onChange={e => setTaskForm(p => ({ ...p, priority: e.target.value }))}
+                style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)' }}>
+                <option value="top">Top Priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+              </select>
+              <input type="date" value={taskForm.deadline} onChange={e => setTaskForm(p => ({ ...p, deadline: e.target.value }))}
+                style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)' }} />
+            </div>
+            <input value={taskForm.description} onChange={e => setTaskForm(p => ({ ...p, description: e.target.value }))}
+              placeholder="Description (optional)"
+              style={{ padding: '6px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--glass)', outline: 'none', color: 'var(--ink)' }} />
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" style={{ fontSize: 10, padding: '4px 10px' }} onClick={() => setShowTaskForm(false)}>Cancel</button>
+              <button className="btn btn-primary-sm" style={{ fontSize: 10, padding: '4px 12px' }} onClick={insertTaskInMom}
+                disabled={taskCreating || !taskForm.title.trim()}>
+                {taskCreating ? 'Creating...' : 'Add Task & Insert in Notes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Extracted Tasks Panel */}
+      {aiTasks !== null && (
+        <div className="card" style={{ marginBottom: 12, borderLeft: '3px solid #6366F1' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+              ✨ AI Suggested Tasks ({aiTasks.length})
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {aiTasks.some(t => !t.accepted) && (
+                <button className="btn btn-primary-sm" style={{ fontSize: 10, padding: '4px 12px' }}
+                  onClick={acceptAllAiTasks} disabled={acceptingAll}>
+                  {acceptingAll ? 'Creating all...' : `Accept All (${aiTasks.filter(t => !t.accepted).length})`}
+                </button>
+              )}
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--ink-3)' }}
+                onClick={() => setAiTasks(null)}>&times;</button>
+            </div>
+          </div>
+
+          {aiTasks.length === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--ink-3)', padding: '8px 0' }}>No tasks found in the notes. Try writing more action items.</div>
+          )}
+
+          {aiTasks.map((t, i) => (
+            <div key={i} style={{
+              padding: '10px 12px', marginBottom: 6, borderRadius: 8,
+              background: t.accepted ? 'rgba(16,185,129,0.06)' : 'var(--glass)',
+              border: `1px solid ${t.accepted ? 'rgba(16,185,129,0.2)' : 'var(--line)'}`,
+              opacity: t.accepted ? 0.7 : 1
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: PRIORITY_DOTS[t.priority] || '#F59E0B', flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{t.title}</span>
+                  </div>
+                  {t.description && <div style={{ fontSize: 11, color: 'var(--ink-2)', marginBottom: 4, lineHeight: 1.5 }}>{t.description}</div>}
+                  <div style={{ display: 'flex', gap: 8, fontSize: 10, color: 'var(--ink-3)' }}>
+                    <span>Priority: {(t.priority || 'medium').charAt(0).toUpperCase() + (t.priority || 'medium').slice(1)}</span>
+                    {t.deadline && <span>Deadline: {t.deadline}</span>}
+                    {t.assignee && <span>Assignee: {t.assignee}</span>}
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  {t.accepted ? (
+                    <span style={{ fontSize: 10, color: '#10B981', fontWeight: 700 }}>✓ Created</span>
+                  ) : (
+                    <button className="btn btn-primary-sm" style={{ fontSize: 9, padding: '3px 10px' }}
+                      onClick={() => acceptAiTask(i)} disabled={t.creating}>
+                      {t.creating ? '...' : 'Accept'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="ws-editor-wrap">
         <div className="ws-editor-toolbar">
@@ -450,6 +911,60 @@ function MomEditor({ mom, onBack }) {
           <EditorContent editor={editor} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function MeetingQuickNote({ meetingId, meetingTitle }) {
+  const [showForm, setShowForm] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [notes, setNotes] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.get('/sticky-notes').then(r => {
+      setNotes((r.data || []).filter(n => n.attachedTo?.some(a => a.entityType === 'meeting' && a.entityId === meetingId)));
+    }).catch(() => {});
+  }, [meetingId]);
+
+  const createNote = async () => {
+    if (!noteText.trim()) return;
+    setSaving(true);
+    try {
+      const { data } = await api.post('/sticky-notes', {
+        title: `Note: ${meetingTitle}`,
+        content: noteText.trim(),
+        color: '#DBEAFE',
+        attachedTo: [{ entityType: 'meeting', entityId: meetingId }]
+      });
+      setNotes(prev => [...prev, data]);
+      setNoteText('');
+      setShowForm(false);
+    } catch {} finally { setSaving(false); }
+  };
+
+  return (
+    <div className="card" style={{ marginTop: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: notes.length || showForm ? 8 : 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Notes ({notes.length})</div>
+        <button className="btn btn-primary-sm" style={{ padding: '3px 8px', fontSize: 9 }} onClick={() => setShowForm(!showForm)}>+ Note</button>
+      </div>
+      {notes.map(n => (
+        <div key={n._id} style={{ padding: '5px 8px', marginBottom: 3, borderRadius: 6, background: n.color || '#DBEAFE', fontSize: 10, color: '#1E293B', lineHeight: 1.5 }}>
+          <div>{n.content}</div>
+        </div>
+      ))}
+      {showForm && (
+        <div>
+          <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Quick note..." rows={2}
+            style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--glass)', outline: 'none', resize: 'vertical', color: 'var(--ink)', boxSizing: 'border-box' }} />
+          <div style={{ display: 'flex', gap: 4, marginTop: 4, justifyContent: 'flex-end' }}>
+            <button className="btn btn-primary-sm" style={{ padding: '3px 10px', fontSize: 9 }} onClick={createNote} disabled={saving || !noteText.trim()}>
+              {saving ? '...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -524,9 +1039,9 @@ function CreateMeeting({ users, userId, onBack, onCreated }) {
             {users.filter(u => u._id !== userId).map(u => (
               <div key={u._id} onClick={() => toggleAttendee(u._id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 500, cursor: 'pointer',
-                  background: form.attendeeIds.includes(u._id) ? 'rgba(99,102,241,0.08)' : '#fff',
-                  color: form.attendeeIds.includes(u._id) ? '#6366F1' : 'var(--ink-2)',
-                  border: `1px solid ${form.attendeeIds.includes(u._id) ? 'rgba(99,102,241,0.2)' : 'var(--line)'}` }}>
+                  background: form.attendeeIds.includes(u._id) ? 'rgba(99,102,241,0.12)' : 'var(--glass)',
+                  color: form.attendeeIds.includes(u._id) ? '#6366F1' : 'var(--ink)',
+                  border: `1px solid ${form.attendeeIds.includes(u._id) ? 'rgba(99,102,241,0.3)' : 'var(--line)'}` }}>
                 {form.attendeeIds.includes(u._id) ? '✓ ' : ''}{u.name}
               </div>
             ))}

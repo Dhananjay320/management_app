@@ -1,9 +1,9 @@
 {
-  "name": "avadeti-team-desktop",
+  "name": "niyoq-desktop",
   "version": "1.0.0",
-  "description": "Avadeti Team — desktop app wrapper",
+  "description": "Niyoq — desktop app wrapper",
   "main": "main.js",
-  "author": "Avadeti",
+  "author": "Niyoq",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
@@ -36,9 +36,9 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.avadeti.team",
-    "productName": "Avadeti Team",
-    "copyright": "© 2026 Avadeti",
+    "appId": "com.niyoq.team",
+    "productName": "Niyoq",
+    "copyright": "© 2026 Niyoq",
     "afterSign": "notarize.js",
     "directories": {
       "output": "dist",
@@ -71,13 +71,13 @@
     ],
     "protocols": [
       {
-        "name": "Avadeti Deep Link",
-        "schemes": ["avadeti"]
+        "name": "Niyoq Deep Link",
+        "schemes": ["niyoq"]
       }
     ],
     "publish": {
       "provider": "github",
-      "owner": "avadeti",
+      "owner": "niyoq",
       "repo": "team",
       "releaseType": "draft"
     },
@@ -116,7 +116,7 @@
       "deleteAppDataOnUninstall": false
     },
     "dmg": {
-      "title": "Install Avadeti Team",
+      "title": "Install Niyoq",
       "contents": [
         { "x": 130, "y": 220 },
         { "x": 410, "y": 220, "type": "link", "path": "/Applications" }

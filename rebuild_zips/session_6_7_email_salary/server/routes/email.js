@@ -282,7 +282,7 @@ router.post('/send', protect, async (req, res) => {
     }
 
     // ── Generate a messageId (used by SMTP and stored in DB for threading)
-    const messageId = `<${Date.now()}.${Math.random().toString(36).substr(2)}@avadeti.local>`;
+    const messageId = `<${Date.now()}.${Math.random().toString(36).substr(2)}@niyoq.local>`;
 
     // ── Attempt real SMTP send ─────────────────────────────────────────────
     // If SMTP configured + nodemailer installed: actually send.

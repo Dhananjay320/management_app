@@ -1,6 +1,6 @@
-# Avadeti Team — Desktop (Electron)
+# Niyoq — Desktop (Electron)
 
-Desktop wrapper for the Avadeti Team app. Runs the React client inside a
+Desktop wrapper for the Niyoq app. Runs the React client inside a
 native window with an OS-level menu bar, deep links, and auto-start.
 
 ## Folder layout
@@ -8,7 +8,7 @@ native window with an OS-level menu bar, deep links, and auto-start.
 Put this folder **as a sibling** to your existing `client/` and `server/`:
 
 ```
-avadeti-team/
+niyoq/
 ├── client/          (your existing React app)
 ├── server/          (your existing Node/Express API)
 └── electron/        ← THIS FOLDER
@@ -94,10 +94,10 @@ default icon. You can generate them from any 1024×1024 PNG with a tool like
 
 ## Deep links
 
-The app registers `avadeti://` as a URL protocol. Examples:
+The app registers `niyoq://` as a URL protocol. Examples:
 
-- `avadeti://meetings/abc123` → opens the app and navigates to `/meetings/abc123`
-- `avadeti://whiteboards/xyz` → opens whiteboard xyz
+- `niyoq://meetings/abc123` → opens the app and navigates to `/meetings/abc123`
+- `niyoq://whiteboards/xyz` → opens whiteboard xyz
 
 On the client side, the `useDeepLink()` hook (mounted in `AppLayout.js`)
 catches these and calls `navigate(path)` on the React Router.
@@ -142,7 +142,7 @@ Behavior:
 - Help → Check for Updates… triggers a manual check
 
 Config lives in `package.json` under `build.publish` (points at GitHub
-releases: `avadeti/team`). Change owner/repo to match your GitHub slug.
+releases: `niyoq/team`). Change owner/repo to match your GitHub slug.
 
 ### Windows code signing
 

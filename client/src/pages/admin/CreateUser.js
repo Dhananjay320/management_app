@@ -2,26 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
-const TITLE_TEMPLATES = {
-  'HR': {
-    attendance: { viewTeam: true, viewIndividual: true, editRecords: true, forwardAlerts: true },
-    salary: { viewEmployee: true, editStructure: true, resolveDisputes: true, viewDisputes: true },
-    analysis: { viewIndividual: true }
-  },
-  'Team Lead': {
-    attendance: { viewTeam: true },
-    tasks: { viewMemberTasks: true, viewTeamTasks: true, createForOthers: true },
-    meetings: { createCompanyWide: true },
-    analysis: { viewIndividual: true, viewTeam: true }
-  },
-  'Manager': {
-    attendance: { viewTeam: true, editRecords: true },
-    tasks: { viewMemberTasks: true, viewTeamTasks: true, createForOthers: true },
-    salary: { viewDisputes: true, resolveDisputes: true },
-    meetings: { createCompanyWide: true },
-    analysis: { viewIndividual: true, viewTeam: true }
-  }
-};
+// Hardcoded fallback if no DB presets exist
+const FALLBACK_PRESETS = [
+  { name: 'HR', targetRole: 'admin', powers: { attendance: { viewTeam: true, viewIndividual: true, editRecords: true, forwardAlerts: true }, salary: { viewEmployee: true, editStructure: true, resolveDisputes: true, viewDisputes: true }, analysis: { viewIndividual: true } } },
+  { name: 'Team Lead', targetRole: 'admin', powers: { attendance: { viewTeam: true }, tasks: { viewMemberTasks: true, viewTeamTasks: true, createForOthers: true }, meetings: { createCompanyWide: true }, analysis: { viewIndividual: true, viewTeam: true } } },
+  { name: 'Manager', targetRole: 'admin', powers: { attendance: { viewTeam: true, editRecords: true }, tasks: { viewMemberTasks: true, viewTeamTasks: true, createForOthers: true }, salary: { viewDisputes: true, resolveDisputes: true }, meetings: { createCompanyWide: true }, analysis: { viewIndividual: true, viewTeam: true } } }
+];
 
 const POWER_GROUPS = [
   { key: 'users', label: '👤 Users', powers: ['create','edit','delete','viewPowers','editPowers'] },
@@ -32,6 +18,20 @@ const POWER_GROUPS = [
   { key: 'messaging', label: '💬 Messaging', powers: ['createRooms','createPublicChannels','postAnnouncements'] },
   { key: 'analysis', label: '📊 Analysis', powers: ['viewIndividual','viewTeam','viewCompany'] },
   { key: 'security', label: '🔐 Security', powers: ['viewOTPs','unlockAccounts','viewSessions','forceLogout'] },
+  { key: 'calendar', label: '📅 Calendar', powers: ['createCompany','markHolidays','createLocationTeam'] },
+  { key: 'workspace', label: '📁 Workspace', powers: ['deleteAny','viewPrivate'] },
+  { key: 'email', label: '✉️ Email', powers: ['accessSharedInboxes','sendExternal'] },
+  { key: 'emergency', label: '🆘 Emergency', powers: ['sendAlert'] },
+];
+
+// Powers that employees can also have (subset — no admin-only powers like users.create, security.*)
+const EMPLOYEE_POWER_GROUPS = [
+  { key: 'tasks', label: '✅ Tasks', powers: ['viewMemberTasks','viewTeamTasks','createForOthers'] },
+  { key: 'meetings', label: '👥 Meetings', powers: ['createCompanyWide'] },
+  { key: 'messaging', label: '💬 Messaging', powers: ['createRooms','createPublicChannels'] },
+  { key: 'calendar', label: '📅 Calendar', powers: ['createLocationTeam'] },
+  { key: 'email', label: '✉️ Email', powers: ['accessSharedInboxes','sendExternal'] },
+  { key: 'workspace', label: '📁 Workspace', powers: ['viewPrivate'] },
 ];
 
 export default function CreateUser() {
@@ -42,12 +42,15 @@ export default function CreateUser() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState('');
+  const [presets, setPresets] = useState([]);
+  const [showSavePreset, setShowSavePreset] = useState(false);
+  const [presetName, setPresetName] = useState('');
 
   const [form, setForm] = useState({
     name: '', email: '', phone: '', jobTitle: '',
     role: 'employee', adminTitle: '',
     teams: [], office: '', manager: '',
-    admins: { hr: '', tasks: '', salary: '' },
+    admins: { hr: '', tasks: '', salary: '', attendance: '', escalation: '' },
     workType: 'full_office', hybridOfficeDays: [],
     salary: { base: '', tds: '', pf: '', esi: '', fixedBonus: '' },
     powers: {}
@@ -58,10 +61,12 @@ export default function CreateUser() {
       api.get('/users').catch(() => ({ data: [] })),
       api.get('/teams').catch(() => ({ data: [] })),
       api.get('/teams/offices').catch(() => ({ data: [] })),
-    ]).then(([usersRes, teamsRes, officesRes]) => {
+      api.get('/users/power-presets/list').catch(() => ({ data: [] })),
+    ]).then(([usersRes, teamsRes, officesRes, presetsRes]) => {
       setUsers(usersRes.data);
       setTeams(teamsRes.data);
       setOffices(officesRes.data);
+      setPresets(presetsRes.data?.length ? presetsRes.data : FALLBACK_PRESETS);
     });
   }, []);
 
@@ -88,11 +93,30 @@ export default function CreateUser() {
     });
   };
 
-  const applyTitle = (title) => {
-    updateField('adminTitle', title);
-    updateField('role', 'admin');
-    if (TITLE_TEMPLATES[title]) {
-      setForm(prev => ({ ...prev, powers: JSON.parse(JSON.stringify(TITLE_TEMPLATES[title])) }));
+  const applyPreset = (presetName) => {
+    updateField('adminTitle', presetName);
+    const preset = presets.find(p => p.name === presetName);
+    if (preset) {
+      if (preset.targetRole) updateField('role', preset.targetRole);
+      setForm(prev => ({ ...prev, powers: JSON.parse(JSON.stringify(preset.powers || {})) }));
+    }
+  };
+
+  const saveAsPreset = async () => {
+    if (!presetName.trim()) return;
+    try {
+      await api.post('/users/power-presets', {
+        name: presetName.trim(),
+        targetRole: form.role,
+        powers: form.powers
+      });
+      const { data } = await api.get('/users/power-presets/list');
+      setPresets(data.length ? data : FALLBACK_PRESETS);
+      setShowSavePreset(false);
+      setPresetName('');
+      alert('Preset saved!');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to save preset.');
     }
   };
 
@@ -163,6 +187,18 @@ export default function CreateUser() {
         <button className="btn btn-secondary" onClick={() => navigate('/admin/users')}>← Back to Users</button>
       </div>
 
+      {/* Instructions banner */}
+      <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 10, padding: '14px 18px', marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#6366F1', marginBottom: 6 }}>How to create an employee</div>
+        <ol style={{ fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.8, margin: 0, paddingLeft: 18 }}>
+          <li><strong>Identity</strong> — Enter name and email (used for login). A temporary password is generated automatically.</li>
+          <li><strong>Team & Location</strong> — Assign a manager and admin for each area (HR, tasks, salary, attendance, escalation).</li>
+          <li><strong>Compensation</strong> — Set salary components. These are used for monthly payroll generation.</li>
+          <li><strong>Role & Powers</strong> — Choose Employee or Admin. Use a preset or manually tick specific powers.</li>
+          <li>After creation, share the <strong>temporary password</strong> with the employee. They must change it on first login.</li>
+        </ol>
+      </div>
+
       <form onSubmit={handleSubmit}>
         {error && <div className="info-box amber"><span>⚠️</span><div>{error}</div></div>}
 
@@ -176,7 +212,7 @@ export default function CreateUser() {
             </div>
             <div className="form-field">
               <label>Email *</label>
-              <input type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="name@avadeti.com" required />
+              <input type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="name@niyoq.com" required />
             </div>
             <div className="form-field">
               <label>Phone</label>
@@ -218,35 +254,32 @@ export default function CreateUser() {
               </select>
             </div>
           </div>
-          <div className="form-grid-3" style={{ marginTop: 12 }}>
-            <div className="form-field">
-              <label>HR Admin</label>
-              <select value={form.admins.hr} onChange={e => updateAdmin('hr', e.target.value)}>
-                <option value="">Select HR admin...</option>
-                {users.filter(u => u.role !== 'employee').map(u => (
-                  <option key={u._id} value={u._id}>{u.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-field">
-              <label>Task Admin</label>
-              <select value={form.admins.tasks} onChange={e => updateAdmin('tasks', e.target.value)}>
-                <option value="">Select task admin...</option>
-                {users.filter(u => u.role !== 'employee').map(u => (
-                  <option key={u._id} value={u._id}>{u.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-field">
-              <label>Salary Admin</label>
-              <select value={form.admins.salary} onChange={e => updateAdmin('salary', e.target.value)}>
-                <option value="">Select salary admin...</option>
-                {users.filter(u => u.role !== 'employee').map(u => (
-                  <option key={u._id} value={u._id}>{u.name}</option>
-                ))}
-              </select>
+          <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(99,102,241,0.04)', borderRadius: 8, border: '1px solid rgba(99,102,241,0.08)', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Assign Admins for this Employee</div>
+            <div style={{ fontSize: 10, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+              Each employee can have different admins managing different aspects. Admins get notified and can manage the assigned area. Leave empty if not applicable — Main Admin handles everything by default.
             </div>
           </div>
+          {[
+            { key: 'hr', label: 'HR Admin', desc: 'Manages leaves, onboarding, HR processes' },
+            { key: 'tasks', label: 'Task Admin', desc: 'Reviews tasks, assigns work, tracks progress' },
+            { key: 'salary', label: 'Salary Admin', desc: 'Manages payroll, disputes, bonuses' },
+            { key: 'attendance', label: 'Attendance Admin', desc: 'Tracks entry/wrap-up, edits timings, gets alerts' },
+            { key: 'escalation', label: 'Escalation Admin', desc: 'Handles emergencies — late, unresponsive, urgent issues' },
+          ].map(({ key, label, desc }) => (
+            <div key={key} className="form-field" style={{ marginBottom: 10 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {label}
+                <span style={{ fontSize: 9, color: 'var(--ink-4)', fontWeight: 400 }}>— {desc}</span>
+              </label>
+              <select value={form.admins[key]} onChange={e => updateAdmin(key, e.target.value)}>
+                <option value="">Not assigned (Main Admin handles)</option>
+                {users.filter(u => u.role !== 'employee').map(u => (
+                  <option key={u._id} value={u._id}>{u.name} {u.adminTitle ? `(${u.adminTitle})` : ''}</option>
+                ))}
+              </select>
+            </div>
+          ))}
           {form.workType === 'hybrid' && (
             <div className="info-box indigo">
               <span>📅</span>
@@ -292,55 +325,74 @@ export default function CreateUser() {
                 <option value="admin">Admin</option>
               </select>
             </div>
-            {form.role === 'admin' && (
-              <div className="form-field">
-                <label>Admin Title (auto-applies powers)</label>
-                <select value={form.adminTitle} onChange={e => applyTitle(e.target.value)}>
-                  <option value="">Custom...</option>
-                  <option value="HR">HR</option>
-                  <option value="Team Lead">Team Lead</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Department Head">Department Head</option>
-                </select>
-              </div>
-            )}
+            <div className="form-field">
+              <label>Position Preset (auto-applies powers)</label>
+              <select value={form.adminTitle} onChange={e => applyPreset(e.target.value)}>
+                <option value="">Custom / Manual...</option>
+                {presets.filter(p => !p.targetRole || p.targetRole === form.role || p.targetRole === 'admin').map(p => (
+                  <option key={p.name} value={p.name}>{p.name}{p.targetRole === 'employee' ? ' (Employee)' : ''}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {form.role === 'admin' && (
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 12 }}>Tick individual powers or select a title template above</div>
-              {POWER_GROUPS.map(group => (
-                <div className="power-group" key={group.key}>
-                  <div className="power-group-title">
-                    <span>{group.label}</span>
-                    <label className="power-check" style={{ fontSize: 10, color: '#6366F1' }}>
+          {/* Power checkboxes — shown for BOTH admin and employee */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+                {form.role === 'admin'
+                  ? 'Admin powers — tick individually or select a preset above'
+                  : 'Employee powers — optional extra permissions for this employee'}
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {showSavePreset ? (
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <input value={presetName} onChange={e => setPresetName(e.target.value)} placeholder="Preset name..."
+                      style={{ padding: '3px 8px', border: '1px solid var(--line)', borderRadius: 4, fontSize: 10, width: 120, fontFamily: 'Inter', outline: 'none' }} />
+                    <button type="button" onClick={saveAsPreset} disabled={!presetName.trim()}
+                      style={{ padding: '3px 8px', fontSize: 9, border: 'none', borderRadius: 4, background: '#6366F1', color: '#fff', cursor: 'pointer', fontFamily: 'Inter' }}>Save</button>
+                    <button type="button" onClick={() => setShowSavePreset(false)}
+                      style={{ padding: '3px 6px', fontSize: 9, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--glass)', color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'Inter' }}>X</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setShowSavePreset(true)}
+                    style={{ padding: '3px 10px', fontSize: 9, border: '1px solid #6366F1', borderRadius: 4, background: 'rgba(99,102,241,0.06)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter' }}>
+                    Save as Preset
+                  </button>
+                )}
+              </div>
+            </div>
+            {(form.role === 'admin' ? POWER_GROUPS : EMPLOYEE_POWER_GROUPS).map(group => (
+              <div className="power-group" key={group.key}>
+                <div className="power-group-title">
+                  <span>{group.label}</span>
+                  <label className="power-check" style={{ fontSize: 10, color: '#6366F1' }}>
+                    <input
+                      type="checkbox"
+                      checked={group.powers.every(p => form.powers[group.key]?.[p])}
+                      onChange={() => toggleAllPowers(group.key, group.powers)}
+                    />
+                    All
+                  </label>
+                </div>
+                <div className="power-grid">
+                  {group.powers.map(power => (
+                    <label className="power-check" key={power}>
                       <input
                         type="checkbox"
-                        checked={group.powers.every(p => form.powers[group.key]?.[p])}
-                        onChange={() => toggleAllPowers(group.key, group.powers)}
+                        checked={!!form.powers[group.key]?.[power]}
+                        onChange={() => togglePower(group.key, power)}
                       />
-                      All
+                      {power.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
                     </label>
-                  </div>
-                  <div className="power-grid">
-                    {group.powers.map(power => (
-                      <label className="power-check" key={power}>
-                        <input
-                          type="checkbox"
-                          checked={!!form.powers[group.key]?.[power]}
-                          onChange={() => togglePower(group.key, power)}
-                        />
-                        {power.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
-                      </label>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
-          )}
         </div>
 
-        <div className="form-actions">
+        <div className="form-actions" style={{ marginTop: 16 }}>
           <button type="button" className="btn btn-secondary" onClick={() => navigate('/admin/users')}>Cancel</button>
           <button type="submit" className="btn btn-primary-sm" disabled={loading}>
             {loading ? 'Creating...' : 'Create Employee'}

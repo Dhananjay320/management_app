@@ -9,6 +9,9 @@ const deepSearchJobSchema = new mongoose.Schema({
     required: true
   },
 
+  // When true, also search inside file attachments (PDF, DOCX, TXT, etc.)
+  searchFiles: { type: Boolean, default: false },
+
   status: {
     type: String,
     enum: ['pending', 'processing', 'complete', 'cancelled'],

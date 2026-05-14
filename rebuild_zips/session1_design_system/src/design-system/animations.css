@@ -1,5 +1,5 @@
 /* ============================================================================
-   Avadeti Design System — Animations
+   Niyoq Design System — Animations
    ============================================================================
    All named keyframes used across the app. Import AFTER tokens.css.
    Usage: add `animation: ad-<name> <duration> <easing> [delay] [count] [mode];`

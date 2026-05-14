@@ -2,36 +2,28 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
 
-const TITLE_TEMPLATES = {
-  'HR': {
-    attendance: { viewTeam: true, viewIndividual: true, editRecords: true, forwardAlerts: true },
-    salary: { viewEmployee: true, editStructure: true, resolveDisputes: true, viewDisputes: true },
-    analysis: { viewIndividual: true }
-  },
-  'Team Lead': {
-    attendance: { viewTeam: true },
-    tasks: { viewMemberTasks: true, viewTeamTasks: true, createForOthers: true },
-    meetings: { createCompanyWide: true },
-    analysis: { viewIndividual: true, viewTeam: true }
-  },
-  'Manager': {
-    attendance: { viewTeam: true, editRecords: true },
-    tasks: { viewMemberTasks: true, viewTeamTasks: true, createForOthers: true },
-    salary: { viewDisputes: true, resolveDisputes: true },
-    meetings: { createCompanyWide: true },
-    analysis: { viewIndividual: true, viewTeam: true }
-  }
-};
-
 const POWER_GROUPS = [
-  { key: 'users', label: 'Users', powers: ['create','edit','delete','viewPowers','editPowers'] },
-  { key: 'attendance', label: 'Attendance', powers: ['viewTeam','viewIndividual','editRecords','markManually','bypassGeofence','forwardAlerts'] },
-  { key: 'tasks', label: 'Tasks', powers: ['viewMemberTasks','viewTeamTasks','createForOthers','deleteAny'] },
-  { key: 'salary', label: 'Salary', powers: ['viewEmployee','editStructure','defineBonusRules','viewDisputes','resolveDisputes'] },
-  { key: 'meetings', label: 'Meetings', powers: ['createCompanyWide','viewAll','deleteAny'] },
-  { key: 'messaging', label: 'Messaging', powers: ['createRooms','createPublicChannels','postAnnouncements'] },
-  { key: 'analysis', label: 'Analysis', powers: ['viewIndividual','viewTeam','viewCompany'] },
-  { key: 'security', label: 'Security', powers: ['viewOTPs','unlockAccounts','viewSessions','forceLogout'] },
+  { key: 'users', label: '👤 Users', powers: ['create','edit','delete','viewPowers','editPowers'] },
+  { key: 'attendance', label: '⏰ Attendance', powers: ['viewTeam','viewIndividual','editRecords','markManually','bypassGeofence','forwardAlerts'] },
+  { key: 'tasks', label: '✅ Tasks', powers: ['viewMemberTasks','viewTeamTasks','createForOthers','deleteAny'] },
+  { key: 'salary', label: '💰 Salary', powers: ['viewEmployee','editStructure','defineBonusRules','viewDisputes','resolveDisputes'] },
+  { key: 'meetings', label: '👥 Meetings', powers: ['createCompanyWide','viewAll','deleteAny'] },
+  { key: 'messaging', label: '💬 Messaging', powers: ['createRooms','createPublicChannels','postAnnouncements'] },
+  { key: 'analysis', label: '📊 Analysis', powers: ['viewIndividual','viewTeam','viewCompany'] },
+  { key: 'security', label: '🔐 Security', powers: ['viewOTPs','unlockAccounts','viewSessions','forceLogout'] },
+  { key: 'calendar', label: '📅 Calendar', powers: ['createCompany','markHolidays','createLocationTeam'] },
+  { key: 'workspace', label: '📁 Workspace', powers: ['deleteAny','viewPrivate'] },
+  { key: 'email', label: '✉️ Email', powers: ['accessSharedInboxes','sendExternal'] },
+  { key: 'emergency', label: '🆘 Emergency', powers: ['sendAlert'] },
+];
+
+const EMPLOYEE_POWER_GROUPS = [
+  { key: 'tasks', label: '✅ Tasks', powers: ['viewMemberTasks','viewTeamTasks','createForOthers'] },
+  { key: 'meetings', label: '👥 Meetings', powers: ['createCompanyWide'] },
+  { key: 'messaging', label: '💬 Messaging', powers: ['createRooms','createPublicChannels'] },
+  { key: 'calendar', label: '📅 Calendar', powers: ['createLocationTeam'] },
+  { key: 'email', label: '✉️ Email', powers: ['accessSharedInboxes','sendExternal'] },
+  { key: 'workspace', label: '📁 Workspace', powers: ['viewPrivate'] },
 ];
 
 export default function EditUser() {
@@ -45,11 +37,13 @@ export default function EditUser() {
   const [deactivating, setDeactivating] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [presets, setPresets] = useState([]);
 
   const [form, setForm] = useState({
     name: '', email: '', phone: '', jobTitle: '',
     role: 'employee', adminTitle: '',
     teams: [], office: '', manager: '',
+    admins: { hr: '', tasks: '', salary: '', attendance: '', escalation: '' },
     workType: 'full_office', hybridOfficeDays: [],
     salary: { base: '', tds: '', pf: '', esi: '', fixedBonus: '' },
     powers: {}
@@ -58,16 +52,18 @@ export default function EditUser() {
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const [userRes, usersRes, teamsRes, officesRes] = await Promise.all([
+        const [userRes, usersRes, teamsRes, officesRes, presetsRes] = await Promise.all([
           api.get(`/users/${id}`),
           api.get('/users').catch(() => ({ data: [] })),
           api.get('/teams').catch(() => ({ data: [] })),
           api.get('/teams/offices').catch(() => ({ data: [] })),
+          api.get('/users/power-presets/list').catch(() => ({ data: [] })),
         ]);
 
         setAllUsers(usersRes.data);
         setTeams(teamsRes.data);
         setOffices(officesRes.data);
+        setPresets(presetsRes.data || []);
 
         const u = userRes.data;
         setForm({
@@ -80,6 +76,13 @@ export default function EditUser() {
           teams: (u.teams || []).map(t => typeof t === 'object' ? t._id : t),
           office: u.office ? (typeof u.office === 'object' ? u.office._id : u.office) : '',
           manager: u.manager ? (typeof u.manager === 'object' ? u.manager._id : u.manager) : '',
+          admins: {
+            hr: u.admins?.hr ? (typeof u.admins.hr === 'object' ? u.admins.hr._id : u.admins.hr) : '',
+            tasks: u.admins?.tasks ? (typeof u.admins.tasks === 'object' ? u.admins.tasks._id : u.admins.tasks) : '',
+            salary: u.admins?.salary ? (typeof u.admins.salary === 'object' ? u.admins.salary._id : u.admins.salary) : '',
+            attendance: u.admins?.attendance ? (typeof u.admins.attendance === 'object' ? u.admins.attendance._id : u.admins.attendance) : '',
+            escalation: u.admins?.escalation ? (typeof u.admins.escalation === 'object' ? u.admins.escalation._id : u.admins.escalation) : '',
+          },
           workType: u.workType || 'full_office',
           hybridOfficeDays: u.hybridOfficeDays || [],
           salary: {
@@ -110,6 +113,11 @@ export default function EditUser() {
     setSuccess('');
   };
 
+  const updateAdmin = (field, value) => {
+    setForm(prev => ({ ...prev, admins: { ...prev.admins, [field]: value } }));
+    setSuccess('');
+  };
+
   const togglePower = (group, power) => {
     setForm(prev => {
       const powers = { ...prev.powers };
@@ -131,11 +139,12 @@ export default function EditUser() {
     setSuccess('');
   };
 
-  const applyTitle = (title) => {
-    updateField('adminTitle', title);
-    updateField('role', 'admin');
-    if (TITLE_TEMPLATES[title]) {
-      setForm(prev => ({ ...prev, powers: JSON.parse(JSON.stringify(TITLE_TEMPLATES[title])) }));
+  const applyPreset = (presetName) => {
+    updateField('adminTitle', presetName);
+    const preset = presets.find(p => p.name === presetName);
+    if (preset) {
+      if (preset.targetRole) updateField('role', preset.targetRole);
+      setForm(prev => ({ ...prev, powers: JSON.parse(JSON.stringify(preset.powers || {})) }));
     }
   };
 
@@ -224,7 +233,7 @@ export default function EditUser() {
             </div>
             <div className="form-field">
               <label>Email *</label>
-              <input type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="name@avadeti.com" required />
+              <input type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="name@niyoq.com" required />
             </div>
             <div className="form-field">
               <label>Phone</label>
@@ -265,6 +274,21 @@ export default function EditUser() {
                 {offices.map(o => <option key={o._id} value={o._id}>{o.name}</option>)}
               </select>
             </div>
+          </div>
+
+          {/* Admin assignments */}
+          <div className="form-grid-3" style={{ marginTop: 12 }}>
+            {[['hr','HR Admin'],['tasks','Task Admin'],['salary','Salary Admin'],['attendance','Attendance Admin'],['escalation','Escalation Admin']].map(([key, label]) => (
+              <div className="form-field" key={key}>
+                <label>{label}</label>
+                <select value={form.admins[key]} onChange={e => updateAdmin(key, e.target.value)}>
+                  <option value="">Select {label.toLowerCase()}...</option>
+                  {allUsers.filter(u => u.role !== 'employee' && u._id !== id).map(u => (
+                    <option key={u._id} value={u._id}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
           </div>
 
           {/* Teams multi-select */}
@@ -320,7 +344,7 @@ export default function EditUser() {
 
         {/* Role & Powers */}
         <div className="form-card" style={{ maxWidth: '100%', marginBottom: 16 }}>
-          <div className="form-section-title">Role & Powers</div>
+          <div className="form-section-title">🛡️ Role & Powers</div>
           <div className="form-grid" style={{ marginBottom: 16 }}>
             <div className="form-field">
               <label>Role</label>
@@ -329,28 +353,30 @@ export default function EditUser() {
                 <option value="admin">Admin</option>
               </select>
             </div>
-            {form.role === 'admin' && (
-              <div className="form-field">
-                <label>Admin Title (auto-applies powers)</label>
-                <select value={form.adminTitle} onChange={e => applyTitle(e.target.value)}>
-                  <option value="">Custom...</option>
+            <div className="form-field">
+              <label>Position Preset (auto-applies powers)</label>
+              <select value={form.adminTitle} onChange={e => applyPreset(e.target.value)}>
+                <option value="">Custom / Manual...</option>
+                {presets.filter(p => !p.targetRole || p.targetRole === form.role || p.targetRole === 'admin').map(p => (
+                  <option key={p.name} value={p.name}>{p.name}{p.targetRole === 'employee' ? ' (Employee)' : ''}</option>
+                ))}
+                {presets.length === 0 && <>
                   <option value="HR">HR</option>
                   <option value="Team Lead">Team Lead</option>
                   <option value="Manager">Manager</option>
-                  <option value="Department Head">Department Head</option>
-                </select>
-              </div>
-            )}
+                </>}
+              </select>
+            </div>
           </div>
 
-          {/* Power checkboxes — shown for both admin and employee roles */}
+          {/* Power checkboxes — shown for both admin and employee */}
           <div>
             <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 12 }}>
               {form.role === 'admin'
-                ? 'Tick individual powers or select a title template above'
-                : 'Additional powers for this employee (optional)'}
+                ? 'Admin powers — tick individually or select a preset above'
+                : 'Employee powers — optional extra permissions'}
             </div>
-            {POWER_GROUPS.map(group => (
+            {(form.role === 'admin' ? POWER_GROUPS : EMPLOYEE_POWER_GROUPS).map(group => (
               <div className="power-group" key={group.key}>
                 <div className="power-group-title">
                   <span>{group.label}</span>
@@ -380,6 +406,15 @@ export default function EditUser() {
           </div>
         </div>
 
+        {/* Email Configuration */}
+        <div className="form-card" style={{ maxWidth: '100%', marginBottom: 16 }}>
+          <div className="form-section-title">✉️ Email Configuration</div>
+          <div style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 12 }}>
+            Set up SMTP (sending) and IMAP (receiving) for this employee's email account.
+          </div>
+          <EmailConfigInline userId={id} userName={form.name} userEmail={form.email} />
+        </div>
+
         <div className="form-actions" style={{ justifyContent: 'space-between' }}>
           <button type="button" style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #EF4444', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }} onClick={handleDeactivate} disabled={deactivating}>
             {deactivating ? 'Deactivating...' : 'Deactivate Employee'}
@@ -392,6 +427,141 @@ export default function EditUser() {
           </div>
         </div>
       </form>
+    </div>
+  );
+}
+
+function EmailConfigInline({ userId, userName, userEmail }) {
+  const [emailForm, setEmailForm] = useState({ address: userEmail || '', smtp: { host: '', port: 587, user: '', pass: '' }, imap: { host: '', port: 993, user: '', pass: '' } });
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState('');
+
+  const saveEmailConfig = async () => {
+    setSaving(true); setResult('');
+    try {
+      await api.post('/email/accounts/setup-for-user', {
+        userId, address: emailForm.address, displayName: userName,
+        smtp: emailForm.smtp.host ? emailForm.smtp : undefined,
+        imap: emailForm.imap.host ? emailForm.imap : undefined
+      });
+      setResult('Email configured!');
+    } catch (err) { setResult(err.response?.data?.error || 'Failed.'); }
+    setSaving(false);
+  };
+
+  const S = { input: { width: '100%', padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--glass)', outline: 'none', color: 'var(--ink)', boxSizing: 'border-box' } };
+
+  return (
+    <div>
+      <div className="form-field" style={{ marginBottom: 8 }}>
+        <label>Email Address</label>
+        <input value={emailForm.address} onChange={e => setEmailForm(p => ({ ...p, address: e.target.value }))} placeholder="user@company.com" style={S.input} />
+      </div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#6366F1', marginBottom: 4, marginTop: 8 }}>SMTP — Sending</div>
+      <div className="form-grid" style={{ marginBottom: 8 }}>
+        <div className="form-field"><label>Host</label><input value={emailForm.smtp.host} onChange={e => setEmailForm(p => ({ ...p, smtp: { ...p.smtp, host: e.target.value } }))} placeholder="smtp.gmail.com" style={S.input} /></div>
+        <div className="form-field"><label>Port</label><input type="number" value={emailForm.smtp.port} onChange={e => setEmailForm(p => ({ ...p, smtp: { ...p.smtp, port: Number(e.target.value) } }))} style={S.input} /></div>
+        <div className="form-field"><label>User</label><input value={emailForm.smtp.user} onChange={e => setEmailForm(p => ({ ...p, smtp: { ...p.smtp, user: e.target.value } }))} placeholder="user@gmail.com" style={S.input} /></div>
+        <div className="form-field"><label>Password</label><input type="password" value={emailForm.smtp.pass} onChange={e => setEmailForm(p => ({ ...p, smtp: { ...p.smtp, pass: e.target.value } }))} placeholder="App password" style={S.input} /></div>
+      </div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#10B981', marginBottom: 4 }}>IMAP — Receiving</div>
+      <div className="form-grid" style={{ marginBottom: 8 }}>
+        <div className="form-field"><label>Host</label><input value={emailForm.imap.host} onChange={e => setEmailForm(p => ({ ...p, imap: { ...p.imap, host: e.target.value } }))} placeholder="imap.gmail.com" style={S.input} /></div>
+        <div className="form-field"><label>Port</label><input type="number" value={emailForm.imap.port} onChange={e => setEmailForm(p => ({ ...p, imap: { ...p.imap, port: Number(e.target.value) } }))} style={S.input} /></div>
+        <div className="form-field"><label>User</label><input value={emailForm.imap.user} onChange={e => setEmailForm(p => ({ ...p, imap: { ...p.imap, user: e.target.value } }))} placeholder="user@gmail.com" style={S.input} /></div>
+        <div className="form-field"><label>Password</label><input type="password" value={emailForm.imap.pass} onChange={e => setEmailForm(p => ({ ...p, imap: { ...p.imap, pass: e.target.value } }))} placeholder="App password" style={S.input} /></div>
+      </div>
+      {result && <div style={{ fontSize: 11, color: result.includes('!') ? '#10B981' : '#EF4444', marginBottom: 8 }}>{result}</div>}
+      <button type="button" onClick={saveEmailConfig} disabled={saving} className="btn btn-primary-sm" style={{ fontSize: 10 }}>
+        {saving ? 'Saving...' : 'Save Email Config'}
+      </button>
+      <span style={{ fontSize: 9, color: 'var(--ink-4)', marginLeft: 8 }}>Gmail: smtp.gmail.com:587 / imap.gmail.com:993 with App Password</span>
+
+      {/* Shared Email Accounts — grant access to company common emails */}
+      <SharedEmailAccess userId={userId} />
+    </div>
+  );
+}
+
+function SharedEmailAccess({ userId }) {
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/email/accounts/all').then(r => setAccounts(r.data || [])).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const toggleAccess = async (accountId, hasAccess) => {
+    try {
+      if (hasAccess) {
+        await api.put(`/email/accounts/${accountId}/access`, { removeUsers: [userId] });
+      } else {
+        await api.put(`/email/accounts/${accountId}/access`, { addUsers: [userId] });
+      }
+      // Reload
+      const { data } = await api.get('/email/accounts/all');
+      setAccounts(data);
+    } catch (err) {
+      window.alert(err.response?.data?.error || 'Failed to update access.');
+    }
+  };
+
+  const [creating, setCreating] = useState(false);
+  const [newAddress, setNewAddress] = useState('');
+  const sharedAccounts = accounts.filter(a => a.type === 'shared');
+  if (loading) return null;
+
+  const createSharedAccount = async () => {
+    if (!newAddress.trim()) return;
+    try {
+      await api.post('/email/accounts', { address: newAddress.trim(), displayName: newAddress.split('@')[0], type: 'shared', accessList: [userId] });
+      setNewAddress('');
+      setCreating(false);
+      const { data } = await api.get('/email/accounts/all');
+      setAccounts(data);
+    } catch (err) { window.alert(err.response?.data?.error || 'Failed.'); }
+  };
+
+  if (sharedAccounts.length === 0 && !creating) return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 6 }}>No shared email accounts exist yet.</div>
+      <button type="button" onClick={() => setCreating(true)} style={{ padding: '4px 12px', fontSize: 10, border: '1px solid #6366F1', borderRadius: 4, background: 'rgba(99,102,241,0.06)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter' }}>
+        + Create Company Email (e.g. info@company.com)
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 8, textTransform: 'uppercase' }}>Shared Email Access</div>
+      <div style={{ fontSize: 9, color: 'var(--ink-3)', marginBottom: 8 }}>Grant this user access to company shared email accounts (like info@company.com, support@company.com)</div>
+      {creating ? (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          <input value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="info@company.com"
+            style={{ flex: 1, padding: '5px 8px', border: '1px solid var(--line)', borderRadius: 4, fontSize: 11, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)', outline: 'none' }} />
+          <button type="button" onClick={createSharedAccount} className="btn btn-primary-sm" style={{ fontSize: 9, padding: '4px 10px' }}>Create</button>
+          <button type="button" onClick={() => setCreating(false)} style={{ fontSize: 9, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 4, background: 'var(--glass)', color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'Inter' }}>X</button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setCreating(true)} style={{ padding: '3px 10px', fontSize: 9, border: '1px solid #6366F1', borderRadius: 4, background: 'rgba(99,102,241,0.06)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter', marginBottom: 8 }}>
+          + Create Company Email
+        </button>
+      )}
+      {sharedAccounts.map(acc => {
+        const hasAccess = acc.accessList?.some(u => (u._id || u) === userId);
+        return (
+          <div key={acc._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+            <input type="checkbox" checked={!!hasAccess} onChange={() => toggleAccess(acc._id, hasAccess)} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{acc.address}</div>
+              <div style={{ fontSize: 9, color: 'var(--ink-3)' }}>{acc.displayName} — {acc.type}</div>
+            </div>
+            <span className="badge-pill" style={{ fontSize: 8, background: hasAccess ? 'rgba(16,185,129,0.08)' : 'var(--glass)', color: hasAccess ? '#10B981' : 'var(--ink-4)' }}>
+              {hasAccess ? 'Has Access' : 'No Access'}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

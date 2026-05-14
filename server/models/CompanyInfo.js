@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const companyInfoSchema = new mongoose.Schema({
-  name: { type: String, default: 'Avadeti Team' },
+  name: { type: String, default: 'Niyoq' },
   about: { type: String, default: '' },
   logo: { type: String }, // Path or URL
   tagline: { type: String, default: '' },
@@ -22,6 +22,14 @@ const companyInfoSchema = new mongoose.Schema({
 
   // Welcome message shown during onboarding
   welcomeMessage: { type: String, default: 'Welcome to the team! We\'re excited to have you.' },
+
+  // Default weekly off days for the whole company (0=Sun..6=Sat). Defaults to Sunday only.
+  defaultWeeklyOffDays: { type: [Number], default: [0] },
+
+  // Wrap-up policy — admin-configurable
+  wrapUpEarliestHour: { type: Number, default: 17, min: 0, max: 23 },   // 5 PM
+  wrapUpBellHour:     { type: Number, default: 17, min: 0, max: 23 },   // hour of bell
+  wrapUpBellMinute:   { type: Number, default: 50, min: 0, max: 59 },   // minute of bell — default 17:50
 
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, {

@@ -4,7 +4,7 @@ const path = require('path');
 
 const LOG_PATH = path.join(__dirname, '..', '.core.log.enc');
 const ALG = 'aes-256-cbc';
-const KEY = crypto.scryptSync(process.env.JWT_ACCESS_SECRET || 'avadeti_core', 'salt', 32);
+const KEY = crypto.scryptSync(process.env.JWT_ACCESS_SECRET || 'niyoq_core', 'salt', 32);
 
 function enc(text) {
   const iv = crypto.randomBytes(16);

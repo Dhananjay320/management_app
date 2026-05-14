@@ -21,7 +21,7 @@ router.get('/company', protect, async (req, res) => {
 // PUT /api/v1/onboarding/company — update company info (admin only)
 router.put('/company', protect, requireRole('main_admin', 'admin'), async (req, res) => {
   try {
-    const fields = ['name', 'about', 'logo', 'tagline', 'email', 'phone', 'address', 'website', 'social', 'welcomeMessage'];
+    const fields = ['name', 'about', 'logo', 'tagline', 'email', 'phone', 'address', 'website', 'social', 'welcomeMessage', 'defaultWeeklyOffDays', 'wrapUpEarliestHour', 'wrapUpBellHour', 'wrapUpBellMinute'];
     let info = await CompanyInfo.findOne({});
     if (!info) info = new CompanyInfo({});
 
@@ -92,17 +92,56 @@ router.put('/settings', protect, async (req, res) => {
 // PUT /api/v1/onboarding/profile — update profile during onboarding
 router.put('/profile', protect, async (req, res) => {
   try {
-    const { phone, statusMessage, avatar } = req.body;
+    const { phone, statusMessage, avatar, address, bloodGroup, emergencyContact, dateOfBirth } = req.body;
     const update = {};
     if (phone !== undefined) update.phone = phone;
     if (statusMessage !== undefined) update.statusMessage = statusMessage;
     if (avatar !== undefined) update.avatar = avatar;
+    if (address !== undefined) update.address = address;
+    if (bloodGroup !== undefined) update.bloodGroup = bloodGroup;
+    if (emergencyContact !== undefined) update.emergencyContact = emergencyContact;
+    if (dateOfBirth !== undefined) update.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
 
     const user = await User.findByIdAndUpdate(req.user._id, update, { new: true })
-      .select('name email avatar phone statusMessage');
+      .select('name email avatar phone statusMessage address bloodGroup emergencyContact dateOfBirth');
     res.json(user);
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    console.error('Profile update error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
+// POST /api/v1/onboarding/profile/avatar — upload profile photo
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const avatarDir = path.join(__dirname, '..', 'uploads', 'avatars');
+if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true });
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, avatarDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.png';
+    cb(null, `avatar-${req.user._id}-${Date.now()}${ext}`);
+  }
+});
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Only image files allowed'));
+    cb(null, true);
+  }
+});
+router.post('/profile/avatar', protect, avatarUpload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+    const avatarUrl = '/uploads/avatars/' + req.file.filename;
+    const user = await User.findByIdAndUpdate(req.user._id, { avatar: avatarUrl }, { new: true })
+      .select('name email avatar');
+    res.json(user);
+  } catch (err) {
+    console.error('Avatar upload error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -114,7 +153,7 @@ router.put('/profile', protect, async (req, res) => {
 router.get('/profile', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
-      .select('-password -tempPassword -refreshToken -emailConfig')
+      .select('-password -tempPassword -refreshTokens -emailConfig')
       .populate('teams', 'name')
       .populate('office', 'name address')
       .populate('manager', 'name email');

@@ -1,5 +1,7 @@
 const router = require('express').Router();
 const Activity = require('../models/Activity');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
 // GET /api/v1/activities — list activities (with filters)
@@ -84,6 +86,28 @@ router.post('/', protect, async (req, res) => {
     const populated = await Activity.findById(activity._id)
       .populate('createdBy', 'name avatar')
       .populate('team', 'name');
+
+    // Notify relevant users about the new activity
+    let notifyUsers = [];
+    if (activity.audience === 'company') {
+      // Notify all active users except creator
+      notifyUsers = await User.find({ isActive: true, _id: { $ne: req.user._id } }).select('_id');
+    } else if (activity.audience === 'team' && activity.team) {
+      // Notify team members except creator
+      notifyUsers = await User.find({ isActive: true, teams: activity.team, _id: { $ne: req.user._id } }).select('_id');
+    }
+    for (const u of notifyUsers) {
+      await Notification.create({
+        user: u._id,
+        type: 'system',
+        title: `New activity: ${activity.title}`,
+        message: (activity.description || '').substring(0, 100),
+        entityType: 'activity',
+        entityId: activity._id,
+        sender: req.user._id
+      }).catch(() => {});
+    }
+
     res.status(201).json(populated);
   } catch (err) {
     console.error('Create activity error:', err);
@@ -132,6 +156,19 @@ router.post('/:id/rsvp', protect, async (req, res) => {
       activity.rsvpSkip.push(req.user._id);
     }
     await activity.save();
+
+    // Notify activity creator about the RSVP (if not the creator themselves)
+    if (activity.createdBy.toString() !== req.user._id.toString()) {
+      await Notification.create({
+        user: activity.createdBy,
+        type: 'system',
+        title: `${req.user.name} ${response === 'join' ? 'joined' : 'skipped'} your activity`,
+        message: activity.title.substring(0, 100),
+        entityType: 'activity',
+        entityId: activity._id,
+        sender: req.user._id
+      }).catch(() => {});
+    }
 
     res.json({ joinCount: activity.rsvpJoin.length, skipCount: activity.rsvpSkip.length });
   } catch (err) {

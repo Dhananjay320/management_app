@@ -1,6 +1,6 @@
 # Audit Gap Fix Progress — COMPLETE
 
-Source: Avadeti_Team_Audit_and_Gap_Analysis.docx
+Source: Niyoq_Team_Audit_and_Gap_Analysis.docx
 All 5 phases completed. 65+ items fixed.
 
 ## Phase 1 — Critical Security ✅ (12/12)

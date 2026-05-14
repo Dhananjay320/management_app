@@ -209,7 +209,7 @@ export default function EditUser() {
             </div>
             <div className="form-field">
               <label>Email *</label>
-              <input type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="name@avadeti.com" required />
+              <input type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="name@niyoq.com" required />
             </div>
             <div className="form-field">
               <label>Phone</label>

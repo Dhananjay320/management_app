@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import Avatar from '../../components/Avatar';
 
 const GRADIENTS = [
   'linear-gradient(135deg,#6366F1,#8B5CF6)',
@@ -134,7 +135,7 @@ export default function UserList() {
               onClick={() => navigate(`/admin/users/${user._id}`)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div className="avatar-sm" style={{ background: GRADIENTS[i % GRADIENTS.length] }}>{initials}</div>
+                <Avatar user={user} size={32} />
                 <div>
                   <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{user.name}</div>
                   <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>{user.jobTitle || '—'}</div>

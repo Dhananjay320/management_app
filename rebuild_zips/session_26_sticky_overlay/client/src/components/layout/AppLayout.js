@@ -128,10 +128,10 @@ export default function AppLayout() {
                 <line x1="4" y1="18" x2="20" y2="18" />
               </svg>
             </button>
-            <button type="button" className="ad-topbar__brand ad-focus" onClick={() => go('/')} title="Avadeti home">
+            <button type="button" className="ad-topbar__brand ad-focus" onClick={() => go('/')} title="Niyoq home">
               <span className="ad-logo-mark" aria-hidden="true" />
               <span className="ad-topbar__wordmark">
-                <span className="ad-topbar__brand-name">Avadeti</span>
+                <span className="ad-topbar__brand-name">Niyoq</span>
                 <span className="ad-topbar__brand-sub">Team OS</span>
               </span>
             </button>

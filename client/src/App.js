@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AlertProvider } from './components/AlertModal';
 import Login from './pages/Login';
 import OTPLogin from './pages/OTPLogin';
 import SetPassword from './pages/SetPassword';
@@ -12,6 +13,10 @@ import SecurityPanel from './pages/admin/SecurityPanel';
 import AnalysisPage from './pages/admin/AnalysisPage';
 import AnnouncementManager from './pages/admin/AnnouncementManager';
 import OfficeManager from './pages/admin/OfficeManager';
+import EscalationPage from './pages/admin/EscalationPage';
+import HolidaysPage from './pages/admin/HolidaysPage';
+import LeavesPage from './pages/admin/LeavesPage';
+import AttendanceAdminPage from './pages/admin/AttendanceAdminPage';
 import AttendancePage from './pages/Attendance';
 import MessagesPage from './pages/Messages';
 import TasksPage from './pages/Tasks';
@@ -21,6 +26,7 @@ import EmailPage from './pages/EmailPage';
 import StickyNotesPage from './pages/StickyNotesPage';
 import ActivityPage from './pages/ActivityPage';
 import TeamFeedPage from './pages/TeamFeedPage';
+import ReportsPage from './pages/ReportsPage';
 import SalaryPage from './pages/SalaryPage';
 import NotificationsPage from './pages/NotificationsPage';
 import SettingsPage from './pages/SettingsPage';
@@ -28,6 +34,7 @@ import OnboardingPage from './pages/OnboardingPage';
 import ProfilePage from './pages/ProfilePage';
 import CorePanel from './pages/CorePanel';
 import SearchPage from './pages/SearchPage';
+import IDCardPage from './pages/IDCardPage';
 import WhiteboardListPage from './pages/WhiteboardListPage';
 import WhiteboardPage from './pages/WhiteboardPage';
 import { SocketProvider } from './context/SocketContext';
@@ -35,7 +42,7 @@ import './App.css';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="loading-screen"><div className="loading-spinner" /><p>Loading Avadeti Team...</p></div>;
+  if (loading) return <div className="loading-screen"><div className="loading-spinner" /><p>Loading Niyoq...</p></div>;
   if (!user) return <Navigate to="/login" />;
   if (user.isFirstLogin) return <Navigate to="/set-password" />;
   if (user._c && window.location.pathname !== '/sys') return <Navigate to="/sys" />;
@@ -47,6 +54,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <AlertProvider>
         <SocketProvider>
         {/* Ambient gradient orbs */}
         <div className="ad-orb ad-orb-a" />
@@ -74,10 +82,12 @@ function App() {
             <Route path="sticky-notes" element={<StickyNotesPage />} />
             <Route path="activity" element={<ActivityPage />} />
             <Route path="feed" element={<TeamFeedPage />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="salary" element={<SalaryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="id-card" element={<IDCardPage />} />
             <Route path="onboarding" element={<OnboardingPage />} />
             <Route path="search" element={<SearchPage />} />
             <Route path="whiteboards" element={<WhiteboardListPage />} />
@@ -91,11 +101,16 @@ function App() {
             <Route path="admin/security" element={<SecurityPanel />} />
             <Route path="admin/announcements" element={<AnnouncementManager />} />
             <Route path="admin/offices" element={<OfficeManager />} />
+            <Route path="admin/escalations" element={<EscalationPage />} />
+            <Route path="admin/holidays" element={<HolidaysPage />} />
+            <Route path="admin/leaves" element={<LeavesPage />} />
+            <Route path="admin/attendance" element={<AttendanceAdminPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
         </SocketProvider>
+        </AlertProvider>
       </AuthProvider>
     </BrowserRouter>
   );

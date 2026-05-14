@@ -37,7 +37,7 @@ export default function ElectronTitleBar() {
     <div className={`ad-titlebar ${isMac ? 'ad-titlebar--mac' : ''}`}>
       {/* Left-side drag region. On macOS we leave 80px padding for the native traffic lights. */}
       <div className="ad-titlebar__drag">
-        <span className="ad-titlebar__brand">Avadeti Team</span>
+        <span className="ad-titlebar__brand">Niyoq</span>
       </div>
 
       {/* Windows / Linux: draw our own window controls */}

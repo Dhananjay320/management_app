@@ -39,7 +39,7 @@ import './App.css';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="loading-screen"><div className="loading-spinner" /><p>Loading Avadeti Team...</p></div>;
+  if (loading) return <div className="loading-screen"><div className="loading-spinner" /><p>Loading Niyoq...</p></div>;
   if (!user) return <Navigate to="/login" />;
   if (user.isFirstLogin) return <Navigate to="/set-password" />;
   if (!user.onboardingComplete && window.location.pathname !== '/onboarding') return <Navigate to="/onboarding" />;

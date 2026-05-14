@@ -164,3 +164,83 @@
 }
 .cal-att-item.done { color: var(--emerald); font-weight: 600; }
 .cal-att-item.pending { color: var(--ink-3); }
+
+/* ═══ MOBILE RESPONSIVE ═══ */
+@media (max-width: 768px) {
+  /* Weekly: 2 columns on tablet, 1 on phone */
+  .cal-week-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .cal-day {
+    min-height: 100px;
+    padding: 6px;
+  }
+
+  /* Monthly: keep 7 columns but smaller cells */
+  .cal-month-day {
+    min-height: 48px;
+    padding: 3px;
+  }
+  .cal-month-day-num {
+    font-size: 10px;
+  }
+  .cal-month-event {
+    font-size: 7px;
+    padding: 0 2px;
+  }
+  .cal-month-header {
+    padding: 6px 2px;
+    font-size: 9px;
+  }
+
+  /* Daily: stack timeline and sidebar vertically */
+  .cal-daily {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .cal-daily-sidebar {
+    width: 100%;
+    flex-shrink: unset;
+  }
+
+  /* Attendance bar: wrap items */
+  .cal-attendance-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cal-week-grid {
+    grid-template-columns: 1fr;
+  }
+  .cal-day {
+    min-height: auto;
+    padding: 8px;
+  }
+  .cal-month-grid {
+    font-size: 10px;
+  }
+  .cal-month-day {
+    min-height: 36px;
+    padding: 2px;
+  }
+  .cal-month-day-num {
+    font-size: 9px;
+  }
+  .cal-month-event {
+    display: none;
+  }
+  .cal-month-more {
+    font-size: 7px;
+  }
+  .cal-time-slot {
+    gap: 6px;
+  }
+  .cal-time-label {
+    width: 36px;
+    font-size: 9px;
+  }
+}

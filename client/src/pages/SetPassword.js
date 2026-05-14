@@ -36,7 +36,7 @@ export default function SetPassword() {
       <div className="auth-gradient">
         <div className="auth-brand">
           <div className="auth-logo">A</div>
-          <h1 className="auth-brand-name">Avadeti Team</h1>
+          <h1 className="auth-brand-name">Niyoq</h1>
           <p className="auth-tagline">Secure your account</p>
         </div>
       </div>

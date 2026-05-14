@@ -35,4 +35,34 @@ api.interceptors.response.use(
   }
 );
 
+// In production REACT_APP_API_URL is '/api/v1' → SERVER_BASE becomes '' (empty),
+// which makes file URLs relative and resolves correctly to current origin (HTTPS).
+// In dev mode REACT_APP_API_URL is unset → falls back to localhost.
+const SERVER_BASE = process.env.REACT_APP_API_URL !== undefined
+  ? process.env.REACT_APP_API_URL.replace('/api/v1', '')
+  : 'http://localhost:3000';
+
+/**
+ * Convert a file path from the database to a full HTTP URL.
+ * Handles: absolute disk paths (legacy), relative paths, and already-full URLs.
+ */
+export function getFileUrl(filePath) {
+  if (!filePath) return '';
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
+
+  let relativePath;
+  if (filePath.startsWith('uploads/')) {
+    relativePath = filePath;
+  } else {
+    const uploadsIdx = filePath.indexOf('uploads/');
+    relativePath = uploadsIdx !== -1 ? filePath.substring(uploadsIdx) : filePath;
+  }
+
+  // Split into directory + filename, encode only the filename
+  const lastSlash = relativePath.lastIndexOf('/');
+  const dir = relativePath.substring(0, lastSlash + 1);
+  const filename = relativePath.substring(lastSlash + 1);
+  return `${SERVER_BASE}/${dir}${encodeURIComponent(filename)}`;
+}
+
 export default api;

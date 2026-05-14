@@ -144,8 +144,9 @@ const emailTemplateSchema = new mongoose.Schema({
   bodyHtml: { type: String, default: '' },
   bodyText: { type: String, default: '' },
 
-  // Scope: 'company' (admin-created) or 'personal'
-  scope: { type: String, enum: ['company', 'personal'], default: 'personal' },
+  // Scope: 'company' (admin-created), 'team', or 'personal'
+  scope: { type: String, enum: ['company', 'team', 'personal'], default: 'personal' },
+  team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
 
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 

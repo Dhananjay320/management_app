@@ -5,15 +5,19 @@ import { useSocket } from '../context/SocketContext';
 import api from '../services/api';
 import './WhiteboardPage.css';
 
-const COLORS = ['var(--ink)', '#6366F1', '#EF4444', '#10B981', '#F59E0B', '#EC4899'];
+// First color is the "default pen" — must be visible on white whiteboard background.
+// Using a dark slate instead of the theme's --ink (which is white in dark mode).
+const COLORS = ['#1f2937', '#6366F1', '#EF4444', '#10B981', '#F59E0B', '#EC4899'];
 const TOOLS = [
   { key: 'select', icon: '\u2B9C', label: 'Select' },
   { key: 'rectangle', icon: '\u25AD', label: 'Rectangle' },
   { key: 'circle', icon: '\u25CB', label: 'Circle' },
   { key: 'text', icon: 'T', label: 'Text' },
   { key: 'freehand', icon: '\u270E', label: 'Draw' },
+  { key: 'eraser', icon: '\u232B', label: 'Eraser' },
   { key: 'sticky', icon: '\u25A3', label: 'Sticky Note' },
 ];
+const BRUSH_SIZES = [1, 2, 4, 8, 16];
 
 let shapeIdCounter = Date.now();
 function genId() { return 's-' + (++shapeIdCounter); }
@@ -29,9 +33,23 @@ export default function WhiteboardPage() {
   const [title, setTitle] = useState('');
   const [tool, setTool] = useState('select');
   const [color, setColor] = useState(COLORS[0]);
+  const [brushSize, setBrushSize] = useState(2);
   const [selectedId, setSelectedId] = useState(null);
+  // History for undo/redo — array of full shape snapshots
+  const historyRef = useRef([]);
+  const historyIndexRef = useRef(-1);
+
+  const pushHistory = useCallback((nextShapes) => {
+    // Trim any "future" if we undid then made a new change
+    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+    historyRef.current.push(JSON.parse(JSON.stringify(nextShapes)));
+    // Cap history to last 50 states
+    if (historyRef.current.length > 50) historyRef.current.shift();
+    historyIndexRef.current = historyRef.current.length - 1;
+  }, []);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [canEdit, setCanEdit] = useState(true);
 
   // Viewport for pan and zoom
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
@@ -67,6 +85,8 @@ export default function WhiteboardPage() {
         setShapes(data.shapes || []);
         setTitle(data.title || 'Untitled Board');
         if (data.viewport) setViewport(data.viewport);
+        // _userRole is set by the backend: 'owner', 'editor', or 'viewer'
+        setCanEdit(data._userRole === 'owner' || data._userRole === 'editor');
       } catch {
         navigate('/whiteboards');
       }
@@ -92,7 +112,9 @@ export default function WhiteboardPage() {
       } else if (data.action === 'update') {
         setShapes(prev => prev.map(s => s.id === data.shape.id ? data.shape : s));
       } else if (data.action === 'delete') {
-        setShapes(prev => prev.filter(s => s.id !== data.shapeId));
+        setShapes(prev => prev.filter(s => s.id !== (data.shapeId || data.shape?.id)));
+      } else if (data.action === 'replace') {
+        setShapes(Array.isArray(data.shape?.shapes) ? data.shape.shapes : []);
       }
     };
     const handleCursor = (data) => {
@@ -141,7 +163,8 @@ export default function WhiteboardPage() {
       return;
     }
 
-    if (tool === 'select') return;
+    // Select and eraser tools don't start a draw — they only act on shape clicks
+    if (tool === 'select' || tool === 'eraser') return;
 
     const pos = screenToSvg(e.clientX, e.clientY);
     setIsDrawing(true);
@@ -229,6 +252,7 @@ export default function WhiteboardPage() {
         }
         newShape.type = 'freehand';
         newShape.points = freehandPoints;
+        newShape.strokeWidth = brushSize;
         newShape.x = 0;
         newShape.y = 0;
       } else if (tool === 'sticky') {
@@ -241,14 +265,60 @@ export default function WhiteboardPage() {
         newShape.color = '#FEF3C7';
       }
 
-      setShapes(prev => [...prev, newShape]);
+      setShapes(prev => {
+        const next = [...prev, newShape];
+        pushHistory(next);
+        return next;
+      });
       emitShapeUpdate('add', newShape);
       setIsDrawing(false);
       setDrawStart(null);
       setCurrentDraw(null);
       setFreehandPoints([]);
     }
-  }, [isPanning, isDragging, isDrawing, drawStart, currentDraw, tool, color, shapes, selectedId, freehandPoints, emitShapeUpdate]);
+  }, [isPanning, isDragging, isDrawing, drawStart, currentDraw, tool, color, shapes, selectedId, freehandPoints, emitShapeUpdate, pushHistory]);
+
+  // Undo / Redo
+  const undo = useCallback(() => {
+    if (historyIndexRef.current <= 0) return;
+    historyIndexRef.current -= 1;
+    const snapshot = historyRef.current[historyIndexRef.current] || [];
+    setShapes(JSON.parse(JSON.stringify(snapshot)));
+    emitShapeUpdate('replace', { shapes: snapshot });
+  }, [emitShapeUpdate]);
+
+  const redo = useCallback(() => {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return;
+    historyIndexRef.current += 1;
+    const snapshot = historyRef.current[historyIndexRef.current] || [];
+    setShapes(JSON.parse(JSON.stringify(snapshot)));
+    emitShapeUpdate('replace', { shapes: snapshot });
+  }, [emitShapeUpdate]);
+
+  const clearAll = useCallback(() => {
+    if (!window.confirm('Clear the entire whiteboard? Use Undo (Cmd/Ctrl+Z) to recover.')) return;
+    pushHistory([]);
+    setShapes([]);
+    emitShapeUpdate('replace', { shapes: [] });
+    setSelectedId(null);
+  }, [pushHistory, emitShapeUpdate]);
+
+  // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z or Cmd/Ctrl+Y = redo
+  useEffect(() => {
+    const onKey = (e) => {
+      const meta = e.ctrlKey || e.metaKey;
+      if (!meta) return;
+      if (e.key === 'z' || e.key === 'Z') {
+        if (e.shiftKey) { e.preventDefault(); redo(); }
+        else { e.preventDefault(); undo(); }
+      } else if (e.key === 'y' || e.key === 'Y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo, redo]);
 
   // Wheel to zoom
   const handleWheel = useCallback((e) => {
@@ -272,6 +342,14 @@ export default function WhiteboardPage() {
   // Shape click (select)
   const handleShapeClick = useCallback((e, shapeId) => {
     e.stopPropagation();
+    if (tool === 'eraser') {
+      const next = shapes.filter(s => s.id !== shapeId);
+      pushHistory(next);
+      setShapes(next);
+      emitShapeUpdate('delete', { id: shapeId });
+      if (selectedId === shapeId) setSelectedId(null);
+      return;
+    }
     if (tool === 'select') {
       setSelectedId(shapeId);
       const shape = shapes.find(s => s.id === shapeId);
@@ -281,7 +359,7 @@ export default function WhiteboardPage() {
         setIsDragging(true);
       }
     }
-  }, [tool, shapes, screenToSvg]);
+  }, [tool, shapes, screenToSvg, pushHistory, selectedId]);
 
   // Double-click on text/sticky to edit
   const handleShapeDblClick = useCallback((e, shapeId) => {
@@ -338,6 +416,17 @@ export default function WhiteboardPage() {
     } catch {}
     setSaving(false);
   };
+
+  // Auto-save when shapes change (debounced 2s)
+  const autoSaveRef = useRef(null);
+  useEffect(() => {
+    if (!id || shapes.length === 0) return;
+    clearTimeout(autoSaveRef.current);
+    autoSaveRef.current = setTimeout(() => {
+      api.put(`/whiteboards/${id}`, { shapes, viewport }).catch(() => {});
+    }, 2000);
+    return () => clearTimeout(autoSaveRef.current);
+  }, [shapes, id, viewport]);
 
   // Render shape
   const renderShape = (shape) => {
@@ -422,11 +511,21 @@ export default function WhiteboardPage() {
 
     if (shape.type === 'freehand' && shape.points?.length > 1) {
       const d = shape.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+      const sw = shape.strokeWidth || 2;
+      // Hit-area path is at least 14px wide so eraser/select clicks register easily
+      const hitWidth = Math.max(sw + 12, 14);
       return (
-        <g key={shape.id} onMouseDown={(e) => handleShapeClick(e, shape.id)}>
+        <g key={shape.id} onMouseDown={(e) => handleShapeClick(e, shape.id)} style={{ cursor: tool === 'eraser' ? 'cell' : 'pointer' }}>
+          {/* Invisible thick stroke for click hit-testing */}
           <path
-            d={d} fill="none" stroke={shape.color || 'var(--ink)'}
-            strokeWidth={isSelected ? 3 : 2} strokeLinecap="round" strokeLinejoin="round"
+            d={d} fill="none" stroke="transparent"
+            strokeWidth={hitWidth} strokeLinecap="round" strokeLinejoin="round"
+            pointerEvents="stroke"
+          />
+          <path
+            d={d} fill="none" stroke={shape.color || '#1f2937'}
+            strokeWidth={isSelected ? sw + 1 : sw} strokeLinecap="round" strokeLinejoin="round"
+            pointerEvents="none"
           />
           {isSelected && (
             <path d={d} fill="none" stroke="#6366F1" strokeWidth={1} strokeDasharray="4 2" />
@@ -499,21 +598,29 @@ export default function WhiteboardPage() {
 
   if (loading) return <div style={{ padding: 20, color: 'var(--ink-3)' }}>Loading whiteboard...</div>;
 
-  const toolClass = tool === 'select' ? 'tool-select' : '';
+  const toolClass = tool === 'select' ? 'tool-select' : tool === 'eraser' ? 'tool-eraser' : '';
 
   return (
     <div className="wb-container">
+      {/* View-only banner */}
+      {!canEdit && (
+        <div style={{ padding: '6px 16px', background: 'rgba(245,158,11,0.1)', borderBottom: '1px solid rgba(245,158,11,0.2)', fontSize: 11, color: '#F59E0B', fontWeight: 600, textAlign: 'center' }}>
+          View Only — you can see this board but cannot edit it
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="wb-toolbar">
         <button className="wb-back-btn" onClick={() => navigate('/whiteboards')}>Back</button>
         <input
           className="wb-title-input"
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={e => canEdit && setTitle(e.target.value)}
           placeholder="Board title..."
+          readOnly={!canEdit}
         />
 
-        <div className="wb-tool-group">
+        <div className="wb-tool-group" style={!canEdit ? { opacity: 0.3, pointerEvents: 'none' } : {}}>
           {TOOLS.map(t => (
             <button
               key={t.key}
@@ -537,7 +644,27 @@ export default function WhiteboardPage() {
           ))}
         </div>
 
+        {/* Brush size — only visible while pen is active */}
+        {tool === 'freehand' && (
+          <div className="wb-tool-group" style={{ marginLeft: 8 }} title="Brush size">
+            {BRUSH_SIZES.map(s => (
+              <button
+                key={s}
+                className={`wb-tool-btn ${brushSize === s ? 'active' : ''}`}
+                onClick={() => setBrushSize(s)}
+                title={`${s}px`}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <span style={{ display: 'inline-block', width: Math.min(s + 2, 16), height: Math.min(s + 2, 16), borderRadius: '50%', background: 'currentColor' }} />
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="wb-actions">
+          <button className="wb-back-btn" onClick={undo} title="Undo (Cmd/Ctrl+Z)">↶</button>
+          <button className="wb-back-btn" onClick={redo} title="Redo (Cmd/Ctrl+Shift+Z)">↷</button>
+          <button className="wb-back-btn" onClick={clearAll} title="Clear all" style={{ color: '#EF4444', borderColor: 'rgba(239,68,68,0.3)' }}>Clear</button>
           {selectedId && (
             <button className="wb-back-btn" onClick={deleteSelected} style={{ color: '#EF4444', borderColor: 'rgba(239,68,68,0.3)' }}>
               Delete

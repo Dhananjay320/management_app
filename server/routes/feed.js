@@ -1,9 +1,27 @@
 const router = require('express').Router();
 const TeamFeedPost = require('../models/TeamFeedPost');
+const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const { notifyMany } = require('../utils/notify');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+
+// Fan out a feed post as DB notifications + push for everyone in the audience.
+async function fanoutFeedPost(io, post, authorId, authorName) {
+  const filter = { isActive: true, _c: { $ne: true }, _id: { $ne: authorId } };
+  if (post.audience === 'team' && post.team) filter.teams = post.team;
+  const recipients = await User.find(filter).select('_id');
+  const titleSnippet = (post.content || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  await notifyMany(io, recipients.map(r => r._id), {
+    type: 'announcement',
+    title: `📰 New post from ${authorName}`,
+    message: titleSnippet || 'shared an update on Team Feed',
+    entityType: 'feed',
+    entityId: post._id,
+    sender: authorId
+  });
+}
 
 const feedUploadDir = path.join(__dirname, '..', 'uploads', 'feed');
 if (!fs.existsSync(feedUploadDir)) fs.mkdirSync(feedUploadDir, { recursive: true });
@@ -40,6 +58,8 @@ router.get('/', protect, async (req, res) => {
       .populate('author', 'name avatar jobTitle')
       .populate('comments.author', 'name avatar')
       .populate('team', 'name')
+      .populate('reactions.users', 'name avatar')
+      .populate('comments.reactions.users', 'name avatar')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit));
 
@@ -56,7 +76,9 @@ router.get('/:id', protect, async (req, res) => {
     const post = await TeamFeedPost.findById(req.params.id)
       .populate('author', 'name avatar jobTitle')
       .populate('comments.author', 'name avatar')
-      .populate('team', 'name');
+      .populate('team', 'name')
+      .populate('reactions.users', 'name avatar')
+      .populate('comments.reactions.users', 'name avatar');
     if (!post) return res.status(404).json({ error: 'Post not found.' });
     res.json(post);
   } catch (err) {
@@ -83,11 +105,10 @@ router.post('/', protect, async (req, res) => {
       .populate('author', 'name avatar jobTitle')
       .populate('team', 'name');
 
-    // Emit via socket
+    // Live socket fanout + DB notification + push for all audience members
     const io = req.app.get('io');
-    if (io) {
-      io.emit('feed:new', { postId: post._id, author: req.user.name });
-    }
+    if (io) io.emit('feed:new', { postId: post._id, author: req.user.name });
+    fanoutFeedPost(io, post, req.user._id, req.user.name).catch(e => console.warn('feed fanout failed:', e.message));
 
     res.status(201).json(populated);
   } catch (err) {
@@ -113,7 +134,7 @@ router.post('/with-media', protect, feedUpload.single('media'), async (req, res)
         url: `/uploads/feed/${req.file.filename}`,
         name: req.file.originalname,
         mimeType: req.file.mimetype,
-        path: req.file.path
+        path: 'uploads/feed/' + req.file.filename
       };
     }
 
@@ -131,6 +152,7 @@ router.post('/with-media', protect, feedUpload.single('media'), async (req, res)
 
     const io = req.app.get('io');
     if (io) io.emit('feed:new', { postId: post._id, author: req.user.name });
+    fanoutFeedPost(io, post, req.user._id, req.user.name).catch(e => console.warn('feed fanout failed:', e.message));
 
     res.status(201).json(populated);
   } catch (err) {
@@ -184,7 +206,11 @@ router.post('/:id/react', protect, async (req, res) => {
       post.reactions.push({ emoji, users: [req.user._id] });
     }
     await post.save();
-    res.json(post.reactions);
+    // Return reactions with users populated so the client can show names in
+    // the "who reacted" popover
+    const populated = await TeamFeedPost.findById(post._id)
+      .populate('reactions.users', 'name avatar');
+    res.json(populated.reactions);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }

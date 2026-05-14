@@ -175,7 +175,7 @@ cd client && npm start
 ### 5. Seed a test article
 
 As a publisher or `main_admin`, visit `/content` → click "+ New article" → fill out:
-- Title: "Welcome to Avadeti Team"
+- Title: "Welcome to Niyoq"
 - Excerpt: "A quick tour of the features you'll use every day."
 - Category: "Getting Started"
 - Type: "tutorial"

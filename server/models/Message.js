@@ -37,9 +37,25 @@ const messageSchema = new mongoose.Schema({
   isEdited: { type: Boolean, default: false },
   isDeleted: { type: Boolean, default: false },
 
+  // Forwarded from another message (preserves chain of origin)
+  forwardedFrom: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
+
   // Broadcast
   isBroadcast: { type: Boolean, default: false },
-  broadcastVisibility: { type: String, enum: ['visible', 'hidden'], default: 'hidden' }
+  broadcastVisibility: { type: String, enum: ['visible', 'hidden'], default: 'hidden' },
+
+  // Auto-unfurled link preview (Open Graph) — populated async after send
+  linkPreview: {
+    url: { type: String },
+    title: { type: String },
+    description: { type: String },
+    image: { type: String },
+    siteName: { type: String },
+    // For video providers (YouTube/Vimeo): embed URL for inline player
+    videoEmbedUrl: { type: String },
+    // For Twitter/X: media gallery (multi-image)
+    gallery: [{ url: String, type: { type: String } }]
+  }
 }, {
   timestamps: true
 });

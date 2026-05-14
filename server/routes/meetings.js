@@ -2,7 +2,7 @@ const router = require('express').Router();
 const { Meeting, MoM } = require('../models/Meeting');
 const Channel = require('../models/Channel');
 const Message = require('../models/Message');
-const { protect } = require('../middleware/auth');
+const { protect, requirePower } = require('../middleware/auth');
 
 // GET /api/v1/meetings — list meetings for current user
 router.get('/', protect, async (req, res) => {
@@ -72,6 +72,11 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ error: 'Title, agenda, type, date, and start time are required.' });
     }
 
+    // Power check: company-wide meetings require meetings.createCompanyWide
+    if (req.body.isCompanyWide && !req.user.hasPower('meetings', 'createCompanyWide')) {
+      return res.status(403).json({ error: 'You do not have permission to create company-wide meetings.' });
+    }
+
     // Build attendees list — include creator
     const attendees = (attendeeIds || []).map(uid => ({ user: uid, response: 'pending' }));
     if (!attendees.find(a => a.user.toString() === req.user._id.toString())) {
@@ -106,18 +111,18 @@ router.post('/', protect, async (req, res) => {
       type: 'system'
     });
 
-    // Notify attendees
+    // Notify attendees — DB notification (triggers push) + socket
+    const Notification = require('../models/Notification');
     const io = req.app.get('io');
-    if (io) {
-      attendees.forEach(a => {
-        if (a.user.toString() !== req.user._id.toString()) {
-          io.to(`user:${a.user}`).emit('notification:new', {
-            type: 'meeting', title: 'New Meeting Invite',
-            message: `${req.user.name} invited you to "${title}" on ${new Date(date).toLocaleDateString()}`,
-            entityType: 'meeting', entityId: meeting._id
-          });
-        }
-      });
+    for (const a of attendees) {
+      if (a.user.toString() !== req.user._id.toString()) {
+        await Notification.create({
+          user: a.user, type: 'meeting',
+          title: 'New Meeting Invite',
+          message: `${req.user.name} invited you to "${title}" on ${new Date(date).toLocaleDateString()}`,
+          entityType: 'meeting', entityId: meeting._id, sender: req.user._id
+        }).catch(() => {});
+      }
     }
 
     const populated = await Meeting.findById(meeting._id)

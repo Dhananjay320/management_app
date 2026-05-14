@@ -1,5 +1,7 @@
 const router = require('express').Router();
 const Announcement = require('../models/Announcement');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
 const { protect, requirePower } = require('../middleware/auth');
 
 // GET /api/v1/announcements — get active announcements for user
@@ -39,15 +41,39 @@ router.post('/', protect, async (req, res) => {
       createdBy: req.user._id
     });
 
-    // Push notification to all relevant users
+    // Find recipients
+    const recipientFilter = { isActive: true, _c: { $ne: true }, _id: { $ne: req.user._id } };
+    if (ann.audience === 'team' && ann.team) {
+      recipientFilter.teams = ann.team;
+    }
+    const recipients = await User.find(recipientFilter).select('_id');
+
+    // Create one Notification per recipient — post-save hook fires push automatically
+    const notifTitle = `📢 ${title}`;
+    const notifMsg = (content || '').slice(0, 200);
+    await Promise.all(recipients.map(u =>
+      Notification.create({
+        user: u._id,
+        type: 'announcement',
+        title: notifTitle,
+        message: notifMsg,
+        entityType: 'announcement',
+        entityId: ann._id,
+        sender: req.user._id
+      }).catch(() => {})
+    ));
+
+    // Realtime socket fanout (banner + notification toast)
     const io = req.app.get('io');
     if (io) {
-      io.emit('notification:new', {
-        type: 'announcement',
-        title: 'New Announcement',
-        message: title,
-        entityType: 'announcement',
-        entityId: ann._id
+      recipients.forEach(u => {
+        io.to(`user:${u._id}`).emit('notification:new', {
+          type: 'announcement',
+          title: notifTitle,
+          message: notifMsg,
+          entityType: 'announcement',
+          entityId: ann._id
+        });
       });
       io.emit('announcement:new', ann);
     }

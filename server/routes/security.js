@@ -72,7 +72,7 @@ router.post('/unlock/:id', protect, requirePower('security', 'unlockAccounts'), 
 // GET /api/v1/security/active-sessions
 router.get('/active-sessions', protect, requirePower('security', 'viewSessions'), async (req, res) => {
   try {
-    const sessions = await User.find({ refreshToken: { $ne: null }, isActive: true, _c: { $ne: true } })
+    const sessions = await User.find({ 'refreshTokens.0': { $exists: true }, isActive: true, _c: { $ne: true } })
       .select('name email lastLogin role')
       .sort({ lastLogin: -1 });
     res.json(sessions);
@@ -92,7 +92,7 @@ router.post('/force-logout/:id', protect, requirePower('security', 'forceLogout'
       return res.status(403).json({ error: 'Only a main_admin can force-logout another main_admin.' });
     }
     const user = await User.findByIdAndUpdate(req.params.id, {
-      refreshToken: null
+      refreshTokens: []
     }, { new: true }).select('name email');
 
     if (!user) return res.status(404).json({ error: 'User not found.' });

@@ -138,6 +138,9 @@
 .wb-canvas-area.tool-select {
   cursor: default;
 }
+.wb-canvas-area.tool-eraser {
+  cursor: cell;
+}
 .wb-canvas-area.tool-pan {
   cursor: grab;
 }

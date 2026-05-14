@@ -46,7 +46,7 @@ contextBridge.exposeInMainWorld('electron', {
     get: () => ipcRenderer.invoke('theme:get'),
   },
 
-  // ─── Deep links (avadeti://) ──────────────────────────────────────
+  // ─── Deep links (niyoq://) ──────────────────────────────────────
   onDeepLink: (cb) => {
     const handler = (_e, url) => cb(url);
     ipcRenderer.on('deep-link', handler);

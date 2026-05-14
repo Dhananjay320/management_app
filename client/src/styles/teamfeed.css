@@ -193,14 +193,20 @@
 .feed-card-action-btn.pinned { color: var(--amber); }
 
 .feed-card-body {
-  padding: 10px 16px 12px;
+  padding: 8px 14px 10px;
 }
 .feed-card-text {
   font-size: 13px;
-  color: var(--ink-2);
-  line-height: 1.65;
+  color: var(--ink);
+  line-height: 1.55;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+.feed-card-text.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Link Preview */
@@ -350,4 +356,32 @@
   justify-content: center;
   margin: 0 auto 12px;
   font-size: 28px;
+}
+
+/* ─── Mobile: more compact card ─── */
+@media (max-width: 768px) {
+  .feed-card { border-radius: 10px; }
+  .feed-card-header { padding: 10px 12px 0; gap: 8px; }
+  .feed-card-avatar { width: 30px; height: 30px; font-size: 11px; }
+  .feed-card-name { font-size: 12.5px; }
+  .feed-card-sub { font-size: 9.5px; }
+  .feed-card-body { padding: 8px 12px 10px; }
+  .feed-card-text { font-size: 12.5px; line-height: 1.55; }
+  .feed-card-body img,
+  .feed-card-body video {
+    max-height: 240px;
+    width: 100%;
+    object-fit: cover;
+  }
+  .feed-reactions { padding: 0 12px 6px; gap: 3px; }
+  .feed-card-action-btn { width: 26px; height: 26px; }
+  .feed-comment-input input { font-size: 12px; padding: 6px 8px; }
+  .feed-comment-send { padding: 5px 10px; font-size: 10px; }
+}
+
+/* Very small phones */
+@media (max-width: 480px) {
+  .feed-card-body img,
+  .feed-card-body video { max-height: 200px; }
+  .feed-card-text { font-size: 12px; }
 }

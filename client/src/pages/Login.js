@@ -33,19 +33,15 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-gradient">
         <div className="auth-brand">
-          <div className="auth-logo">A</div>
-          <h1 className="auth-brand-name">Avadeti Team</h1>
-          <p className="auth-tagline">Your company, one platform</p>
-          <div className="auth-icons">
-            <span>📅</span><span>💬</span><span>✅</span><span>📊</span><span>👥</span>
-          </div>
+          <img src="/niyoq-logo.png" alt="Avadeti" style={{ maxWidth: 280, maxHeight: 140, objectFit: 'contain', marginBottom: 18 }} />
+          <p className="auth-tagline" style={{ marginTop: 0 }}>Your company, one platform</p>
         </div>
       </div>
       <div className="auth-form-side">
         <form className="auth-card" onSubmit={handleSubmit}>
           <div className="auth-card-header">
             <h2>Welcome Back!</h2>
-            <p>Sign in to Avadeti Team</p>
+            <p>Sign in to Niyoq</p>
           </div>
 
           {error && <div className="auth-error">{error}</div>}
@@ -56,7 +52,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="you@avadeti.com"
+              placeholder="you@niyoq.com"
               required
               autoFocus
             />
@@ -88,7 +84,7 @@ export default function Login() {
             <span className="link" onClick={() => navigate('/otp-login')}>Login with OTP →</span>
           </div>
 
-          <div className="auth-footer">Avadeti Team v1.0 · Your company, one platform</div>
+          <div className="auth-footer">Niyoq v1.0 · Your company, one platform</div>
         </form>
       </div>
     </div>

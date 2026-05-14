@@ -2,10 +2,14 @@ const mongoose = require('mongoose');
 const whiteboardSchema = new mongoose.Schema({
   title: { type: String, default: 'Untitled Board' },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  members: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    role: { type: String, enum: ['editor', 'viewer'], default: 'editor' }
+  }],
+  isShared: { type: Boolean, default: false },
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
   meeting: { type: mongoose.Schema.Types.ObjectId, ref: 'Meeting' },
-  shapes: [{ type: Object }], // Array of shape objects {id, type, x, y, w, h, color, text, points}
+  shapes: [{ type: Object }],
   viewport: { x: Number, y: Number, zoom: Number },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });

@@ -1,8 +1,8 @@
-# Avadeti Team — Complete App Structure (Mind Map)
+# Niyoq — Complete App Structure (Mind Map)
 
 ## 🏗️ ARCHITECTURE
 ```
-Avadeti Team
+Niyoq
 ├── Platform: React (CRA) + Node.js + MongoDB + Socket.io
 ├── Primary: Electron Desktop (Windows + Mac)
 ├── Secondary: Web Browser (same React build via Nginx)

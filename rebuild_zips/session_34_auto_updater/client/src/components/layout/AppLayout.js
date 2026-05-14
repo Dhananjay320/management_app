@@ -10,7 +10,7 @@ import DraggableStickyOverlay from '../DraggableStickyOverlay';
 import AchievementToast from '../AchievementToast';
 // Session 33 (Phase G): custom titlebar, only renders in Electron.
 import ElectronTitleBar from '../ElectronTitleBar';
-// Session 33: handle avadeti:// deep links.
+// Session 33: handle niyoq:// deep links.
 import { useDeepLink } from '../../hooks/useDeepLink';
 // Session 34 (Phase G final): auto-update toast, only renders in Electron.
 import UpdateToast from '../UpdateToast';
@@ -112,7 +112,7 @@ export default function AppLayout() {
   // Session 12 C3: real unread count for bell + sidebar Notifications item.
   const { total: notifBadge, byType: notifByType } = useNotificationCounts();
 
-  // Session 33: handle avadeti:// deep links (Electron only, no-op in browser).
+  // Session 33: handle niyoq:// deep links (Electron only, no-op in browser).
   useDeepLink();
 
   return (
@@ -146,10 +146,10 @@ export default function AppLayout() {
                 <line x1="4" y1="18" x2="20" y2="18" />
               </svg>
             </button>
-            <button type="button" className="ad-topbar__brand ad-focus" onClick={() => go('/')} title="Avadeti home">
+            <button type="button" className="ad-topbar__brand ad-focus" onClick={() => go('/')} title="Niyoq home">
               <span className="ad-logo-mark" aria-hidden="true" />
               <span className="ad-topbar__wordmark">
-                <span className="ad-topbar__brand-name">Avadeti</span>
+                <span className="ad-topbar__brand-name">Niyoq</span>
                 <span className="ad-topbar__brand-sub">Team OS</span>
               </span>
             </button>

@@ -15,10 +15,10 @@ async function seedEmails() {
   await EmailCategory.deleteMany({});
 
   // Get existing users
-  const admin = await User.findOne({ email: 'admin@avadeti.com' });
-  const priya = await User.findOne({ email: 'priya@avadeti.com' });
-  const ravi = await User.findOne({ email: 'ravi@avadeti.com' });
-  const meera = await User.findOne({ email: 'meera@avadeti.com' });
+  const admin = await User.findOne({ email: 'admin@niyoq.com' });
+  const priya = await User.findOne({ email: 'priya@niyoq.com' });
+  const ravi = await User.findOne({ email: 'ravi@niyoq.com' });
+  const meera = await User.findOne({ email: 'meera@niyoq.com' });
 
   if (!admin || !priya || !ravi || !meera) {
     console.error('Users not found. Run seed.js first.');
@@ -27,62 +27,62 @@ async function seedEmails() {
 
   // ─── Create Email Accounts ───
   const adminAccount = await EmailAccount.create({
-    address: 'admin@avadeti.com',
-    displayName: 'Yugara Admin',
+    address: 'admin@niyoq.com',
+    displayName: 'Demo Admin',
     type: 'personal',
-    smtp: { host: 'mail.avadeti.com', port: 587, user: 'admin@avadeti.com', pass: 'smtp_pass' },
-    imap: { host: 'mail.avadeti.com', port: 993, user: 'admin@avadeti.com', pass: 'imap_pass' },
+    smtp: { host: 'mail.niyoq.com', port: 587, user: 'admin@niyoq.com', pass: 'smtp_pass' },
+    imap: { host: 'mail.niyoq.com', port: 993, user: 'admin@niyoq.com', pass: 'imap_pass' },
     owner: admin._id,
     createdBy: admin._id
   });
 
   const priyaAccount = await EmailAccount.create({
-    address: 'priya@avadeti.com',
+    address: 'priya@niyoq.com',
     displayName: 'Priya Sharma',
     type: 'personal',
-    smtp: { host: 'mail.avadeti.com', port: 587, user: 'priya@avadeti.com', pass: 'smtp_pass' },
-    imap: { host: 'mail.avadeti.com', port: 993, user: 'priya@avadeti.com', pass: 'imap_pass' },
+    smtp: { host: 'mail.niyoq.com', port: 587, user: 'priya@niyoq.com', pass: 'smtp_pass' },
+    imap: { host: 'mail.niyoq.com', port: 993, user: 'priya@niyoq.com', pass: 'imap_pass' },
     owner: priya._id,
     createdBy: admin._id
   });
 
   const raviAccount = await EmailAccount.create({
-    address: 'ravi@avadeti.com',
+    address: 'ravi@niyoq.com',
     displayName: 'Ravi Kumar',
     type: 'personal',
-    smtp: { host: 'mail.avadeti.com', port: 587, user: 'ravi@avadeti.com', pass: 'smtp_pass' },
-    imap: { host: 'mail.avadeti.com', port: 993, user: 'ravi@avadeti.com', pass: 'imap_pass' },
+    smtp: { host: 'mail.niyoq.com', port: 587, user: 'ravi@niyoq.com', pass: 'smtp_pass' },
+    imap: { host: 'mail.niyoq.com', port: 993, user: 'ravi@niyoq.com', pass: 'imap_pass' },
     owner: ravi._id,
     createdBy: admin._id
   });
 
   const meeraAccount = await EmailAccount.create({
-    address: 'meera@avadeti.com',
+    address: 'meera@niyoq.com',
     displayName: 'Meera Patel',
     type: 'personal',
-    smtp: { host: 'mail.avadeti.com', port: 587, user: 'meera@avadeti.com', pass: 'smtp_pass' },
-    imap: { host: 'mail.avadeti.com', port: 993, user: 'meera@avadeti.com', pass: 'imap_pass' },
+    smtp: { host: 'mail.niyoq.com', port: 587, user: 'meera@niyoq.com', pass: 'smtp_pass' },
+    imap: { host: 'mail.niyoq.com', port: 993, user: 'meera@niyoq.com', pass: 'imap_pass' },
     owner: meera._id,
     createdBy: admin._id
   });
 
   // Shared inbox
   const helpAccount = await EmailAccount.create({
-    address: 'help@avadeti.com',
+    address: 'help@niyoq.com',
     displayName: 'Help Desk',
     type: 'shared',
-    smtp: { host: 'mail.avadeti.com', port: 587, user: 'help@avadeti.com', pass: 'smtp_pass' },
-    imap: { host: 'mail.avadeti.com', port: 993, user: 'help@avadeti.com', pass: 'imap_pass' },
+    smtp: { host: 'mail.niyoq.com', port: 587, user: 'help@niyoq.com', pass: 'smtp_pass' },
+    imap: { host: 'mail.niyoq.com', port: 993, user: 'help@niyoq.com', pass: 'imap_pass' },
     accessList: [admin._id, priya._id],
     createdBy: admin._id
   });
 
   const infoAccount = await EmailAccount.create({
-    address: 'info@avadeti.com',
+    address: 'info@niyoq.com',
     displayName: 'Company Info',
     type: 'shared',
-    smtp: { host: 'mail.avadeti.com', port: 587, user: 'info@avadeti.com', pass: 'smtp_pass' },
-    imap: { host: 'mail.avadeti.com', port: 993, user: 'info@avadeti.com', pass: 'imap_pass' },
+    smtp: { host: 'mail.niyoq.com', port: 587, user: 'info@niyoq.com', pass: 'smtp_pass' },
+    imap: { host: 'mail.niyoq.com', port: 993, user: 'info@niyoq.com', pass: 'imap_pass' },
     accessList: [admin._id, priya._id, ravi._id],
     createdBy: admin._id
   });
@@ -105,13 +105,13 @@ async function seedEmails() {
   for (const e of welcomeEmails) {
     await Email.create({
       account: e.account,
-      messageId: '<welcome@avadeti.com>',
-      from: 'admin@avadeti.com',
-      fromName: 'Yugara Admin',
-      to: ['priya@avadeti.com', 'ravi@avadeti.com', 'meera@avadeti.com'],
-      subject: 'Welcome to Avadeti Team!',
-      bodyHtml: '<h2>Welcome aboard!</h2><p>Hi everyone,</p><p>Welcome to <strong>Avadeti Team</strong>. We\'re excited to have you all here. Please take a moment to set up your accounts and explore the platform.</p><p>Key things to do:</p><ul><li>Update your profile photo</li><li>Check your calendar for upcoming meetings</li><li>Say hi in the #general channel</li></ul><p>Best regards,<br/>Yugara Admin</p>',
-      bodyText: 'Welcome aboard!\n\nHi everyone,\nWelcome to Avadeti Team. We\'re excited to have you all here. Please take a moment to set up your accounts and explore the platform.\n\nKey things to do:\n- Update your profile photo\n- Check your calendar for upcoming meetings\n- Say hi in the #general channel\n\nBest regards,\nYugara Admin',
+      messageId: '<welcome@niyoq.com>',
+      from: 'admin@niyoq.com',
+      fromName: 'Demo Admin',
+      to: ['priya@niyoq.com', 'ravi@niyoq.com', 'meera@niyoq.com'],
+      subject: 'Welcome to Niyoq!',
+      bodyHtml: '<h2>Welcome aboard!</h2><p>Hi everyone,</p><p>Welcome to <strong>Niyoq</strong>. We\'re excited to have you all here. Please take a moment to set up your accounts and explore the platform.</p><p>Key things to do:</p><ul><li>Update your profile photo</li><li>Check your calendar for upcoming meetings</li><li>Say hi in the #general channel</li></ul><p>Best regards,<br/>Demo Admin</p>',
+      bodyText: 'Welcome aboard!\n\nHi everyone,\nWelcome to Niyoq. We\'re excited to have you all here. Please take a moment to set up your accounts and explore the platform.\n\nKey things to do:\n- Update your profile photo\n- Check your calendar for upcoming meetings\n- Say hi in the #general channel\n\nBest regards,\nDemo Admin',
       threadId: thread1,
       folder: e.folder,
       isRead: e.folder === 'sent',
@@ -127,14 +127,14 @@ async function seedEmails() {
   ]) {
     await Email.create({
       account: e.account,
-      messageId: '<welcome-reply1@avadeti.com>',
-      from: 'priya@avadeti.com',
+      messageId: '<welcome-reply1@niyoq.com>',
+      from: 'priya@niyoq.com',
       fromName: 'Priya Sharma',
-      to: ['admin@avadeti.com'],
-      subject: 'Re: Welcome to Avadeti Team!',
+      to: ['admin@niyoq.com'],
+      subject: 'Re: Welcome to Niyoq!',
       bodyHtml: '<p>Thanks for the warm welcome! Looking forward to working with everyone.</p><p>Priya</p>',
       bodyText: 'Thanks for the warm welcome! Looking forward to working with everyone.\n\nPriya',
-      inReplyTo: '<welcome@avadeti.com>',
+      inReplyTo: '<welcome@niyoq.com>',
       threadId: thread1,
       folder: e.folder,
       isRead: e.folder === 'sent',
@@ -150,10 +150,10 @@ async function seedEmails() {
   ]) {
     await Email.create({
       account: e.account,
-      messageId: '<project-update@avadeti.com>',
-      from: 'ravi@avadeti.com',
+      messageId: '<project-update@niyoq.com>',
+      from: 'ravi@niyoq.com',
       fromName: 'Ravi Kumar',
-      to: ['priya@avadeti.com'],
+      to: ['priya@niyoq.com'],
       subject: 'Q2 Dashboard - Progress Update',
       bodyHtml: '<p>Hi Priya,</p><p>Quick update on the Q2 dashboard project:</p><ul><li>Chart components are done (line, bar, pie)</li><li>API integration for attendance data is complete</li><li>Working on the filter panel now</li></ul><p>Should be ready for review by Thursday.</p><p>Ravi</p>',
       bodyText: 'Hi Priya,\n\nQuick update on the Q2 dashboard project:\n- Chart components are done (line, bar, pie)\n- API integration for attendance data is complete\n- Working on the filter panel now\n\nShould be ready for review by Thursday.\n\nRavi',
@@ -172,14 +172,14 @@ async function seedEmails() {
   ]) {
     await Email.create({
       account: e.account,
-      messageId: '<project-reply@avadeti.com>',
-      from: 'priya@avadeti.com',
+      messageId: '<project-reply@niyoq.com>',
+      from: 'priya@niyoq.com',
       fromName: 'Priya Sharma',
-      to: ['ravi@avadeti.com'],
+      to: ['ravi@niyoq.com'],
       subject: 'Re: Q2 Dashboard - Progress Update',
       bodyHtml: '<p>Great progress, Ravi!</p><p>Thursday works perfectly. I\'ll block some time for the review. Please also add a date-range picker if possible.</p><p>Thanks!<br/>Priya</p>',
       bodyText: 'Great progress, Ravi!\n\nThursday works perfectly. I\'ll block some time for the review. Please also add a date-range picker if possible.\n\nThanks!\nPriya',
-      inReplyTo: '<project-update@avadeti.com>',
+      inReplyTo: '<project-update@niyoq.com>',
       threadId: thread2,
       folder: e.folder,
       isRead: e.folder === 'sent',
@@ -194,7 +194,7 @@ async function seedEmails() {
     messageId: '<external-help@client.com>',
     from: 'contact@clientcorp.com',
     fromName: 'Client Corp Support',
-    to: ['help@avadeti.com'],
+    to: ['help@niyoq.com'],
     subject: 'API Access Request',
     bodyHtml: '<p>Hello,</p><p>We would like to request API access for our integration project. Could you please share the documentation and credentials?</p><p>Regards,<br/>Client Corp Team</p>',
     bodyText: 'Hello,\n\nWe would like to request API access for our integration project. Could you please share the documentation and credentials?\n\nRegards,\nClient Corp Team',
@@ -211,7 +211,7 @@ async function seedEmails() {
     messageId: '<external-help@client.com>',
     from: 'contact@clientcorp.com',
     fromName: 'Client Corp Support',
-    to: ['help@avadeti.com'],
+    to: ['help@niyoq.com'],
     subject: 'API Access Request',
     bodyHtml: '<p>Hello,</p><p>We would like to request API access for our integration project. Could you please share the documentation and credentials?</p><p>Regards,<br/>Client Corp Team</p>',
     bodyText: 'Hello,\n\nWe would like to request API access for our integration project. Could you please share the documentation and credentials?\n\nRegards,\nClient Corp Team',
@@ -229,10 +229,10 @@ async function seedEmails() {
   ]) {
     await Email.create({
       account: e.account,
-      messageId: '<meera-leave@avadeti.com>',
-      from: 'meera@avadeti.com',
+      messageId: '<meera-leave@niyoq.com>',
+      from: 'meera@niyoq.com',
       fromName: 'Meera Patel',
-      to: ['admin@avadeti.com'],
+      to: ['admin@niyoq.com'],
       subject: 'Leave Request - April 21-22',
       bodyHtml: '<p>Hi,</p><p>I would like to request leave for April 21st and 22nd for a family event. I\'ve already updated the attendance system as well.</p><p>Thank you,<br/>Meera</p>',
       bodyText: 'Hi,\n\nI would like to request leave for April 21st and 22nd for a family event. I\'ve already updated the attendance system as well.\n\nThank you,\nMeera',
@@ -267,9 +267,9 @@ async function seedEmails() {
 
   await EmailTemplate.create({
     name: 'Welcome New Employee',
-    subject: 'Welcome to Avadeti Team, {{name}}!',
-    bodyHtml: '<h2>Welcome to the team!</h2><p>Hi {{name}},</p><p>We\'re thrilled to welcome you to Avadeti Team. Here\'s what you need to know:</p><ul><li>Your team: {{team}}</li><li>Your manager: {{manager}}</li><li>Office location: {{office}}</li></ul><p>Please complete your onboarding checklist in the app.</p><p>Warm regards,<br/>HR Team</p>',
-    bodyText: 'Welcome to the team!\n\nHi {{name}},\nWe\'re thrilled to welcome you to Avadeti Team.\n\nYour team: {{team}}\nYour manager: {{manager}}\nOffice location: {{office}}\n\nPlease complete your onboarding checklist in the app.\n\nWarm regards,\nHR Team',
+    subject: 'Welcome to Niyoq, {{name}}!',
+    bodyHtml: '<h2>Welcome to the team!</h2><p>Hi {{name}},</p><p>We\'re thrilled to welcome you to Niyoq. Here\'s what you need to know:</p><ul><li>Your team: {{team}}</li><li>Your manager: {{manager}}</li><li>Office location: {{office}}</li></ul><p>Please complete your onboarding checklist in the app.</p><p>Warm regards,<br/>HR Team</p>',
+    bodyText: 'Welcome to the team!\n\nHi {{name}},\nWe\'re thrilled to welcome you to Niyoq.\n\nYour team: {{team}}\nYour manager: {{manager}}\nOffice location: {{office}}\n\nPlease complete your onboarding checklist in the app.\n\nWarm regards,\nHR Team',
     scope: 'company',
     createdBy: admin._id
   });
@@ -289,7 +289,7 @@ async function seedEmails() {
   await EmailDraft.create({
     account: raviAccount._id,
     user: ravi._id,
-    to: ['priya@avadeti.com'],
+    to: ['priya@niyoq.com'],
     subject: 'Design review feedback',
     bodyHtml: '<p>Hi Priya,</p><p>I reviewed the latest mockups and here are my thoughts...</p>',
     bodyText: 'Hi Priya,\n\nI reviewed the latest mockups and here are my thoughts...'

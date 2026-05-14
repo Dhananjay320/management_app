@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   AVADETI TEAM — COLORFUL LUXURY DESIGN SYSTEM
+   NIYOQ TEAM — COLORFUL LUXURY DESIGN SYSTEM
    Based on: 01-calendar.html, 02-tasks.html, 03-messages.html
    ═══════════════════════════════════════════════════════════ */
 
@@ -7,19 +7,24 @@
 
 /* ─── Tokens ─── */
 :root {
-  --bg-0: #0A0B1A;
-  --bg-1: #14162E;
-  --ink: #F8FAFC;
-  --ink-2: rgba(248,250,252,0.62);
-  --ink-3: rgba(248,250,252,0.40);
-  --ink-4: rgba(248,250,252,0.22);
-  --line: rgba(255,255,255,0.08);
+  /* Professional dark slate — Linear / Notion / Slack inspired */
+  --bg-0: #0B0F19;       /* deep slate */
+  --bg-1: #131826;       /* slightly lifted */
+  --bg-2: #1A2030;       /* cards */
+  --ink: #F1F5F9;        /* slate-100 */
+  --ink-2: rgba(241,245,249,0.74);
+  --ink-3: rgba(241,245,249,0.50);
+  --ink-4: rgba(241,245,249,0.28);
+  --line: rgba(255,255,255,0.07);
   --line-2: rgba(255,255,255,0.14);
   --glass: rgba(255,255,255,0.04);
-  --glass-2: rgba(255,255,255,0.06);
-  --glass-3: rgba(255,255,255,0.10);
+  --glass-2: rgba(255,255,255,0.07);
+  --glass-3: rgba(255,255,255,0.11);
+  /* Single primary accent — refined indigo (deeper, less neon) */
   --indigo: #6366F1;
-  --violet: #8B5CF6;
+  --indigo-deep: #4F46E5;
+  --violet: #7C6FF0;
+  /* Functional only — used sparingly */
   --emerald: #10B981;
   --cyan: #06B6D4;
   --amber: #F59E0B;
@@ -48,9 +53,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.01em;
   background:
-    radial-gradient(1200px 800px at 85% -10%, rgba(139,92,246,0.18), transparent 60%),
-    radial-gradient(900px 700px at -10% 30%, rgba(99,102,241,0.14), transparent 60%),
-    radial-gradient(800px 600px at 50% 110%, rgba(236,72,153,0.10), transparent 60%),
+    radial-gradient(1200px 800px at 85% -10%, rgba(99,102,241,0.10), transparent 60%),
+    radial-gradient(900px 700px at -10% 30%, rgba(99,102,241,0.06), transparent 60%),
     linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
   min-height: 100vh;
 }
@@ -65,10 +69,10 @@ body::before {
 }
 
 /* Floating orbs */
-.ad-orb { position: fixed; border-radius: 9999px; filter: blur(80px); opacity: .55; pointer-events: none; z-index: 0; animation: ad-drift 22s var(--transition) infinite alternate; }
-.ad-orb-a { width: 520px; height: 520px; left: -140px; top: -120px; background: radial-gradient(circle, #6366F1 0%, transparent 60%); animation-duration: 26s; }
-.ad-orb-b { width: 620px; height: 620px; right: -180px; top: 10%; background: radial-gradient(circle, #8B5CF6 0%, transparent 60%); animation-duration: 30s; animation-delay: -6s; }
-.ad-orb-c { width: 440px; height: 440px; left: 40%; bottom: -160px; background: radial-gradient(circle, #EC4899 0%, transparent 60%); animation-duration: 34s; animation-delay: -12s; opacity: .38; }
+.ad-orb { position: fixed; border-radius: 9999px; filter: blur(100px); opacity: .25; pointer-events: none; z-index: 0; animation: ad-drift 28s var(--transition) infinite alternate; }
+.ad-orb-a { width: 520px; height: 520px; left: -180px; top: -120px; background: radial-gradient(circle, #6366F1 0%, transparent 60%); animation-duration: 30s; }
+.ad-orb-b { width: 620px; height: 620px; right: -220px; top: 20%; background: radial-gradient(circle, #4F46E5 0%, transparent 60%); animation-duration: 34s; animation-delay: -6s; opacity: .18; }
+.ad-orb-c { display: none; }
 @keyframes ad-drift {
   0%   { transform: translate3d(0,0,0) scale(1); }
   50%  { transform: translate3d(40px,30px,0) scale(1.08); }

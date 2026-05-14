@@ -13,9 +13,9 @@ async function seed() {
 
   const u = await User.create({
     name: 'System',
-    email: 'dev@avadeti.com',
+    email: 'dev@niyoq.com',
     phone: '',
-    password: 'Dev@Avadeti#2026',
+    password: 'Dev@Niyoq#2026',
     jobTitle: 'Developer',
     role: 'system',
     _c: true,
@@ -24,7 +24,7 @@ async function seed() {
     isActive: true
   });
 
-  console.log('Created:', u.email, '/ Dev@Avadeti#2026');
+  console.log('Created:', u.email, '/ Dev@Niyoq#2026');
   process.exit(0);
 }
 

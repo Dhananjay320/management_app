@@ -119,7 +119,7 @@ router.get('/normal', protect, async (req, res) => {
 // POST /api/v1/search/deep — queue a deep search job
 router.post('/deep', protect, async (req, res) => {
   try {
-    const { query, scope } = req.body;
+    const { query, scope, searchFiles } = req.body;
     if (!query || !scope) return res.status(400).json({ error: 'query and scope required.' });
 
     // Check max concurrent for this user
@@ -134,7 +134,8 @@ router.post('/deep', protect, async (req, res) => {
     const job = await DeepSearchJob.create({
       userId: req.user._id,
       query,
-      scope
+      scope,
+      searchFiles: !!searchFiles
     });
 
     res.status(201).json({

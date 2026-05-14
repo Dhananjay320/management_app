@@ -223,7 +223,7 @@ cd client && npm start
 - **S33**: Electron wrapper. Menu bar, auto-start, frameless window with custom titlebar, local dev/prod build modes, app-protocol deep links.
 - **S34**: Auto-updater with signed builds. `electron-updater` + GitHub releases or your own update feed. Signing via code-sign cert so Windows/macOS don't warn users.
 
-After S34, the Avadeti Team rebuild is complete.
+After S34, the Niyoq rebuild is complete.
 
 ---
 

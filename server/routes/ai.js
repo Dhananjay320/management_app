@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const ApiConfig = require('../models/ApiConfig');
+const User = require('../models/User');
 const { protect, requireRole } = require('../middleware/auth');
 const { encrypt, decrypt, parseActivationCode, PROMPTS, callWithFallback } = require('../utils/aiAdapters');
 
@@ -71,6 +72,9 @@ router.post('/activate', protect, async (req, res) => {
       { upsert: true, new: true }
     );
 
+    // Mark user as AI active
+    await User.findByIdAndUpdate(req.user._id, { aiActive: true, aiProvider: parsed.provider });
+
     res.json({
       success: true,
       provider: parsed.provider,
@@ -101,6 +105,9 @@ router.post('/activate-direct', protect, async (req, res) => {
       { upsert: true, new: true }
     );
 
+    // Mark user as AI active
+    await User.findByIdAndUpdate(req.user._id, { aiActive: true, aiProvider: provider });
+
     res.json({ success: true, provider, message: `AI activated with ${provider}.` });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
@@ -111,6 +118,7 @@ router.post('/activate-direct', protect, async (req, res) => {
 router.delete('/config', protect, async (req, res) => {
   try {
     await ApiConfig.findOneAndUpdate({ user: req.user._id }, { isActive: false });
+    await User.findByIdAndUpdate(req.user._id, { aiActive: false, aiProvider: '' });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });

@@ -37,7 +37,7 @@
 
 ## ⚠️ BREAKING CHANGE — read before deploying
 
-**The server now REQUIRES `AI_MASTER_SECRET` in the environment.** If it's missing or shorter than 16 characters, the server refuses to start. This is intentional — the previous default secret (`avadeti_team_ai_secret_key_32ch`) was hardcoded into the source, meaning anyone with code access could decrypt all stored AI API keys.
+**The server now REQUIRES `AI_MASTER_SECRET` in the environment.** If it's missing or shorter than 16 characters, the server refuses to start. This is intentional — the previous default secret (`niyoq_ai_secret_key_32ch`) was hardcoded into the source, meaning anyone with code access could decrypt all stored AI API keys.
 
 ### Set it before starting the server
 
@@ -59,7 +59,7 @@ If the server fails to start after this update, check your env var. The error me
 If you already have users with activated AI (stored encrypted keys using the old default), those keys **will no longer decrypt** with the new secret. Options:
 
 1. **Dev/staging:** Delete the `apiconfigs` collection and have users re-activate.
-2. **Prod:** Temporarily set `AI_MASTER_SECRET=avadeti_team_ai_secret_key_32ch` (the old default) to keep old keys working. Then rotate: script to decrypt with old, encrypt with new, update. This is a real migration concern but out of scope for Session 4 (that's Phase C material).
+2. **Prod:** Temporarily set `AI_MASTER_SECRET=niyoq_ai_secret_key_32ch` (the old default) to keep old keys working. Then rotate: script to decrypt with old, encrypt with new, update. This is a real migration concern but out of scope for Session 4 (that's Phase C material).
 
 ---
 

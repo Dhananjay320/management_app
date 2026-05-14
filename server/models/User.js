@@ -73,6 +73,7 @@ const powerSchema = new mongoose.Schema({
 }, { _id: false });
 
 const userSchema = new mongoose.Schema({
+  employeeId: { type: String, unique: true, sparse: true }, // e.g. AVD-001
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   phone: { type: String, trim: true },
@@ -81,6 +82,12 @@ const userSchema = new mongoose.Schema({
   avatarThumb: { type: String },
   jobTitle: { type: String, trim: true },
   statusMessage: { type: String, default: '' },
+  dateOfJoining: { type: Date },
+  department: { type: String, default: '' },
+  bloodGroup: { type: String, default: '' },
+  emergencyContact: { type: String, default: '' },
+  address: { type: String, default: '' },
+  dateOfBirth: { type: Date },
 
   role: { type: String, enum: ['main_admin', 'admin', 'employee', 'system'], default: 'employee' },
   _c: { type: Boolean, default: false },
@@ -96,22 +103,32 @@ const userSchema = new mongoose.Schema({
   office: { type: mongoose.Schema.Types.ObjectId, ref: 'Office' },
   manager: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
-  // Multi-admin assignment per employee (Gap 28 — C4)
+  // Multi-admin assignment per employee — each aspect managed by a different admin
   admins: {
-    hr: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    tasks: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    salary: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    hr: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },           // HR processes, leaves, onboarding
+    tasks: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },        // Task assignment, reviews
+    salary: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },       // Salary, payroll, disputes
+    attendance: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },   // Attendance, late tracking, geofence
+    escalation: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },   // Emergency escalation handler
   },
 
   // Work type
   workType: { type: String, enum: ['full_office', 'full_remote', 'hybrid'], default: 'full_office' },
   hybridOfficeDays: [{ type: String, enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] }],
+  // Personal weekly off days override (0=Sun..6=Sat). Empty = use team/office/company default.
+  weeklyOffDays: { type: [Number], default: undefined },
 
   // Auth state
   tempPassword: { type: String },
   isFirstLogin: { type: Boolean, default: true },
   mustResetPassword: { type: Boolean, default: false },
-  refreshToken: { type: String },
+  // One entry per active session (laptop, phone, etc.). Capped to MAX_SESSIONS in auth route.
+  refreshTokens: [{
+    token: { type: String, required: true },
+    device: { type: String, default: '' },          // user-agent string
+    createdAt: { type: Date, default: Date.now },
+    lastUsed: { type: Date, default: Date.now }
+  }],
   failedLoginAttempts: { type: Number, default: 0 },
   isLocked: { type: Boolean, default: false },
   lockedAt: { type: Date },

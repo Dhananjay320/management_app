@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../components/AlertModal';
 import api from '../services/api';
 import '../styles/attendance.css';
 
 export default function Attendance() {
   const { user } = useAuth();
+  const dialog = useAlert();
   const [tab, setTab] = useState('mark'); // mark, history, leave, approvals
   const [todayAtt, setTodayAtt] = useState(null);
   const [stats, setStats] = useState(null);
@@ -66,13 +68,21 @@ export default function Attendance() {
   };
 
   const wrapUp = async () => {
+    // Guard against accidental wrap-up — require explicit confirmation
+    const ok = window.confirm(
+      'Wrap up your day now?\n\n' +
+      'Once you wrap up, your day is closed and the entry time gets locked. ' +
+      'You will not be able to undo this.\n\n' +
+      'Are you sure?'
+    );
+    if (!ok) return;
     setLoading(true);
     try {
       const { data } = await api.post('/attendance/wrap-up');
       setTodayAtt(data);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to wrap up.');
+      dialog.alert(err.response?.data?.error || 'Failed to wrap up.', 'Error');
     } finally {
       setLoading(false);
     }
@@ -141,10 +151,7 @@ export default function Attendance() {
                 <div className="att-mark-btn-text">{loading ? 'Checking...' : 'Mark\nEntry'}</div>
               </button>
             ) : !todayAtt?.wrapUpTime ? (
-              <button className="att-mark-btn wrapup" onClick={wrapUp} disabled={loading}>
-                <div className="att-mark-btn-icon">🌙</div>
-                <div className="att-mark-btn-text">{loading ? 'Wrapping...' : 'Wrap\nUp'}</div>
-              </button>
+              <WrapUpButton user={user} loading={loading} onWrapUp={wrapUp} time={time} />
             ) : (
               <button className="att-mark-btn done" disabled>
                 <div className="att-mark-btn-icon">✅</div>
@@ -242,7 +249,7 @@ function LeaveRequestForm({ onSuccess }) {
       const res = await api.get('/attendance/leaves');
       setLeaves(res.data);
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to submit.');
+      window.alert(err.response?.data?.error || 'Failed to submit.');
     } finally {
       setLoading(false);
     }
@@ -337,7 +344,7 @@ function LeaveApprovals() {
       await api.put(`/attendance/leave/${leaveId}/${action}`);
       setPendingLeaves(prev => prev.filter(l => l._id !== leaveId));
     } catch (err) {
-      alert(err.response?.data?.error || `Failed to ${action} leave.`);
+      window.alert(err.response?.data?.error || `Failed to ${action} leave.`);
     } finally { setActionLoading(null); }
   };
 
@@ -390,5 +397,14 @@ function LeaveApprovals() {
         </div>
       ))}
     </div>
+  );
+}
+
+function WrapUpButton({ loading, onWrapUp }) {
+  return (
+    <button className="att-mark-btn wrapup" onClick={onWrapUp} disabled={loading}>
+      <div className="att-mark-btn-icon">🌙</div>
+      <div className="att-mark-btn-text">{loading ? 'Wrapping...' : 'Wrap\nUp'}</div>
+    </button>
   );
 }

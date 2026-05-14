@@ -4,6 +4,25 @@ const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = requir
 const { createOTP, verifyOTP } = require('../utils/otp');
 const { protect } = require('../middleware/auth');
 
+// Cap how many simultaneous device sessions a single user can have.
+const MAX_SESSIONS = 10;
+
+// Add a fresh refresh token entry to the user's session list, evicting the
+// oldest if we're over the cap.
+function addSession(user, refreshToken, deviceInfo) {
+  user.refreshTokens = user.refreshTokens || [];
+  user.refreshTokens.push({
+    token: refreshToken,
+    device: (deviceInfo || '').substring(0, 200),
+    createdAt: new Date(),
+    lastUsed: new Date()
+  });
+  if (user.refreshTokens.length > MAX_SESSIONS) {
+    user.refreshTokens.sort((a, b) => new Date(a.lastUsed) - new Date(b.lastUsed));
+    user.refreshTokens = user.refreshTokens.slice(-MAX_SESSIONS);
+  }
+}
+
 // POST /api/v1/auth/login
 router.post('/login', async (req, res) => {
   try {
@@ -60,13 +79,13 @@ router.post('/login', async (req, res) => {
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-    user.refreshToken = refreshToken;
+    addSession(user, refreshToken, req.headers['user-agent']);
     await user.save();
 
     const userData = user.toObject();
     delete userData.password;
     delete userData.tempPassword;
-    delete userData.refreshToken;
+    delete userData.refreshTokens;
     delete userData.emailConfig;
 
     res.json({
@@ -150,13 +169,13 @@ router.post('/verify-otp', async (req, res) => {
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-    user.refreshToken = refreshToken;
+    addSession(user, refreshToken, req.headers['user-agent']);
     await user.save();
 
     const userData = user.toObject();
     delete userData.password;
     delete userData.tempPassword;
-    delete userData.refreshToken;
+    delete userData.refreshTokens;
     delete userData.emailConfig;
 
     res.json({
@@ -200,6 +219,45 @@ router.post('/set-password', protect, async (req, res) => {
   }
 });
 
+// POST /api/v1/auth/change-password (logged-in users — verify current, set new)
+router.post('/change-password', protect, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+    }
+    if (!/\d/.test(newPassword)) {
+      return res.status(400).json({ error: 'New password must contain at least one number.' });
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      return res.status(400).json({ error: 'New password must contain at least one special character.' });
+    }
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ error: 'New password must be different from current.' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+
+    const ok = await user.comparePassword(currentPassword);
+    if (!ok) return res.status(401).json({ error: 'Current password is incorrect.' });
+
+    user.password = newPassword;
+    user.tempPassword = undefined;
+    user.isFirstLogin = false;
+    user.mustResetPassword = false;
+    await user.save();
+
+    res.json({ message: 'Password changed successfully.' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // POST /api/v1/auth/refresh
 router.post('/refresh', async (req, res) => {
   try {
@@ -209,25 +267,42 @@ router.post('/refresh', async (req, res) => {
     const decoded = verifyRefreshToken(refreshToken);
     const user = await User.findById(decoded.id);
 
-    if (!user || !user.isActive || user.refreshToken !== refreshToken) {
+    if (!user || !user.isActive) {
+      return res.status(401).json({ error: 'Invalid refresh token.' });
+    }
+    const sessionIdx = (user.refreshTokens || []).findIndex(s => s.token === refreshToken);
+    if (sessionIdx === -1) {
       return res.status(401).json({ error: 'Invalid refresh token.' });
     }
 
+    // Issue a new access token but KEEP the same refresh token. Rotating
+    // refresh tokens here causes race conditions when multiple tabs/parallel
+    // requests refresh at the same time — the first rotation would invalidate
+    // the others. Refresh tokens already have a 30-day expiry; that's
+    // sufficient for the security model at this scale.
     const newAccessToken = generateAccessToken(user);
-    const newRefreshToken = generateRefreshToken(user);
-    user.refreshToken = newRefreshToken;
+    user.refreshTokens[sessionIdx].lastUsed = new Date();
+    if (req.headers['user-agent']) {
+      user.refreshTokens[sessionIdx].device = req.headers['user-agent'].substring(0, 200);
+    }
     await user.save();
 
-    res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+    res.json({ accessToken: newAccessToken, refreshToken });
   } catch (err) {
     return res.status(401).json({ error: 'Invalid refresh token.' });
   }
 });
 
-// POST /api/v1/auth/logout
+// POST /api/v1/auth/logout — removes only the current session, not other devices
 router.post('/logout', protect, async (req, res) => {
   try {
-    req.user.refreshToken = null;
+    const { refreshToken } = req.body || {};
+    if (refreshToken) {
+      req.user.refreshTokens = (req.user.refreshTokens || []).filter(s => s.token !== refreshToken);
+    } else {
+      // No refresh token in body — fall back to logging out everywhere for safety
+      req.user.refreshTokens = [];
+    }
     await req.user.save();
     res.json({ message: 'Logged out successfully.' });
   } catch (err) {
@@ -240,9 +315,36 @@ router.get('/me', protect, async (req, res) => {
   const userData = req.user.toObject();
   delete userData.password;
   delete userData.tempPassword;
-  delete userData.refreshToken;
+  delete userData.refreshTokens;
   delete userData.emailConfig;
   res.json(userData);
+});
+
+// GET /api/v1/auth/sessions — list active sessions for the current user
+router.get('/sessions', protect, async (req, res) => {
+  const sessions = (req.user.refreshTokens || []).map(s => ({
+    id: s._id,
+    device: s.device,
+    createdAt: s.createdAt,
+    lastUsed: s.lastUsed
+  }));
+  res.json(sessions);
+});
+
+// DELETE /api/v1/auth/sessions/:id — revoke a specific session (kicks out that device)
+router.delete('/sessions/:id', protect, async (req, res) => {
+  req.user.refreshTokens = (req.user.refreshTokens || []).filter(
+    s => String(s._id) !== req.params.id
+  );
+  await req.user.save();
+  res.json({ ok: true });
+});
+
+// POST /api/v1/auth/logout-all — kick out every device including this one
+router.post('/logout-all', protect, async (req, res) => {
+  req.user.refreshTokens = [];
+  await req.user.save();
+  res.json({ ok: true });
 });
 
 module.exports = router;

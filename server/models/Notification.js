@@ -54,4 +54,23 @@ notificationSchema.pre('save', function (next) {
   next();
 });
 
+// After saving, send push notification to user's devices
+notificationSchema.post('save', async function (doc) {
+  try {
+    const { sendPushToUser } = require('../utils/pushSender');
+    await sendPushToUser(doc.user, {
+      title: doc.title,
+      message: doc.message,
+      type: doc.type,
+      entityId: doc.entityId,
+      entityType: doc.entityType,
+      tag: `${doc.type}-${doc._id}`,
+      url: doc.entityType === 'task' ? `/tasks?id=${doc.entityId}` :
+           doc.entityType === 'channel' ? `/messages?channel=${doc.entityId}` :
+           doc.entityType === 'meeting' ? `/meetings?id=${doc.entityId}` :
+           '/notifications'
+    });
+  } catch {}
+});
+
 module.exports = mongoose.model('Notification', notificationSchema);

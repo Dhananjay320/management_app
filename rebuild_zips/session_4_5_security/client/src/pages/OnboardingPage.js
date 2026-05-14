@@ -98,7 +98,7 @@ export default function OnboardingPage() {
           <>
             <div className="onb-step">
               <div className="onb-step-icon">🚀</div>
-              <h2>Welcome to Avadeti Team</h2>
+              <h2>Welcome to Niyoq</h2>
               <p>Your complete company management platform. Everything your team needs in one place.</p>
               <div className="onb-slides">
                 {INTRO_FEATURES.map((f, i) => (

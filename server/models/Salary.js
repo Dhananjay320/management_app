@@ -100,8 +100,21 @@ const salaryDisputeSchema = new mongoose.Schema({
   description: { type: String, required: true },
   whatIsWrong: { type: String, required: true },
 
+  // Dispute amount claimed by employee
+  disputeAmount: { type: Number, default: 0 },
+
+  // Chat thread between admin and employee
+  thread: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    message: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now }
+  }],
+
+  // Settlement
+  settlementAmount: { type: Number },
+
   // Status
-  status: { type: String, enum: ['open', 'resolved', 'rejected', 'escalated'], default: 'open' },
+  status: { type: String, enum: ['open', 'resolved', 'rejected', 'escalated', 'settled'], default: 'open' },
   resolution: { type: String },
   rejectionReason: { type: String },
 

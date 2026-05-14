@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import api, { getFileUrl } from '../services/api';
+import { useAlert } from '../components/AlertModal';
 import '../styles/tasks.css';
 // TODO: Add FormatSwitcher from '../components/FormatSwitcher' to allow switching task comments/activity between chat/email/table/calendar/document views
 
@@ -41,6 +42,7 @@ function formatMinutes(mins) {
 export default function Tasks() {
   // eslint-disable-next-line no-unused-vars
   const { user: _user } = useAuth();
+  const dialog = useAlert();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState('tasks'); // tasks, create, detail, todo
   const [view, setView] = useState('my');
@@ -162,7 +164,7 @@ export default function Tasks() {
       {showLabelsModal && <LabelsModal onClose={() => setShowLabelsModal(false)} />}
 
       {tab === 'detail' && selectedTask && (
-        <TaskDetail task={selectedTask} onBack={() => { setTab('tasks'); setSelectedTask(null); }} onUpdate={updateTask} onReload={() => openTask(selectedTask._id)} />
+        <TaskDetail task={selectedTask} onBack={() => { setTab('tasks'); setSelectedTask(null); loadTasks(); }} onUpdate={updateTask} onReload={() => openTask(selectedTask._id)} />
       )}
 
       {tab === 'create' && <CreateTask onBack={() => setTab('tasks')} onCreated={() => { setTab('tasks'); loadTasks(); }} />}
@@ -339,6 +341,19 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
     } catch {}
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/tasks/${task._id}`);
+      onBack();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete task.');
+    }
+  };
+
+  const isCreator = task.createdBy === user?._id || task.createdBy?._id === user?._id;
+  const canDelete = isCreator || user?.role === 'main_admin' || user?.powers?.tasks?.deleteAny === true;
+
   return (
     <div>
       <button className="btn btn-secondary" style={{ marginBottom: 16 }} onClick={onBack}>← Back to Tasks</button>
@@ -358,10 +373,19 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
                   {task.team && <span className="badge-pill" style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981' }}>{task.team.name}</span>}
                 </div>
               </div>
-              <select style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--line)', fontSize: 11, color: 'var(--ink-2)', background: 'var(--bg-1)', fontFamily: 'var(--font)' }}
-                value={task.status} onChange={e => onUpdate(task._id, { status: e.target.value })}>
-                {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <select style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--line)', fontSize: 11, color: 'var(--ink-2)', background: 'var(--bg-1)', fontFamily: 'var(--font)' }}
+                  value={task.status} onChange={e => onUpdate(task._id, { status: e.target.value })}>
+                  {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+                {canDelete && (
+                  <button onClick={handleDelete}
+                    title="Delete task"
+                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, background: 'rgba(239,68,68,0.06)', color: '#EF4444', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                    🗑 Delete
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Fields grid */}
@@ -534,15 +558,32 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
                 <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileUpload} disabled={uploading} />
               </label>
             </div>
-            {task.attachments?.length > 0 ? task.attachments.map((att, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--line)', fontSize: 11 }}>
-                <span style={{ fontSize: 14 }}>
-                  {att.mimeType?.startsWith('image/') ? '🖼️' : att.mimeType === 'application/pdf' ? '📄' : '📎'}
-                </span>
-                <span style={{ flex: 1, color: 'var(--ink)', fontWeight: 500 }}>{att.name}</span>
-                <span style={{ color: 'var(--ink-4)', fontSize: 10 }}>{formatFileSize(att.size)}</span>
-              </div>
-            )) : (
+            {task.attachments?.length > 0 ? task.attachments.map((att, i) => {
+              const fileUrl = getFileUrl(att.path);
+              const isImage = att.mimeType?.startsWith('image/');
+              return (
+                <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+                  {isImage && (
+                    <img src={fileUrl} alt={att.name}
+                      style={{ maxWidth: '100%', maxHeight: 120, borderRadius: 6, objectFit: 'cover', display: 'block', marginBottom: 4, cursor: 'pointer' }}
+                      onClick={() => window.open(fileUrl, '_blank')}
+                      onError={e => { e.target.style.display = 'none'; }}
+                    />
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
+                    <span style={{ fontSize: 14 }}>
+                      {isImage ? '🖼️' : att.mimeType === 'application/pdf' ? '📕' : att.mimeType?.startsWith('video/') ? '🎬' : '📎'}
+                    </span>
+                    <a href={fileUrl} target="_blank" rel="noreferrer" style={{ flex: 1, color: '#6366F1', fontWeight: 500, textDecoration: 'none' }}
+                      title="Click to view / right-click to download">{att.name}</a>
+                    <span style={{ color: 'var(--ink-4)', fontSize: 10 }}>{formatFileSize(att.size)}</span>
+                    <button onClick={async () => {
+                      try { const r = await fetch(fileUrl); const b = await r.blob(); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = att.name; a.click(); URL.revokeObjectURL(u); } catch { window.open(fileUrl, '_blank'); }
+                    }} style={{ fontSize: 9, color: '#6366F1', padding: '2px 6px', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 4, background: 'transparent', cursor: 'pointer', fontFamily: 'Inter' }}>DL</button>
+                  </div>
+                </div>
+              );
+            }) : (
               <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>No attachments</div>
             )}
           </div>
@@ -621,6 +662,9 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
 
         {/* Sidebar */}
         <div className="task-detail-side">
+          {/* Checklist */}
+          <ChecklistSection task={task} onReload={onReload} />
+
           {/* Subtasks */}
           <SubtaskSection task={task} onUpdate={onUpdate} onReload={onReload} />
 
@@ -671,6 +715,9 @@ function TaskDetail({ task, onBack, onUpdate, onReload }) {
               <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>No watchers</div>
             )}
           </div>
+
+          {/* Quick Note — attached to this task */}
+          <QuickNoteButton entityType="task" entityId={task._id} entityTitle={task.title} />
 
           {/* Created info */}
           <div className="card">
@@ -730,10 +777,246 @@ function SubtaskSection({ task, onUpdate, onReload }) {
   );
 }
 
+function ChecklistSection({ task, onReload }) {
+  const [newItem, setNewItem] = useState('');
+  const [newGroup, setNewGroup] = useState('');
+  const [isSequential, setIsSequential] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const checklist = task.checklist || [];
+  const doneCount = checklist.filter(c => c.done).length;
+  const total = checklist.length;
+  const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+  // Group items
+  const groups = {};
+  checklist.forEach(item => {
+    const g = item.group || '';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(item);
+  });
+  // Sort items within each group by order
+  Object.values(groups).forEach(arr => arr.sort((a, b) => a.order - b.order));
+  const groupNames = Object.keys(groups).sort((a, b) => {
+    if (a === '' && b !== '') return 1;
+    if (b === '' && a !== '') return -1;
+    return a.localeCompare(b);
+  });
+
+  const addItem = async () => {
+    if (!newItem.trim()) return;
+    setAdding(true);
+    try {
+      await api.post(`/tasks/${task._id}/checklist`, { text: newItem.trim(), group: newGroup.trim(), sequential: isSequential });
+      setNewItem('');
+      onReload();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to add item');
+    } finally { setAdding(false); }
+  };
+
+  const toggleItem = async (itemId, currentDone) => {
+    try {
+      await api.put(`/tasks/${task._id}/checklist/${itemId}`, { done: !currentDone });
+      onReload();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Cannot check this item yet');
+    }
+  };
+
+  const deleteItem = async (itemId) => {
+    try {
+      await api.delete(`/tasks/${task._id}/checklist/${itemId}`);
+      onReload();
+    } catch {}
+  };
+
+  const checkAll = async (group, done) => {
+    try {
+      await api.put(`/tasks/${task._id}/checklist-bulk`, { done, group: group || undefined });
+      onReload();
+    } catch {}
+  };
+
+  const isItemLocked = (item, groupItems) => {
+    if (!item.sequential) return false;
+    const idx = groupItems.findIndex(c => c._id === item._id);
+    return idx > 0 && !groupItems[idx - 1].done;
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Checklist ({doneCount}/{total})</div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {total > 0 && (
+            <button className="btn btn-primary-sm" style={{ padding: '3px 8px', fontSize: 9 }}
+              onClick={() => checkAll('', doneCount < total)}>
+              {doneCount < total ? '✓ All' : '✗ Uncheck'}
+            </button>
+          )}
+          <button className="btn btn-primary-sm" style={{ padding: '3px 8px', fontSize: 9 }}
+            onClick={() => setShowAddForm(!showAddForm)}>+ Add</button>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      {total > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ height: 6, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: pct + '%', background: pct === 100 ? '#10B981' : '#6366F1', borderRadius: 3, transition: 'width 0.3s ease' }} />
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 3, textAlign: 'right' }}>{pct}%</div>
+        </div>
+      )}
+
+      {/* Grouped checklist items */}
+      {groupNames.map(groupName => {
+        const items = groups[groupName];
+        const groupDone = items.filter(i => i.done).length;
+        return (
+          <div key={groupName} style={{ marginBottom: groupNames.length > 1 ? 10 : 0 }}>
+            {groupName && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#6366F1', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {groupName} ({groupDone}/{items.length})
+                </div>
+                <button style={{ fontSize: 8, color: 'var(--ink-3)', cursor: 'pointer', border: 'none', background: 'none', padding: '2px 4px' }}
+                  onClick={() => checkAll(groupName, groupDone < items.length)}>
+                  {groupDone < items.length ? 'Check all' : 'Uncheck all'}
+                </button>
+              </div>
+            )}
+            {items.map(item => {
+              const locked = isItemLocked(item, items);
+              return (
+                <div key={item._id} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '5px 4px',
+                  opacity: locked ? 0.5 : 1, borderRadius: 4,
+                  borderLeft: item.sequential ? '2px solid #8B5CF6' : 'none'
+                }}>
+                  <div onClick={() => !locked && toggleItem(item._id, item.done)}
+                    style={{
+                      width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                      border: item.done ? 'none' : '2px solid var(--line)',
+                      background: item.done ? '#10B981' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: locked ? 'not-allowed' : 'pointer', transition: 'all 0.15s'
+                    }}>
+                    {item.done && <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>✓</span>}
+                  </div>
+                  <span style={{
+                    flex: 1, fontSize: 11, color: item.done ? 'var(--ink-4)' : 'var(--ink)',
+                    textDecoration: item.done ? 'line-through' : 'none'
+                  }}>
+                    {item.text}
+                  </span>
+                  {locked && <span style={{ fontSize: 9, color: '#F59E0B' }} title="Complete previous item first">🔒</span>}
+                  <span style={{ cursor: 'pointer', fontSize: 12, color: 'var(--ink-4)' }} onClick={() => deleteItem(item._id)}>&times;</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+
+      {total === 0 && !showAddForm && (
+        <div style={{ fontSize: 11, color: 'var(--ink-4)', padding: '4px 0' }}>No checklist items. Click + Add to create one.</div>
+      )}
+
+      {/* Add form */}
+      {showAddForm && (
+        <div style={{ marginTop: 8, padding: 8, background: 'var(--glass)', borderRadius: 6, border: '1px solid var(--line)' }}>
+          <input value={newItem} onChange={e => setNewItem(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') addItem(); }}
+            placeholder="What needs to be done?"
+            style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, background: 'var(--bg-1)', outline: 'none', fontFamily: 'Inter, sans-serif', marginBottom: 6, boxSizing: 'border-box' }} />
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input value={newGroup} onChange={e => setNewGroup(e.target.value)} placeholder="Group (optional)"
+              style={{ flex: 1, minWidth: 80, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 10, background: 'var(--bg-1)', outline: 'none', fontFamily: 'Inter, sans-serif' }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink-2)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={isSequential} onChange={e => setIsSequential(e.target.checked)} />
+              Sequential
+            </label>
+            <button className="btn btn-primary-sm" style={{ padding: '4px 10px', fontSize: 10 }} onClick={addItem} disabled={adding || !newItem.trim()}>
+              {adding ? '...' : 'Add'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuickNoteButton({ entityType, entityId, entityTitle }) {
+  const [showForm, setShowForm] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [notes, setNotes] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  const loadNotes = useCallback(async () => {
+    try {
+      const { data } = await api.get(`/sticky-notes/context/${entityType}/${entityId}`);
+      setNotes(data);
+    } catch {}
+  }, [entityType, entityId]);
+
+  useEffect(() => { loadNotes(); }, [loadNotes]);
+
+  const createNote = async () => {
+    if (!noteText.trim()) return;
+    setSaving(true);
+    try {
+      await api.post('/sticky-notes', {
+        title: `Note on: ${entityTitle}`,
+        content: noteText.trim(),
+        color: '#FEF3C7',
+        attachedTo: [{ entityType, entityId }]
+      });
+      setNoteText('');
+      setShowForm(false);
+      loadNotes();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to save note.');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: notes.length || showForm ? 8 : 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Notes ({notes.length})</div>
+        <button className="btn btn-primary-sm" style={{ padding: '3px 8px', fontSize: 9 }}
+          onClick={() => setShowForm(!showForm)}>+ Quick Note</button>
+      </div>
+      {notes.map(n => (
+        <div key={n._id} style={{ padding: '6px 8px', marginBottom: 4, borderRadius: 6, background: n.color || '#FEF3C7', fontSize: 11, color: '#1E293B', lineHeight: 1.5 }}>
+          {n.title && <div style={{ fontWeight: 700, fontSize: 10, marginBottom: 2 }}>{n.title}</div>}
+          <div>{n.content}</div>
+        </div>
+      ))}
+      {showForm && (
+        <div style={{ marginTop: 4 }}>
+          <textarea value={noteText} onChange={e => setNoteText(e.target.value)}
+            placeholder="Write a quick note about this..."
+            rows={3}
+            style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, fontFamily: 'Inter', background: 'var(--glass)', outline: 'none', resize: 'vertical', color: 'var(--ink)', boxSizing: 'border-box' }} />
+          <div style={{ display: 'flex', gap: 4, marginTop: 4, justifyContent: 'flex-end' }}>
+            <button style={{ padding: '3px 8px', fontSize: 9, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--glass)', color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'Inter' }} onClick={() => setShowForm(false)}>Cancel</button>
+            <button className="btn btn-primary-sm" style={{ padding: '3px 10px', fontSize: 9 }} onClick={createNote} disabled={saving || !noteText.trim()}>
+              {saving ? '...' : 'Save Note'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CreateTask({ onBack, onCreated }) {
   const { user } = useAuth();
   const [form, setForm] = useState({
-    title: '', description: '', priority: 'medium', deadline: '', deadlineTime: '', statusNote: '',
+    title: '', description: '', priority: 'medium', startDate: '', deadline: '', deadlineTime: '', statusNote: '',
     assignees: [user._id],
     team: '',
     labels: [],
@@ -850,11 +1133,14 @@ function CreateTask({ onBack, onCreated }) {
               </div>
             </div>
             <div className="form-field">
-              <label>Deadline</label>
+              <label>Start Date — Deadline</label>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input type="date" value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} style={{ flex: 1 }} />
-                <input type="time" value={form.deadlineTime} onChange={e => setForm(p => ({ ...p, deadlineTime: e.target.value }))} placeholder="Reminder time" style={{ flex: 1 }} />
+                <input type="date" value={form.startDate || ''} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} style={{ flex: 1 }} title="Start date" />
+                <span style={{ alignSelf: 'center', color: 'var(--ink-3)', fontSize: 11 }}>→</span>
+                <input type="date" value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))} style={{ flex: 1 }} title="Deadline" />
+                <input type="time" value={form.deadlineTime} onChange={e => setForm(p => ({ ...p, deadlineTime: e.target.value }))} placeholder="Time" style={{ width: 90 }} title="Deadline time" />
               </div>
+              <div style={{ fontSize: 9, color: 'var(--ink-4)', marginTop: 2 }}>Task shows on calendar for all days between start and deadline</div>
             </div>
           </div>
 

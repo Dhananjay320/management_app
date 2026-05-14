@@ -2,7 +2,7 @@
 
 **Status: ✅ Build-verified.** Client: 319.10 kB main.js (+551 B), 34.39 kB CSS (+190 B). Electron main + preload syntax-verified; package.json validated.
 
-First of two Phase G sessions. Turns the Avadeti Team web app into a proper desktop app — frameless window with custom titlebar, OS-native menu, single-instance lock, `avadeti://` deep links, auto-start at login, and installers for Windows/macOS/Linux.
+First of two Phase G sessions. Turns the Niyoq web app into a proper desktop app — frameless window with custom titlebar, OS-native menu, single-instance lock, `niyoq://` deep links, auto-start at login, and installers for Windows/macOS/Linux.
 
 ---
 
@@ -23,7 +23,7 @@ client/src/
 │   ├── ElectronTitleBar.css           (NEW)
 │   └── layout/AppLayout.js            (patched) mounts titlebar + useDeepLink
 └── hooks/
-    └── useDeepLink.js                 (NEW) avadeti:// URL → react-router navigate
+    └── useDeepLink.js                 (NEW) niyoq:// URL → react-router navigate
 ```
 
 **9 files total: 1 patched + 8 new.** Zero new npm dependencies on the client side.
@@ -66,17 +66,17 @@ Platform-appropriate template:
 
 Only one window of the app runs at a time:
 
-- Double-clicking the icon or opening an `avadeti://` link while running → focuses the existing window
+- Double-clicking the icon or opening an `niyoq://` link while running → focuses the existing window
 - Second instance process quits immediately
 - Deep-link URL from the new process gets forwarded into the running one
 
-### 5. `avadeti://` deep links
+### 5. `niyoq://` deep links
 
-OS-level URL protocol. Click `avadeti://meetings/abc123` anywhere (email, Slack, browser) → the app opens (or focuses) and navigates to `/meetings/abc123`.
+OS-level URL protocol. Click `niyoq://meetings/abc123` anywhere (email, Slack, browser) → the app opens (or focuses) and navigates to `/meetings/abc123`.
 
 Wiring:
 
-- `main.js` registers via `app.setAsDefaultProtocolClient('avadeti')`
+- `main.js` registers via `app.setAsDefaultProtocolClient('niyoq')`
 - Deep link arrives via `open-url` (macOS) or as an argv entry in `second-instance` (Windows/Linux)
 - Forwarded into renderer as an IPC `deep-link` event
 - `preload.js` exposes `window.electron.onDeepLink(cb)` for the renderer
@@ -151,7 +151,7 @@ Calls no-op in the browser (everything checks `window.electron`). The app works 
 Drop the entire `electron/` folder from the zip as a **sibling** to your existing `client/` and `server/`:
 
 ```
-avadeti-team/
+niyoq/
 ├── client/
 ├── server/
 └── electron/     ← here
@@ -211,7 +211,7 @@ Output in `electron/dist/`.
 **In dev:**
 
 - Window opens with a 36-px dark titlebar at the top
-- Title reads "Avadeti Team"
+- Title reads "Niyoq"
 - On Windows/Linux: min/max/close buttons on the right; close hovers red
 - On macOS: native traffic lights appear on the left; our titlebar reserves space for them
 - Menu bar shows File / Edit / View / Window / Help (plus app menu on macOS)
@@ -222,19 +222,19 @@ Output in `electron/dist/`.
 
 **Deep link test (macOS):**
 
-- Open Terminal and run: `open 'avadeti://meetings/test123'`
+- Open Terminal and run: `open 'niyoq://meetings/test123'`
 - App opens (or focuses if already running)
 - Navigates to `/meetings/test123`
 
 **Deep link test (Windows):**
 
-- Open CMD or PowerShell: `start avadeti://meetings/test123`
+- Open CMD or PowerShell: `start niyoq://meetings/test123`
 - Same result
 
 **Single-instance lock:**
 
 - Launch the app
-- Launch it again (double-click icon, or `avadeti://` link) → focuses existing window, no second window opens
+- Launch it again (double-click icon, or `niyoq://` link) → focuses existing window, no second window opens
 
 **Production build smoke-test:**
 
@@ -329,7 +329,7 @@ Users expect "click link → my browser opens". If we let them open inside the E
 4. **Release workflow** — GitHub Action that builds for all three platforms on tag push
 5. **CHANGELOG and versioning conventions** — semver bumps, auto-generated release notes
 
-After S34, the entire Avadeti Team rebuild is complete.
+After S34, the entire Niyoq rebuild is complete.
 
 ---
 

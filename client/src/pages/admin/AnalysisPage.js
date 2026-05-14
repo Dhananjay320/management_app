@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
+import '../../styles/calendar.css';
 
 const TABS = [
   { key: 'individual', label: 'Individual' },
+  { key: 'calendar', label: 'Calendar View' },
   { key: 'team', label: 'Team' },
   { key: 'company', label: 'Company' },
 ];
@@ -74,6 +76,32 @@ export default function AnalysisPage() {
   const [individualAttendance, setIndividualAttendance] = useState([]);
   const [individualLeaves, setIndividualLeaves] = useState([]);
   const [individualTasks, setIndividualTasks] = useState([]);
+  const [editingAttendance, setEditingAttendance] = useState(null); // { userId, date, entryTime, wrapUpTime, status }
+  const [attSaving, setAttSaving] = useState(false);
+
+  const saveAttendanceEdit = async () => {
+    if (!editingAttendance) return;
+    setAttSaving(true);
+    try {
+      const { userId, date, entryTime, wrapUpTime, status } = editingAttendance;
+      await api.put('/attendance/edit-timing', {
+        userId, date,
+        entryTime: entryTime ? `${date}T${entryTime}:00` : undefined,
+        wrapUpTime: wrapUpTime ? `${date}T${wrapUpTime}:00` : undefined,
+        status
+      });
+      setEditingAttendance(null);
+      // Reload
+      if (selectedUser) {
+        const r = getDateRange();
+        const res = await api.get('/attendance/history', { params: { userId: selectedUser, month: r.month } });
+        setIndividualAttendance(res.data);
+      }
+    } catch (err) {
+      window.alert(err.response?.data?.error || 'Failed to update attendance.');
+    }
+    setAttSaving(false);
+  };
 
   // Team tab
   const [teamData, setTeamData] = useState(null);
@@ -293,21 +321,28 @@ export default function AnalysisPage() {
               </div>
             )}
 
-            {/* Attendance records */}
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 10, marginTop: 20 }}>Attendance Records</div>
+            {/* Attendance records — with edit */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)' }}>Attendance Records</div>
+              <button onClick={() => setEditingAttendance({ userId: selectedUser, date: new Date().toISOString().split('T')[0], entryTime: '', wrapUpTime: '', status: 'present' })}
+                style={{ padding: '3px 10px', fontSize: 9, border: '1px solid #6366F1', borderRadius: 4, background: 'rgba(99,102,241,0.06)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter' }}>
+                + Add / Edit Date
+              </button>
+            </div>
             {individualAttendance.length === 0 ? (
               <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink-3)', fontSize: 12 }}>No attendance records for this period.</div>
             ) : (
               <div className="table-container">
-                <div className="table-header" style={{ gridTemplateColumns: '100px 100px 100px 80px 80px' }}>
+                <div className="table-header" style={{ gridTemplateColumns: '100px 100px 100px 80px 80px 50px' }}>
                   <div>Date</div>
                   <div>Entry</div>
                   <div>Wrap Up</div>
                   <div>Hours</div>
                   <div>Status</div>
+                  <div>Edit</div>
                 </div>
                 {individualAttendance.slice(0, 31).map(r => (
-                  <div key={r._id || r.date} className="table-row" style={{ gridTemplateColumns: '100px 100px 100px 80px 80px' }}>
+                  <div key={r._id || r.date} className="table-row" style={{ gridTemplateColumns: '100px 100px 100px 80px 80px 50px' }}>
                     <div style={{ color: 'var(--ink)', fontWeight: 500, fontSize: 11 }}>{r.date}</div>
                     <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{r.entryTime ? new Date(r.entryTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
                     <div style={{ color: 'var(--ink-2)', fontSize: 11 }}>{r.wrapUpTime ? new Date(r.wrapUpTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
@@ -317,6 +352,14 @@ export default function AnalysisPage() {
                         background: r.status === 'present' ? 'rgba(16,185,129,0.08)' : r.status === 'leave' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)',
                         color: r.status === 'present' ? '#10B981' : r.status === 'leave' ? '#EF4444' : '#F59E0B',
                       }}>{r.status?.charAt(0).toUpperCase() + r.status?.slice(1).replace('_', ' ')}</span>
+                    </div>
+                    <div>
+                      <button onClick={() => setEditingAttendance({
+                        userId: selectedUser, date: r.date,
+                        entryTime: r.entryTime ? new Date(r.entryTime).toTimeString().slice(0, 5) : '',
+                        wrapUpTime: r.wrapUpTime ? new Date(r.wrapUpTime).toTimeString().slice(0, 5) : '',
+                        status: r.status || 'present'
+                      })} style={{ fontSize: 10, color: '#6366F1', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Inter' }}>Edit</button>
                     </div>
                   </div>
                 ))}
@@ -452,14 +495,16 @@ export default function AnalysisPage() {
         ))}
       </div>
 
-      {/* Period filter */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {PERIODS.map(p => (
-          <button key={p.key} style={periodStyle(period === p.key)} onClick={() => setPeriod(p.key)}>
-            {p.label}
-          </button>
-        ))}
-      </div>
+      {/* Period filter — hide on calendar tab (has its own nav) */}
+      {tab !== 'calendar' && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          {PERIODS.map(p => (
+            <button key={p.key} style={periodStyle(period === p.key)} onClick={() => setPeriod(p.key)}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Error */}
       {error && <div className="info-box amber" style={{ marginBottom: 12 }}><span>&#9888;&#65039;</span><div>{error}</div></div>}
@@ -470,8 +515,276 @@ export default function AnalysisPage() {
       ) : (
         <>
           {tab === 'individual' && renderIndividual()}
+          {tab === 'calendar' && <AdminCalendarView users={users} />}
           {tab === 'team' && renderTeam()}
           {tab === 'company' && renderCompany()}
+        </>
+      )}
+
+      {/* Attendance Edit Modal */}
+      {editingAttendance && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }} onClick={() => setEditingAttendance(null)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 1000, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 14, width: 380, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Edit Attendance</div>
+              <button style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--ink-3)' }} onClick={() => setEditingAttendance(null)}>&times;</button>
+            </div>
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Date</label>
+                <input type="date" value={editingAttendance.date} onChange={e => setEditingAttendance(p => ({ ...p, date: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 12, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Entry Time</label>
+                  <input type="time" value={editingAttendance.entryTime} onChange={e => setEditingAttendance(p => ({ ...p, entryTime: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 12, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Wrap Up Time</label>
+                  <input type="time" value={editingAttendance.wrapUpTime} onChange={e => setEditingAttendance(p => ({ ...p, wrapUpTime: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 12, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Status</label>
+                <select value={editingAttendance.status} onChange={e => setEditingAttendance(p => ({ ...p, status: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 12, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)' }}>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="half_day">Half Day</option>
+                  <option value="leave">Leave</option>
+                  <option value="wfh">Work From Home</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-secondary" onClick={() => setEditingAttendance(null)}>Cancel</button>
+              <button className="btn btn-primary-sm" onClick={saveAttendanceEdit} disabled={attSaving}>
+                {attSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══ Admin Calendar View — mirrors CalendarHome exactly ═══
+const ADM_EVENT_COLORS = { leave: '#EF4444', half_day: '#F97316', holiday: '#7C3AED', task: '#3B82F6', activity: '#F59E0B', meeting: '#8B5CF6', announcement: '#EC4899', custom: 'var(--ink-2)' };
+const ADM_PRIORITY_COLORS = { top: '#EF4444', high: '#F97316', medium: '#F59E0B', low: '#10B981' };
+const ADM_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const ADM_EVENT_PRIORITY_RANK = { leave: 1, half_day: 2, holiday: 3, task: 4, activity: 5, meeting: 4, custom: 6 };
+
+function admDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function admIsToday(d) { return d.toDateString() === new Date().toDateString(); }
+function admGetWeekDates(date) {
+  const d = new Date(date); const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d.setDate(diff));
+  return Array.from({ length: 7 }, (_, i) => { const dt = new Date(monday); dt.setDate(monday.getDate() + i); return dt; });
+}
+
+function AdminCalendarView({ users }) {
+  const [selectedUser, setSelectedUser] = useState('');
+  const [view, setView] = useState('weekly');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [events, setEvents] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [leaves, setLeaves] = useState([]);
+  const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const weekDates = admGetWeekDates(currentDate);
+
+  const loadCalendar = useCallback(async () => {
+    if (!selectedUser) return;
+    setLoading(true);
+    try {
+      let s, e;
+      if (view === 'monthly') {
+        const y = currentDate.getFullYear(), m = currentDate.getMonth();
+        s = admDateStr(new Date(y, m, 1));
+        e = admDateStr(new Date(y, m + 1, 0));
+      } else {
+        const wd = admGetWeekDates(currentDate);
+        s = admDateStr(wd[0]);
+        e = admDateStr(wd[6]);
+      }
+      const { data } = await api.get(`/calendar/user/${selectedUser}`, { params: { start: s, end: e } });
+      setEvents(data.events || []);
+      setAttendance(data.attendance || []);
+      setLeaves(data.leaves || []);
+      setUserName(data.userName || '');
+    } catch {
+      setEvents([]); setAttendance([]); setLeaves([]);
+    }
+    setLoading(false);
+  }, [selectedUser, view, currentDate]);
+
+  useEffect(() => { loadCalendar(); }, [loadCalendar]);
+
+  const getEventsForDate = (d) => events.filter(ev => ev.date === admDateStr(d));
+
+  const prevPeriod = () => {
+    const d = new Date(currentDate);
+    if (view === 'monthly') d.setMonth(d.getMonth() - 1); else d.setDate(d.getDate() - 7);
+    setCurrentDate(d);
+  };
+  const nextPeriod = () => {
+    const d = new Date(currentDate);
+    if (view === 'monthly') d.setMonth(d.getMonth() + 1); else d.setDate(d.getDate() + 7);
+    setCurrentDate(d);
+  };
+  const goToday = () => setCurrentDate(new Date());
+
+  const monthLabel = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  // Today's attendance for this user
+  const todayStr = admDateStr(new Date());
+  const todayAtt = attendance.find(a => a.date === todayStr);
+
+  return (
+    <div>
+      {/* User selector */}
+      <div style={{ marginBottom: 14 }}>
+        <select value={selectedUser} onChange={e => { setSelectedUser(e.target.value); setEvents([]); }}
+          style={{ width: '100%', maxWidth: 400, padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 12, fontFamily: 'Inter', background: 'var(--glass)', color: 'var(--ink)' }}>
+          <option value="">Select employee to view calendar...</option>
+          {users.map(u => <option key={u._id} value={u._id}>{u.name} — {u.jobTitle || u.email}</option>)}
+        </select>
+      </div>
+
+      {!selectedUser && <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)', fontSize: 13 }}>Select an employee above</div>}
+
+      {selectedUser && (
+        <>
+          {/* Header — same as CalendarHome */}
+          <div className="page-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div>
+                <div className="page-title">{userName}'s Calendar</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{monthLabel}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: 14 }} onClick={prevPeriod}>←</button>
+                <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: 10 }} onClick={goToday}>Today</button>
+                <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: 14 }} onClick={nextPeriod}>→</button>
+              </div>
+            </div>
+            <div className="chip-group">
+              {['weekly','monthly'].map(v => (
+                <div key={v} className={`chip ${view === v ? 'active' : ''}`} onClick={() => setView(v)}>
+                  {v.charAt(0).toUpperCase() + v.slice(1)}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Attendance bar — same as CalendarHome */}
+          <div className="cal-attendance-bar">
+            <div className={`cal-att-item ${todayAtt?.entryTime ? 'done' : 'pending'}`}>
+              {todayAtt?.entryTime ? '✓' : '○'} Entry: {todayAtt?.entryTime ? new Date(todayAtt.entryTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Not marked'}
+            </div>
+            <div className={`cal-att-item ${todayAtt?.wrapUpTime ? 'done' : 'pending'}`}>
+              {todayAtt?.wrapUpTime ? '✓' : '○'} Wrap Up: {todayAtt?.wrapUpTime ? new Date(todayAtt.wrapUpTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Pending'}
+            </div>
+            {todayAtt?.totalHours > 0 && (
+              <div className="cal-att-item done">Hours: {todayAtt.totalHours}h</div>
+            )}
+          </div>
+
+          {/* Leave banners */}
+          {leaves.map(l => (
+            <div key={l._id} style={{ padding: '6px 12px', borderRadius: 8, fontSize: 11, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.12)', color: '#EF4444', marginBottom: 8 }}>
+              On Leave: {l.type} — {new Date(l.startDate).toLocaleDateString()} to {new Date(l.endDate).toLocaleDateString()}
+            </div>
+          ))}
+
+          {loading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading...</div>}
+
+          {/* Weekly View — uses exact cal-week-grid CSS from CalendarHome */}
+          {!loading && view === 'weekly' && (
+            <div className="cal-week-grid">
+              {weekDates.map(d => {
+                const evts = getEventsForDate(d);
+                const today = admIsToday(d);
+                return (
+                  <div key={admDateStr(d)} className={`cal-day ${today ? 'today' : ''}`}>
+                    <div className="cal-day-header">
+                      <div className="cal-day-name">{ADM_DAYS[d.getDay() === 0 ? 6 : d.getDay() - 1]}</div>
+                      <div className="cal-day-number">{d.getDate()}</div>
+                      {today && <div className="cal-today-dot" />}
+                    </div>
+                    {evts.map((ev, i) => {
+                      const eventCol = ADM_EVENT_COLORS[ev.type] || '#3B82F6';
+                      const priorityCol = ev.priority ? ADM_PRIORITY_COLORS[ev.priority] : null;
+                      return (
+                        <div key={i} className="cal-event" style={{ background: eventCol + '0D', borderLeft: `2px solid ${eventCol}` }}>
+                          <div className="cal-event-title" style={{ color: eventCol }}>
+                            {ev.type === 'task' && priorityCol && (
+                              <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: priorityCol, marginRight: 4, verticalAlign: 'middle' }} />
+                            )}
+                            {ev._isPrivate ? '🔒 Private Task' : ev.title}
+                          </div>
+                          {ev.startTime && <div className="cal-event-time" style={{ color: eventCol }}>{ev.startTime}</div>}
+                          {!ev.startTime && ev.type && <div className="cal-event-time" style={{ color: eventCol }}>{ev.type}</div>}
+                        </div>
+                      );
+                    })}
+                    {evts.length === 0 && today && (
+                      <div style={{ fontSize: 10, color: 'var(--ink-4)', textAlign: 'center', marginTop: 20 }}>No events</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Monthly View — uses exact cal-month-grid CSS from CalendarHome */}
+          {!loading && view === 'monthly' && (() => {
+            const year = currentDate.getFullYear(), month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startPad = (firstDay.getDay() + 6) % 7;
+            const days = [];
+            for (let i = startPad - 1; i >= 0; i--) days.push({ date: new Date(year, month, -i), otherMonth: true });
+            for (let i = 1; i <= lastDay.getDate(); i++) days.push({ date: new Date(year, month, i), otherMonth: false });
+            while (days.length % 7 !== 0) days.push({ date: new Date(year, month + 1, days.length - startPad - lastDay.getDate() + 1), otherMonth: true });
+
+            return (
+              <div className="cal-month-grid">
+                {ADM_DAYS.map(d => <div key={d} className="cal-month-header">{d}</div>)}
+                {days.map((d, i) => {
+                  const ds = admDateStr(d.date);
+                  const dayEvents = events.filter(e => e.date === ds);
+                  const today = admIsToday(d.date);
+                  return (
+                    <div key={i} className={`cal-month-day ${today ? 'today' : ''} ${d.otherMonth ? 'other-month' : ''}`}
+                      onClick={() => { setCurrentDate(d.date); setView('weekly'); }}>
+                      <div className="cal-month-day-num">{d.date.getDate()}</div>
+                      {dayEvents.length > 0 && (() => {
+                        const sorted = [...dayEvents].sort((a, b) => (ADM_EVENT_PRIORITY_RANK[a.type] || 9) - (ADM_EVENT_PRIORITY_RANK[b.type] || 9));
+                        const top = sorted[0];
+                        const col = ADM_EVENT_COLORS[top.type] || '#3B82F6';
+                        return (
+                          <div className="cal-month-event" style={{ background: col + '14', color: col, borderLeft: `2px solid ${col}` }}>
+                            {top._isPrivate ? '🔒' : top.title}
+                          </div>
+                        );
+                      })()}
+                      {dayEvents.length > 1 && <div className="cal-month-more">+{dayEvents.length - 1}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </>
       )}
     </div>

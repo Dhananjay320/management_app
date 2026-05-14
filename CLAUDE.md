@@ -1,4 +1,4 @@
-# Avadeti Team — Company Management App
+# Niyoq — Company Management App
 
 ## What This Is
 A comprehensive company management platform (Slack + Google Calendar + Notion) built as an Electron desktop app with web and mobile browser support. Designed for hybrid, remote, and in-office teams of 15-20 employees.
@@ -6,7 +6,7 @@ A comprehensive company management platform (Slack + Google Calendar + Notion) b
 ## Tech Stack
 - **Frontend**: React (CRA) — `client/`
 - **Backend**: Node.js + Express — `server/`
-- **Database**: MongoDB (local) — `mongodb://127.0.0.1:27017/avadeti_team`
+- **Database**: MongoDB (local) — `mongodb://127.0.0.1:27017/niyoq`
 - **Real-time**: Socket.io (single server, sufficient for current scale)
 - **Document Editor**: TipTap (Notion-style blocks)
 - **Future**: Electron wrapper, Google Calendar API, SMTP/IMAP email
@@ -73,7 +73,7 @@ curl http://localhost:3000/api/v1/health
 # Check login
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@avadeti.com","password":"Admin@123"}'
+  -d '{"email":"admin@niyoq.com","password":"Admin@123"}'
 ```
 
 ## How to Continue Building
@@ -113,20 +113,20 @@ cd client && npm install && PORT=3001 npm start
 ## Test Credentials
 | User | Email | Password | Role |
 |------|-------|----------|------|
-| Admin | admin@avadeti.com | Admin@123 | Main Admin |
-| Priya | priya@avadeti.com | TempPass!1 | Team Lead (first login → set password) |
-| Ravi | ravi@avadeti.com | TempPass!2 | Employee (first login) |
-| Meera | meera@avadeti.com | TempPass!3 | Employee (first login) |
+| Admin | admin@niyoq.com | Admin@123 | Main Admin |
+| Priya | priya@niyoq.com | TempPass!1 | Team Lead (first login → set password) |
+| Ravi | ravi@niyoq.com | TempPass!2 | Employee (first login) |
+| Meera | meera@niyoq.com | TempPass!3 | Employee (first login) |
 
 ## Project Structure
 
 ```
 management_app/
 ├── CLAUDE.md                    ← You are here
-├── Avadeti_Team_Product_Spec.docx    ← Full product spec (source of truth)
-├── Avadeti_Team_Developer_Log.docx   ← Technical architecture decisions
-├── Avadeti_Team_Features_Simple.docx ← Non-technical feature overview
-├── avadeti_team_navigator.html       ← Interactive HTML screen navigator (48 screens)
+├── Niyoq_Team_Product_Spec.docx    ← Full product spec (source of truth)
+├── Niyoq_Team_Developer_Log.docx   ← Technical architecture decisions
+├── Niyoq_Team_Features_Simple.docx ← Non-technical feature overview
+├── niyoq_navigator.html       ← Interactive HTML screen navigator (48 screens)
 │
 ├── server/                      ← Node.js + Express backend
 │   ├── index.js                 ← Entry point — Express + Socket.io setup

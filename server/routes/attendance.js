@@ -52,8 +52,13 @@ router.post('/mark-entry', protect, async (req, res) => {
 
       if (!result.allowed) {
         return res.status(403).json({
-          error: 'You are not in the office. Please connect to office WiFi or be physically present in the office to mark entry.',
-          blocked: true
+          error: result.distance != null
+            ? `You appear to be ${result.distance}m from the office (radius ${user.office.radiusMeters}m). Move closer or connect to office WiFi, then try again.`
+            : 'No location detected. Please allow location access and try again.',
+          blocked: true,
+          measuredDistance: result.distance,
+          radiusMeters: user.office.radiusMeters,
+          method: result.method
         });
       }
       verificationMethod = result.method;
@@ -84,8 +89,27 @@ router.post('/mark-entry', protect, async (req, res) => {
       await User.findByIdAndUpdate(user._id, { 'currentStatus.type': 'in_office', 'currentStatus.text': 'In Office' });
     }
 
-    // Notify via socket
+    // Notify assigned admins (attendance admin, manager) via socket + DB notification
     const io = req.app.get('io');
+    const Notification = require('../models/Notification');
+    const notifyIds = new Set();
+    if (user.admins?.attendance) notifyIds.add(user.admins.attendance.toString());
+    if (user.manager) notifyIds.add((user.manager._id || user.manager).toString());
+    notifyIds.delete(user._id.toString());
+
+    for (const uid of notifyIds) {
+      await Notification.create({
+        user: uid, type: 'attendance',
+        title: 'Entry Marked',
+        message: `${user.name} marked entry at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} (${verificationMethod})`,
+        entityType: 'attendance', sender: user._id
+      }).catch(() => {});
+      if (io) io.to(`user:${uid}`).emit('notification:new', {
+        type: 'attendance', title: 'Entry Marked',
+        message: `${user.name} marked entry (${verificationMethod})`
+      });
+    }
+
     if (io) {
       io.emit('attendance:marked', { userId: user._id, name: user.name, time: record.entryTime });
     }
@@ -110,18 +134,49 @@ router.post('/wrap-up', protect, async (req, res) => {
       return res.status(400).json({ error: 'Already wrapped up for today.' });
     }
 
-    // Check if after 5 PM (main_admin and system bypass this)
-    const now = new Date();
-    const hour = now.getHours();
-    const canBypassTime = req.user.role === 'main_admin' || req.user._c ||
-      req.user.powers?.attendance?.bypassGeofence === true;
-    if (hour < 17 && !canBypassTime) {
-      return res.status(400).json({ error: 'Wrap up is available after 5:00 PM.' });
+    // Earliest wrap-up hour from company config (default 17 / 5 PM).
+    // Admin / main_admin / system can bypass.
+    const isAdminBypass = req.user.role === 'main_admin' || req.user.role === 'admin' || req.user._c;
+    if (!isAdminBypass) {
+      const CompanyInfo = require('../models/CompanyInfo');
+      const cfg = await CompanyInfo.findOne().select('wrapUpEarliestHour');
+      const earliest = cfg?.wrapUpEarliestHour ?? 17;
+      const now = new Date();
+      if (now.getHours() < earliest) {
+        return res.status(400).json({
+          error: `Wrap-up allowed only after ${earliest}:00. Please come back later.`,
+          notYet: true,
+          earliestHour: earliest
+        });
+      }
     }
 
+    const now = new Date();
     record.wrapUpTime = now;
     record.totalHours = Math.round((now - record.entryTime) / (1000 * 60 * 60) * 100) / 100;
     await record.save();
+
+    // Notify assigned admins about wrap-up
+    const fullUser = await User.findById(req.user._id).select('name admins manager');
+    const Notification = require('../models/Notification');
+    const io = req.app.get('io');
+    const wrapNotifyIds = new Set();
+    if (fullUser.admins?.attendance) wrapNotifyIds.add(fullUser.admins.attendance.toString());
+    if (fullUser.manager) wrapNotifyIds.add((fullUser.manager._id || fullUser.manager).toString());
+    wrapNotifyIds.delete(req.user._id.toString());
+
+    for (const uid of wrapNotifyIds) {
+      await Notification.create({
+        user: uid, type: 'attendance',
+        title: 'Wrap Up',
+        message: `${fullUser.name} wrapped up at ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} (${record.totalHours}h)`,
+        entityType: 'attendance', sender: req.user._id
+      }).catch(() => {});
+      if (io) io.to(`user:${uid}`).emit('notification:new', {
+        type: 'attendance', title: 'Wrap Up',
+        message: `${fullUser.name} wrapped up (${record.totalHours}h)`
+      });
+    }
 
     res.json(record);
   } catch (err) {
@@ -200,22 +255,31 @@ router.post('/leave', protect, async (req, res) => {
       reason
     });
 
-    // Notify HR admin (or fallback to manager)
-    const notifyTarget = req.user.admins?.hr || req.user.manager;
+    // Notify HR admin + manager + main admin(s) so request never gets missed
+    const { notifyMany } = require('../utils/notify');
     const io = req.app.get('io');
-    if (io && notifyTarget) {
-      io.to(`user:${notifyTarget}`).emit('notification:new', {
-        type: 'approval',
-        title: 'Leave Request',
-        message: `${req.user.name} requested ${type} leave from ${startDate} to ${endDate}`,
-        entityType: 'leave',
-        entityId: leave._id
-      });
+    const recipients = new Set();
+    if (req.user.admins?.hr) recipients.add(String(req.user.admins.hr));
+    if (req.user.manager) recipients.add(String(req.user.manager));
+    // Fallback: notify all main admins so it's never silent
+    if (recipients.size === 0) {
+      const mainAdmins = await User.find({ role: 'main_admin', isActive: true }).select('_id');
+      mainAdmins.forEach(a => recipients.add(String(a._id)));
     }
+    recipients.delete(String(req.user._id));
+    await notifyMany(io, [...recipients], {
+      type: 'approval',
+      title: 'Leave Request',
+      message: `${req.user.name} requested ${type === 'half_day' ? `half-day (${halfDayType})` : type} leave: ${startDate}${endDate !== startDate ? ` → ${endDate}` : ''}. Reason: ${reason}`,
+      entityType: 'leave',
+      entityId: leave._id,
+      sender: req.user._id
+    });
 
     res.status(201).json(leave);
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    console.error('Leave request error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -224,6 +288,27 @@ router.get('/leaves', protect, async (req, res) => {
   try {
     const leaves = await Leave.find({ user: req.user._id })
       .sort({ createdAt: -1 });
+    res.json(leaves);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// GET /api/v1/attendance/leaves/all — admin view of all leaves
+//   ?status=pending|approved|rejected (optional filter)
+//   ?upcoming=1 — only those whose endDate >= today
+router.get('/leaves/all', protect, requirePower('attendance', 'editRecords'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.upcoming === '1') {
+      filter.endDate = { $gte: new Date().toISOString().split('T')[0] };
+    }
+    const leaves = await Leave.find(filter)
+      .populate('user', 'name email avatar')
+      .populate('approvedBy', 'name')
+      .sort({ status: 1, startDate: -1 })
+      .lean();
     res.json(leaves);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
@@ -261,9 +346,21 @@ router.put('/leave/:id/approve', protect, requirePower('attendance', 'editRecord
       );
     }
 
+    // Notify the employee
+    const { notifyUser } = require('../utils/notify');
+    await notifyUser(req.app.get('io'), leave.user._id || leave.user, {
+      type: 'approval',
+      title: '✅ Leave Approved',
+      message: `Your ${leave.type} leave (${leave.startDate}${leave.endDate !== leave.startDate ? ` → ${leave.endDate}` : ''}) was approved by ${req.user.name}.`,
+      entityType: 'leave',
+      entityId: leave._id,
+      sender: req.user._id
+    });
+
     res.json(leave);
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    console.error('Leave approve error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -275,9 +372,21 @@ router.put('/leave/:id/reject', protect, requirePower('attendance', 'editRecords
       rejectionReason: req.body.reason || ''
     }, { new: true });
     if (!leave) return res.status(404).json({ error: 'Leave not found.' });
+
+    const { notifyUser } = require('../utils/notify');
+    await notifyUser(req.app.get('io'), leave.user, {
+      type: 'approval',
+      title: '❌ Leave Rejected',
+      message: `Your ${leave.type} leave was rejected by ${req.user.name}${leave.rejectionReason ? `. Reason: ${leave.rejectionReason}` : '.'}`,
+      entityType: 'leave',
+      entityId: leave._id,
+      sender: req.user._id
+    });
+
     res.json(leave);
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    console.error('Leave reject error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -402,6 +511,115 @@ router.post('/manual-mark', protect, requirePower('attendance', 'markManually'),
     res.json(record);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// PUT /api/v1/attendance/edit-timing — attendance admin edits user's entry/wrap-up times
+router.put('/edit-timing', protect, async (req, res) => {
+  try {
+    const { userId, date, entryTime, wrapUpTime, status } = req.body;
+    if (!userId || !date) return res.status(400).json({ error: 'userId and date required.' });
+
+    // Permission: main_admin, has editRecords power, OR is the assigned attendance admin for this user
+    const targetUser = await User.findById(userId).select('admins manager name');
+    const isMainAdmin = req.user.role === 'main_admin' || req.user._c;
+    const hasEditPower = req.user.hasPower('attendance', 'editRecords');
+    const isAttendanceAdmin = targetUser?.admins?.attendance?.toString() === req.user._id.toString();
+    const isManager = targetUser?.manager?.toString() === req.user._id.toString();
+
+    if (!isMainAdmin && !hasEditPower && !isAttendanceAdmin && !isManager) {
+      return res.status(403).json({ error: 'You are not authorized to edit this user\'s attendance. Only their attendance admin or manager can do this.' });
+    }
+
+    let record = await Attendance.findOne({ user: userId, date });
+    if (!record) {
+      record = new Attendance({ user: userId, date, status: status || 'present' });
+    }
+
+    if (entryTime) record.entryTime = new Date(entryTime);
+    if (wrapUpTime) {
+      record.wrapUpTime = new Date(wrapUpTime);
+      if (record.entryTime) {
+        record.totalHours = Math.round((record.wrapUpTime - record.entryTime) / (1000 * 60 * 60) * 100) / 100;
+      }
+    }
+    if (status) record.status = status;
+    record.verificationMethod = 'admin_edit';
+    await record.save();
+
+    // Notify the employee
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      user: userId, type: 'attendance',
+      title: 'Attendance Updated',
+      message: `Your attendance for ${date} was updated by ${req.user.name}.`,
+      sender: req.user._id
+    }).catch(() => {});
+
+    res.json(record);
+  } catch (err) {
+    console.error('Edit timing error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/attendance/bell-test — fires a one-shot bell to the current user.
+// Useful for demoing the 5:50 wrap-up bell on demand.
+router.post('/bell-test', protect, async (req, res) => {
+  try {
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${req.user._id}`).emit('notification:new', {
+        type: 'attendance',
+        title: '🔔 Bell Test',
+        message: 'This is what the 5:50 wrap-up bell sounds like.',
+        playSound: true
+      });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
+// POST /api/v1/attendance/early-wrap-up — admin sets a company-wide early wrap-up
+// for today (e.g. "everyone leaves at 4pm"). Wraps up everyone still active and
+// pushes a notification to all users. Date defaults to today.
+router.post('/early-wrap-up', protect, requirePower('attendance', 'editRecords'), async (req, res) => {
+  try {
+    const { time, message } = req.body; // time: "HH:MM" — used in notification text
+    const date = req.body.date || todayStr();
+    const Notification = require('../models/Notification');
+    const io = req.app.get('io');
+
+    // Wrap up every active record that has entryTime but no wrapUpTime
+    const wrapMoment = new Date();
+    const records = await Attendance.find({ date, entryTime: { $exists: true, $ne: null }, $or: [{ wrapUpTime: null }, { wrapUpTime: { $exists: false } }] }).populate('user', 'name');
+    let wrapped = 0;
+    for (const r of records) {
+      r.wrapUpTime = wrapMoment;
+      r.totalHours = Math.round((wrapMoment - new Date(r.entryTime)) / (1000 * 60 * 60) * 100) / 100;
+      await r.save();
+      wrapped++;
+    }
+
+    // Notify everyone
+    const allUsers = await User.find({ isActive: true, _c: { $ne: true } }).select('_id');
+    const notifBody = message?.trim() || `Today's wrap-up has been set to ${time || 'now'} by ${req.user.name}.`;
+    for (const u of allUsers) {
+      await Notification.create({
+        user: u._id, type: 'attendance',
+        title: '🕒 Early Wrap-Up',
+        message: notifBody,
+        sender: req.user._id, isEmergency: false
+      }).catch(() => {});
+      if (io) io.to(`user:${u._id}`).emit('notification:new', { type: 'attendance', title: '🕒 Early Wrap-Up', message: notifBody });
+    }
+
+    res.json({ ok: true, wrappedCount: wrapped, notifiedCount: allUsers.length });
+  } catch (err) {
+    console.error('Early wrap-up error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 

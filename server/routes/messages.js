@@ -2,6 +2,7 @@ const router = require('express').Router();
 const Channel = require('../models/Channel');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { protect } = require('../middleware/auth');
 
 // GET /api/v1/messages/channels — all channels/conversations for current user
@@ -83,7 +84,24 @@ router.post('/dm', protect, async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId required.' });
 
-    // Check if DM already exists
+    const isSelf = String(userId) === String(req.user._id);
+
+    // Self-DM: a personal "saved messages" channel — single member, type 'dm'
+    if (isSelf) {
+      let channel = await Channel.findOne({ type: 'dm', members: { $all: [req.user._id], $size: 1 } });
+      if (!channel) {
+        channel = await Channel.create({
+          name: `📌 Saved (${req.user.name})`,
+          type: 'dm',
+          members: [req.user._id],
+          createdBy: req.user._id
+        });
+      }
+      const populated = await Channel.findById(channel._id).populate('members', 'name email avatar');
+      return res.json(populated);
+    }
+
+    // Check if DM already exists between two users
     const existing = await Channel.findOne({
       type: 'dm',
       members: { $all: [req.user._id, userId], $size: 2 }
@@ -102,7 +120,8 @@ router.post('/dm', protect, async (req, res) => {
     const populated = await Channel.findById(channel._id).populate('members', 'name email avatar');
     res.status(201).json(populated);
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    console.error('DM creation error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -176,6 +195,25 @@ router.post('/:channelId', protect, async (req, res) => {
 
     const populated = await Message.findById(message._id).populate('sender', 'name email avatar');
 
+    // Async link-preview unfurl (fire-and-forget). When the OG fetch finishes
+    // we update the message + emit a socket event so all clients render the card.
+    if (type === 'text' || !type) {
+      const { fetchPreview, extractFirstUrl } = require('../utils/linkPreview');
+      const url = extractFirstUrl(content);
+      if (url) {
+        (async () => {
+          const preview = await fetchPreview(url);
+          if (!preview) return;
+          await Message.findByIdAndUpdate(message._id, { linkPreview: preview });
+          const ioLocal = req.app.get('io');
+          if (ioLocal) {
+            const updated = await Message.findById(message._id).populate('sender', 'name email avatar');
+            ioLocal.to(`channel:${req.params.channelId}`).emit('message:updated', updated);
+          }
+        })().catch(() => {});
+      }
+    }
+
     // Emit via socket
     const io = req.app.get('io');
     if (io) {
@@ -192,6 +230,33 @@ router.post('/:channelId', protect, async (req, res) => {
             entityType: 'channel',
             entityId: req.params.channelId
           });
+        });
+      }
+    }
+
+    // Create notification documents for all channel members (except sender)
+    const recipients = (channel.members || []).filter(m => m.toString() !== req.user._id.toString());
+    const notifTitle = channel.type === 'dm' ? `New message from ${req.user.name}` : `New message in ${channel.name}`;
+    const notifMsg = (content || '').substring(0, 100);
+    for (const uid of recipients) {
+      await Notification.create({
+        user: uid,
+        type: 'message',
+        title: notifTitle,
+        message: notifMsg,
+        entityType: 'channel',
+        entityId: channel._id,
+        sender: req.user._id
+      }).catch(() => {});
+      // Also emit a socket event so Electron desktop app (which doesn't get web push)
+      // can show a native OS notification via the renderer's Notification API.
+      if (io) {
+        io.to(`user:${uid}`).emit('notification:new', {
+          type: 'message',
+          title: notifTitle,
+          message: notifMsg,
+          entityType: 'channel',
+          entityId: channel._id
         });
       }
     }
@@ -393,6 +458,107 @@ router.put('/:channelId/:messageId', protect, async (req, res) => {
 });
 
 // DELETE /api/v1/messages/:channelId/:messageId — delete message (sender or admin)
+// POST /api/v1/messages/forward — forward a message to one or more channels.
+// Preserves content + file attachment + linkPreview; prefixes with a
+// "Forwarded from <original sender>" header line.
+router.post('/forward', protect, async (req, res) => {
+  try {
+    const { messageId, targetChannelIds, note } = req.body;
+    if (!messageId || !Array.isArray(targetChannelIds) || targetChannelIds.length === 0) {
+      return res.status(400).json({ error: 'messageId and targetChannelIds required.' });
+    }
+    const original = await Message.findById(messageId).populate('sender', 'name');
+    if (!original) return res.status(404).json({ error: 'Source message not found.' });
+
+    // Source channel — must be member
+    const srcChannel = await Channel.findById(original.channel);
+    if (!srcChannel?.members?.some(m => String(m) === String(req.user._id))) {
+      return res.status(403).json({ error: 'You don\'t have access to forward this message.' });
+    }
+
+    const results = [];
+    const io = req.app.get('io');
+    for (const targetId of targetChannelIds) {
+      const target = await Channel.findById(targetId);
+      if (!target) { results.push({ targetId, error: 'Channel not found' }); continue; }
+      if (!target.members.some(m => String(m) === String(req.user._id))) {
+        results.push({ targetId, error: 'Not a member of target channel' }); continue;
+      }
+
+      const forwardedHeader = `➤ Forwarded from ${original.sender?.name || 'someone'}`;
+      const newContent = [forwardedHeader, note?.trim(), original.content].filter(Boolean).join('\n\n');
+
+      const fwd = await Message.create({
+        channel: target._id,
+        sender: req.user._id,
+        content: newContent,
+        type: original.type === 'task_card' ? 'text' : (original.type || 'text'),
+        file: original.file,
+        linkPreview: original.linkPreview,
+        readBy: [req.user._id],
+        // Track the source for "see original" feature later
+        forwardedFrom: original._id
+      });
+
+      target.lastMessage = fwd._id;
+      target.lastMessageAt = new Date();
+      await target.save();
+
+      const populated = await Message.findById(fwd._id).populate('sender', 'name email avatar');
+      if (io) io.to(`channel:${target._id}`).emit('message:received', populated);
+
+      // Notify recipients via DB notification (post-save hook pushes)
+      const recipients = (target.members || []).filter(m => String(m) !== String(req.user._id));
+      const notifTitle = target.type === 'dm' ? `Forwarded message from ${req.user.name}` : `Forwarded in ${target.name}`;
+      for (const uid of recipients) {
+        await Notification.create({
+          user: uid, type: 'message',
+          title: notifTitle,
+          message: (newContent || '').substring(0, 100),
+          entityType: 'channel', entityId: target._id, sender: req.user._id
+        }).catch(() => {});
+      }
+
+      results.push({ targetId: target._id, messageId: fwd._id });
+    }
+    res.status(201).json({ forwarded: results.length, results });
+  } catch (err) {
+    console.error('Forward message error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
+// DELETE /api/v1/messages/channels/:channelId — delete an entire channel
+// Allowed: creator, main_admin, or system account
+router.delete('/channels/:channelId', protect, async (req, res) => {
+  try {
+    const channel = await Channel.findById(req.params.channelId);
+    if (!channel) return res.status(404).json({ error: 'Channel not found.' });
+
+    const isMainAdmin = req.user.role === 'main_admin' || req.user._c;
+    const isCreator = channel.createdBy?.toString() === req.user._id.toString();
+    if (!isMainAdmin && !isCreator) {
+      return res.status(403).json({ error: 'Only the channel creator or main admin can delete a channel.' });
+    }
+    // Don't allow deleting DMs (they're personal — just hide)
+    if (channel.type === 'dm') {
+      return res.status(400).json({ error: 'DMs cannot be deleted; archive or hide them instead.' });
+    }
+
+    // Delete all messages in the channel + the channel itself
+    await Message.deleteMany({ channel: channel._id });
+    await Channel.deleteOne({ _id: channel._id });
+
+    const io = req.app.get('io');
+    if (io) io.to(`channel:${channel._id}`).emit('channel:deleted', { channelId: channel._id });
+
+    res.json({ ok: true, deletedChannelId: channel._id });
+  } catch (err) {
+    console.error('Delete channel error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
 router.delete('/:channelId/:messageId', protect, async (req, res) => {
   try {
     const message = await Message.findById(req.params.messageId);
@@ -502,7 +668,7 @@ router.post('/:channelId/upload', protect, chatUpload.single('file'), async (req
         originalSize: req.file.size,
         compressedSize: req.file.size,
         mimeType: req.file.mimetype,
-        path: req.file.path
+        path: 'uploads/chat/' + req.file.filename
       },
       readBy: [req.user._id]
     });
@@ -514,6 +680,36 @@ router.post('/:channelId/upload', protect, chatUpload.single('file'), async (req
     const populated = await Message.findById(message._id).populate('sender', 'name email avatar');
     const io = req.app.get('io');
     if (io) io.to(`channel:${req.params.channelId}`).emit('message:received', populated);
+
+    // Notification fanout — same as text messages (DB row triggers push hook)
+    const fileLabel = req.file.mimetype?.startsWith('image/') ? '🖼️ Image' :
+      req.file.mimetype?.startsWith('video/') ? '🎬 Video' :
+      req.file.mimetype === 'application/pdf' ? '📕 PDF' :
+      '📎 File';
+    const recipients = (channel.members || []).filter(m => m.toString() !== req.user._id.toString());
+    const notifTitle = channel.type === 'dm' ? `${fileLabel} from ${req.user.name}` : `${fileLabel} in ${channel.name}`;
+    const captionSnippet = (req.body.content || '').trim().substring(0, 80);
+    const notifMsg = captionSnippet || req.file.originalname;
+    for (const uid of recipients) {
+      await Notification.create({
+        user: uid,
+        type: 'message',
+        title: notifTitle,
+        message: notifMsg,
+        entityType: 'channel',
+        entityId: channel._id,
+        sender: req.user._id
+      }).catch(() => {});
+      if (io) {
+        io.to(`user:${uid}`).emit('notification:new', {
+          type: 'message',
+          title: notifTitle,
+          message: notifMsg,
+          entityType: 'channel',
+          entityId: channel._id
+        });
+      }
+    }
 
     res.status(201).json(populated);
   } catch (err) {
@@ -544,6 +740,70 @@ router.get('/:channelId/members', protect, async (req, res) => {
   try {
     const channel = await Channel.findById(req.params.channelId).populate('members', 'name email avatar jobTitle');
     res.json(channel.members);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/messages/:channelId/members — add members to channel
+router.post('/:channelId/members', protect, async (req, res) => {
+  try {
+    const { userIds } = req.body;
+    if (!userIds?.length) return res.status(400).json({ error: 'userIds required.' });
+
+    const channel = await Channel.findById(req.params.channelId);
+    if (!channel) return res.status(404).json({ error: 'Channel not found.' });
+
+    // DMs are always 1-1 — never allow adding members (would turn them into a group)
+    if (channel.type === 'dm') {
+      return res.status(400).json({ error: 'Cannot add members to a DM. Create a Group chat instead.' });
+    }
+
+    // Only channel members or admins can add
+    const isMember = channel.members.some(m => m.toString() === req.user._id.toString());
+    const isAdmin = ['main_admin', 'admin'].includes(req.user.role);
+    if (!isMember && !isAdmin) return res.status(403).json({ error: 'Not a member of this channel.' });
+
+    const newMembers = userIds.filter(id => !channel.members.some(m => m.toString() === id));
+    if (newMembers.length === 0) return res.status(400).json({ error: 'All users are already members.' });
+
+    channel.members.push(...newMembers);
+    await channel.save();
+
+    // Send system message
+    const User = require('../models/User');
+    const addedUsers = await User.find({ _id: { $in: newMembers } }).select('name');
+    const names = addedUsers.map(u => u.name).join(', ');
+    await Message.create({
+      channel: channel._id, sender: req.user._id,
+      content: `${req.user.name} added ${names} to the channel`,
+      type: 'system'
+    });
+
+    const populated = await Channel.findById(channel._id).populate('members', 'name email avatar jobTitle');
+    res.json(populated.members);
+  } catch (err) {
+    console.error('Add member error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// DELETE /api/v1/messages/:channelId/members/:userId — remove member
+router.delete('/:channelId/members/:userId', protect, async (req, res) => {
+  try {
+    const channel = await Channel.findById(req.params.channelId);
+    if (!channel) return res.status(404).json({ error: 'Channel not found.' });
+
+    channel.members = channel.members.filter(m => m.toString() !== req.params.userId);
+    await channel.save();
+
+    await Message.create({
+      channel: channel._id, sender: req.user._id,
+      content: `A member was removed from the channel`,
+      type: 'system'
+    });
+
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }

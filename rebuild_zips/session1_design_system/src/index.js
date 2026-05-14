@@ -4,7 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-// Apply Avadeti design-system theme class to <body> globally.
+// Apply Niyoq design-system theme class to <body> globally.
 // This enables the dark canvas gradient and noise overlay.
 if (typeof document !== 'undefined') {
   document.body.classList.add('ad-theme');

@@ -92,6 +92,21 @@ function getWorkingDays(year, month) {
 }
 
 // POST /api/v1/salary/generate — generate/recalculate monthly salary for a user
+// POST /salary/generate-all — kick off monthly generation for everyone for a given month.
+// Useful when you want to run "auto" early or backfill a missed month.
+router.post('/generate-all', protect, requirePower('salary', 'editStructure'), async (req, res) => {
+  try {
+    const { month, year } = req.body;
+    if (!month || !year) return res.status(400).json({ error: 'month and year required.' });
+    const { generateForAllUsers } = require('../utils/salaryGenerator');
+    const result = await generateForAllUsers(parseInt(month), parseInt(year));
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('generate-all salary error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
 router.post('/generate', protect, requirePower('salary', 'editStructure'), async (req, res) => {
   try {
     const { userId, month, year } = req.body;
@@ -298,7 +313,7 @@ router.get('/monthly/:userId/:year/:month/pdf', protect, async (req, res) => {
     const rx = 545; // right margin
 
     // Company header
-    page.drawText('AVADETI MEDIA', { x: lx, y, font: fontBold, size: 20, color: accentColor });
+    page.drawText('NIYOQ MEDIA', { x: lx, y, font: fontBold, size: 20, color: accentColor });
     y -= 18;
     page.drawText('Salary Slip', { x: lx, y, font: fontNormal, size: 12, color: grayColor });
     y -= 14;
@@ -430,6 +445,7 @@ router.get('/disputes', protect, async (req, res) => {
     const disputes = await SalaryDispute.find(query)
       .populate('user', 'name email avatar jobTitle')
       .populate('resolvedBy', 'name')
+      .populate('thread.user', 'name avatar')
       .sort({ createdAt: -1 });
     res.json(disputes);
   } catch (err) {
@@ -440,7 +456,7 @@ router.get('/disputes', protect, async (req, res) => {
 // POST /api/v1/salary/disputes — raise dispute
 router.post('/disputes', protect, async (req, res) => {
   try {
-    const { month, year, whatIsWrong, description } = req.body;
+    const { month, year, whatIsWrong, description, disputeAmount } = req.body;
 
     // Find salary record
     const salaryRecord = await SalaryMonthly.findOne({ user: req.user._id, month, year });
@@ -454,19 +470,20 @@ router.post('/disputes', protect, async (req, res) => {
       salaryRecord: salaryRecord?._id,
       whatIsWrong,
       description,
+      disputeAmount: disputeAmount || 0,
       assignedTo: employee.manager
     });
 
-    // Notify manager via socket
-    const io = req.app.get('io');
-    if (io && employee.manager) {
-      io.to(`user:${employee.manager}`).emit('notification:new', {
-        type: 'salary_dispute',
+    // Notify manager (DB row + push)
+    const { notifyUser } = require('../utils/notify');
+    if (employee.manager) {
+      await notifyUser(req.app.get('io'), employee.manager, {
+        type: 'salary',
         title: 'New Salary Dispute',
         message: `${req.user.name} raised a dispute for ${month}/${year}`,
-        disputeId: dispute._id,
         entityType: 'dispute',
-        entityId: dispute._id
+        entityId: dispute._id,
+        sender: req.user._id
       });
     }
 
@@ -499,20 +516,218 @@ router.put('/disputes/:id', protect, requirePower('salary', 'resolveDisputes'), 
       .populate('user', 'name email avatar')
       .populate('resolvedBy', 'name');
 
-    // Notify employee
-    const io = req.app.get('io');
-    if (io) {
-      io.to(`user:${dispute.user._id}`).emit('notification:new', {
-        type: 'salary_dispute_update',
-        title: `Dispute ${status}`,
-        message: status === 'resolved' ? resolution : rejectionReason || `Your dispute has been ${status}.`,
-        entityType: 'dispute',
-        entityId: dispute._id
-      });
-    }
+    // Notify employee (DB + push)
+    const { notifyUser } = require('../utils/notify');
+    await notifyUser(req.app.get('io'), dispute.user._id, {
+      type: 'salary',
+      title: `Dispute ${status}`,
+      message: status === 'resolved' ? resolution : rejectionReason || `Your dispute has been ${status}.`,
+      entityType: 'dispute',
+      entityId: dispute._id,
+      sender: req.user._id
+    });
 
     res.json(dispute);
   } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ══════════════════════════════════════
+//  SALARY BONUS
+// ══════════════════════════════════════
+
+// POST /api/v1/salary/bonus — admin adds bonus to employee's monthly record
+router.post('/bonus', protect, requirePower('salary', 'editStructure'), async (req, res) => {
+  try {
+    const { employeeId, month, amount, reason } = req.body;
+
+    if (!employeeId || !month || !amount || !reason) {
+      return res.status(400).json({ error: 'employeeId, month, amount, and reason are required.' });
+    }
+
+    // Parse month string "YYYY-MM" or accept separate month/year
+    let year, monthNum;
+    if (typeof month === 'string' && month.includes('-')) {
+      const parts = month.split('-');
+      year = parseInt(parts[0]);
+      monthNum = parseInt(parts[1]);
+    } else {
+      // If month is just a number, use current year
+      monthNum = parseInt(month);
+      year = req.body.year || new Date().getFullYear();
+    }
+
+    const record = await SalaryMonthly.findOne({ user: employeeId, month: monthNum, year });
+    if (!record) {
+      return res.status(404).json({ error: 'No salary record found for this employee and month.' });
+    }
+
+    if (record.status === 'finalized') {
+      return res.status(400).json({ error: 'Cannot add bonus to a finalized salary record.' });
+    }
+
+    // Add the bonus to performanceBonuses
+    record.performanceBonuses.push({ name: reason, amount: parseFloat(amount) });
+
+    // Recalculate totals
+    record.totalBonuses = (record.fixedBonus || 0) +
+      record.performanceBonuses.reduce((sum, b) => sum + b.amount, 0);
+    record.netSalary = record.grossSalary - record.totalTax + record.totalBonuses;
+
+    await record.save();
+
+    // Notify employee (DB + push)
+    const { notifyUser } = require('../utils/notify');
+    await notifyUser(req.app.get('io'), employeeId, {
+      type: 'salary',
+      title: 'Bonus Added',
+      message: `A bonus of INR ${amount} has been added to your ${monthNum}/${year} salary: ${reason}`,
+      entityType: 'salary',
+      entityId: record._id,
+      sender: req.user._id
+    });
+
+    res.json(record);
+  } catch (err) {
+    console.error('Add bonus error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ══════════════════════════════════════
+//  DISPUTE THREAD & SETTLEMENT
+// ══════════════════════════════════════
+
+// POST /api/v1/salary/disputes/:id/message — add message to dispute thread
+router.post('/disputes/:id/message', protect, async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'Message is required.' });
+    }
+
+    const dispute = await SalaryDispute.findById(req.params.id);
+    if (!dispute) {
+      return res.status(404).json({ error: 'Dispute not found.' });
+    }
+
+    // Only the dispute owner or admin with power can add messages
+    const isOwner = dispute.user.toString() === req.user._id.toString();
+    const isAdmin = req.user.hasPower('salary', 'resolveDisputes');
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Not authorized to message on this dispute.' });
+    }
+
+    dispute.thread.push({
+      user: req.user._id,
+      message: message.trim(),
+      timestamp: new Date()
+    });
+    await dispute.save();
+
+    const populated = await SalaryDispute.findById(dispute._id)
+      .populate('user', 'name email avatar')
+      .populate('thread.user', 'name avatar')
+      .populate('resolvedBy', 'name');
+
+    // Notify the other party (DB + push)
+    const { notifyUser } = require('../utils/notify');
+    const notifyUserId = isOwner ? dispute.assignedTo : dispute.user;
+    if (notifyUserId) {
+      await notifyUser(req.app.get('io'), notifyUserId, {
+        type: 'salary',
+        title: 'New Dispute Message',
+        message: `${req.user.name} sent a message on dispute #${dispute._id.toString().slice(-6)}`,
+        entityType: 'dispute',
+        entityId: dispute._id,
+        sender: req.user._id
+      });
+    }
+
+    res.json(populated);
+  } catch (err) {
+    console.error('Dispute message error:', err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// PUT /api/v1/salary/disputes/:id/settle — admin settles dispute
+router.put('/disputes/:id/settle', protect, requirePower('salary', 'resolveDisputes'), async (req, res) => {
+  try {
+    const { amount, action } = req.body;
+
+    if (!action || !['approve', 'decline'].includes(action)) {
+      return res.status(400).json({ error: 'action must be "approve" or "decline".' });
+    }
+
+    const dispute = await SalaryDispute.findById(req.params.id);
+    if (!dispute) {
+      return res.status(404).json({ error: 'Dispute not found.' });
+    }
+
+    if (dispute.status === 'settled' || dispute.status === 'resolved' || dispute.status === 'rejected') {
+      return res.status(400).json({ error: `Dispute is already ${dispute.status}.` });
+    }
+
+    if (action === 'approve') {
+      const settleAmount = parseFloat(amount) || 0;
+      if (settleAmount <= 0) {
+        return res.status(400).json({ error: 'Settlement amount must be greater than 0.' });
+      }
+
+      dispute.settlementAmount = settleAmount;
+      dispute.status = 'settled';
+      dispute.resolvedBy = req.user._id;
+      dispute.resolvedAt = new Date();
+      dispute.resolution = `Settled with INR ${settleAmount}`;
+      await dispute.save();
+
+      // Add settlement amount to the monthly salary record
+      if (dispute.salaryRecord) {
+        const record = await SalaryMonthly.findById(dispute.salaryRecord);
+        if (record && record.status !== 'finalized') {
+          record.performanceBonuses.push({
+            name: `Dispute Settlement #${dispute._id.toString().slice(-6)}`,
+            amount: settleAmount
+          });
+          record.totalBonuses = (record.fixedBonus || 0) +
+            record.performanceBonuses.reduce((sum, b) => sum + b.amount, 0);
+          record.netSalary = record.grossSalary - record.totalTax + record.totalBonuses;
+          await record.save();
+        }
+      }
+    } else {
+      // decline
+      dispute.settlementAmount = 0;
+      dispute.status = 'rejected';
+      dispute.resolvedBy = req.user._id;
+      dispute.resolvedAt = new Date();
+      dispute.rejectionReason = req.body.reason || 'Dispute declined during settlement.';
+      await dispute.save();
+    }
+
+    const populated = await SalaryDispute.findById(dispute._id)
+      .populate('user', 'name email avatar')
+      .populate('thread.user', 'name avatar')
+      .populate('resolvedBy', 'name');
+
+    // Notify employee (DB + push)
+    const { notifyUser } = require('../utils/notify');
+    await notifyUser(req.app.get('io'), dispute.user._id || dispute.user, {
+      type: 'salary',
+      title: action === 'approve' ? 'Dispute Settled' : 'Dispute Declined',
+      message: action === 'approve'
+        ? `Your dispute has been settled with INR ${dispute.settlementAmount}.`
+        : dispute.rejectionReason,
+      entityType: 'dispute',
+      entityId: dispute._id,
+      sender: req.user._id
+    });
+
+    res.json(populated);
+  } catch (err) {
+    console.error('Settle dispute error:', err);
     res.status(500).json({ error: 'Server error.' });
   }
 });

@@ -1,6 +1,6 @@
-# Avadeti Design System
+# Niyoq Design System
 
-Locked visual system for the Avadeti Team app. Extracted from the approved mockups (Calendar / Tasks / Messages) and ready to use across the application.
+Locked visual system for the Niyoq app. Extracted from the approved mockups (Calendar / Tasks / Messages) and ready to use across the application.
 
 **All tokens and components are prefixed with `ad-` so they won't collide with your existing CSS.**
 

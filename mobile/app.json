@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Niyoq",
+    "slug": "avadeti-team",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0B1A"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#6366F1",
+          "defaultChannel": "default"
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.avadetimedia.niyoq"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0B1A"
+      },
+      "package": "com.avadetimedia.niyoq",
+      "permissions": [
+        "NOTIFICATIONS",
+        "POST_NOTIFICATIONS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "googleServicesFile": "./google-services.json"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "08eaff49-210a-49f2-a42b-129a7f485d85"
+      }
+    },
+    "owner": "developer-avadeti-media"
+  }
+}

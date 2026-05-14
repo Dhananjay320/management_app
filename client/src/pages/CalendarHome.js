@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import PendingActionsWidget from '../components/PendingActionsWidget';
+import EnableSoundPrompt from '../components/EnableSoundPrompt';
 import '../styles/calendar.css';
 
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -91,24 +93,44 @@ export default function CalendarHome() {
 
   const getEventsForDate = (d) => events.filter(ev => ev.date === dateStr(d));
 
-  const prevPeriod = () => {
+  const shiftDate = (dir) => {
     const d = new Date(currentDate);
-    if (view === 'monthly') d.setMonth(d.getMonth() - 1);
-    else d.setDate(d.getDate() - 7);
+    if (view === 'monthly') d.setMonth(d.getMonth() + dir);
+    else if (view === 'daily') d.setDate(d.getDate() + dir); // ← single day step
+    else d.setDate(d.getDate() + dir * 7); // weekly
     setCurrentDate(d);
   };
-  const nextPeriod = () => {
-    const d = new Date(currentDate);
-    if (view === 'monthly') d.setMonth(d.getMonth() + 1);
-    else d.setDate(d.getDate() + 7);
-    setCurrentDate(d);
-  };
+  const prevPeriod = () => shiftDate(-1);
+  const nextPeriod = () => shiftDate(1);
   const goToday = () => setCurrentDate(new Date());
+
+  // Touch-swipe handlers for the calendar grid (left/right to navigate)
+  const touchStartRef = useRef({ x: 0, y: 0, t: 0 });
+  const onTouchStart = (e) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  };
+  const onTouchEnd = (e) => {
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+    const dt = Date.now() - touchStartRef.current.t;
+    // Must be a deliberate horizontal swipe: > 60 px and mostly horizontal, in < 600 ms
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6 && dt < 600) {
+      shiftDate(dx > 0 ? -1 : 1);
+    }
+  };
 
   const monthLabel = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <div>
+      {/* One-time prompt to enable wrap-up bell autoplay */}
+      <EnableSoundPrompt />
+
+      {/* Pending actions aggregator — appears only when there's something to act on */}
+      <PendingActionsWidget />
+
       {/* Admin stats */}
       {adminMode && (
         <div className="stat-grid">
@@ -172,10 +194,12 @@ export default function CalendarHome() {
         </div>
       </div>
 
-      {/* Views */}
-      {view === 'weekly' && <WeeklyView dates={weekDates} getEvents={getEventsForDate} navigate={navigate} setView={setView} setCurrentDate={setCurrentDate} />}
-      {view === 'monthly' && <MonthlyView currentDate={currentDate} getEvents={getEventsForDate} events={events} setView={setView} setCurrentDate={setCurrentDate} />}
-      {view === 'daily' && <DailyView date={currentDate} events={getEventsForDate(currentDate)} todayAtt={todayAtt} navigate={navigate} setView={setView} setCurrentDate={setCurrentDate} />}
+      {/* Views — wrapped with touch handlers for swipe navigation */}
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ touchAction: 'pan-y' }}>
+        {view === 'weekly' && <WeeklyView dates={weekDates} getEvents={getEventsForDate} navigate={navigate} setView={setView} setCurrentDate={setCurrentDate} />}
+        {view === 'monthly' && <MonthlyView currentDate={currentDate} getEvents={getEventsForDate} events={events} setView={setView} setCurrentDate={setCurrentDate} />}
+        {view === 'daily' && <DailyView date={currentDate} events={getEventsForDate(currentDate)} todayAtt={todayAtt} navigate={navigate} setView={setView} setCurrentDate={setCurrentDate} />}
+      </div>
 
       {/* Today's Events Summary */}
       {(() => {
@@ -242,17 +266,22 @@ function WeeklyView({ dates, getEvents, navigate, setView, setCurrentDate }) {
               {today && <div className="cal-today-dot" />}
             </div>
             {evts.map((ev, i) => {
-              // Per spec: tasks are Blue blocks with priority color dot inside
               const isTask = ev.type === 'task';
+              const isDone = ev._taskStatus === 'done';
               const eventCol = EVENT_COLORS[ev.type] || '#3B82F6';
               const priorityCol = ev.priority ? PRIORITY_COLORS[ev.priority] : null;
               return (
-                <div key={i} className="cal-event" style={{ background: eventCol + '0D', borderLeft: `2px solid ${eventCol}`, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleEventClick(ev, navigate, setView, setCurrentDate); }}>
-                  <div className="cal-event-title" style={{ color: eventCol }}>
+                <div key={i} className="cal-event" style={{
+                  background: eventCol + '0D', borderLeft: `2px solid ${eventCol}`, cursor: 'pointer',
+                  opacity: isDone ? 0.5 : 1
+                }} onClick={(e) => { e.stopPropagation(); handleEventClick(ev, navigate, setView, setCurrentDate); }}>
+                  <div className="cal-event-title" style={{ color: eventCol, textDecoration: isDone ? 'line-through' : 'none' }}>
                     {isTask && priorityCol && (
                       <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: priorityCol, marginRight: 4, verticalAlign: 'middle' }} />
                     )}
-                    {ev.title}
+                    {isTask && ev._isDeadlineDay && <span style={{ fontSize: 8, marginRight: 2 }}>🏁</span>}
+                    {isTask && ev._isStartDay && !ev._isDeadlineDay && <span style={{ fontSize: 8, marginRight: 2 }}>▶</span>}
+                    {isDone ? '✓ ' : ''}{ev.title}
                   </div>
                   {ev.startTime && <div className="cal-event-time" style={{ color: eventCol }}>{ev.startTime}</div>}
                   {!ev.startTime && ev.type && <div className="cal-event-time" style={{ color: eventCol }}>{ev.type}</div>}

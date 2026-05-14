@@ -125,7 +125,7 @@ async function generatePayslipPdf({ employee, record }) {
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold    = await doc.embedFont(StandardFonts.HelveticaBold);
 
-  // Design tokens from the Avadeti design system, mapped to pdf-lib rgb()
+  // Design tokens from the Niyoq design system, mapped to pdf-lib rgb()
   const COLORS = {
     ink:    rgb(0.118, 0.161, 0.231),     // #1E293B
     muted:  rgb(0.39, 0.455, 0.545),      // #64748B
@@ -152,8 +152,8 @@ async function generatePayslipPdf({ employee, record }) {
   page.drawText(`${monthName} ${record.year}`, {
     x: 40, y: height - 75, size: 12, font: regular, color: rgb(1, 1, 1),
   });
-  page.drawText('Avadeti Team', {
-    x: width - 40 - bold.widthOfTextAtSize('Avadeti Team', 12),
+  page.drawText('Niyoq', {
+    x: width - 40 - bold.widthOfTextAtSize('Niyoq', 12),
     y: height - 50, size: 12, font: bold, color: rgb(1, 1, 1),
   });
 

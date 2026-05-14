@@ -1,4 +1,4 @@
-// Avadeti icons — inline SVGs.
+// Niyoq icons — inline SVGs.
 // Keeping these inline (rather than adding lucide-react) keeps bundle small
 // and lets us match the exact stroke/sizing from the mockups.
 //

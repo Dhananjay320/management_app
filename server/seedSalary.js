@@ -13,10 +13,10 @@ async function seedSalary() {
   await SalaryMonthly.deleteMany({});
   await SalaryDispute.deleteMany({});
 
-  const admin = await User.findOne({ email: 'admin@avadeti.com' });
-  const priya = await User.findOne({ email: 'priya@avadeti.com' });
-  const ravi = await User.findOne({ email: 'ravi@avadeti.com' });
-  const meera = await User.findOne({ email: 'meera@avadeti.com' });
+  const admin = await User.findOne({ email: 'admin@niyoq.com' });
+  const priya = await User.findOne({ email: 'priya@niyoq.com' });
+  const ravi = await User.findOne({ email: 'ravi@niyoq.com' });
+  const meera = await User.findOne({ email: 'meera@niyoq.com' });
 
   if (!admin || !priya || !ravi || !meera) {
     console.error('Users not found. Run seed.js first.');

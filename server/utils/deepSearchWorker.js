@@ -1,4 +1,6 @@
 const DeepSearchJob = require('../models/DeepSearchJob');
+const path = require('path');
+const { extractTextFromFile, isExtractable } = require('./fileTextExtractor');
 
 // Models for each scope
 const SCOPE_CONFIGS = {
@@ -169,6 +171,11 @@ async function processJob(job, io) {
       }
     }
 
+    // ═══ FILE CONTENT SEARCH (when searchFiles toggle is ON) ═══
+    if (job.searchFiles && (job.results || []).length < MAX_RESULTS) {
+      await searchFileContents(job, io);
+    }
+
     // All chunks processed
     job.status = 'complete';
     job.completedAt = new Date();
@@ -189,6 +196,121 @@ async function processJob(job, io) {
     job.status = 'complete';
     job.completedAt = new Date();
     await job.save();
+  }
+}
+
+// ═══ FILE CONTENT SEARCH ═══
+// Searches inside uploaded file attachments (PDF, DOCX, TXT, etc.)
+async function searchFileContents(job, io) {
+  try {
+    // Collect all files from different sources based on scope
+    const { WorkspaceFile } = require('../models/Workspace');
+    const Task = require('../models/Task');
+
+    let files = [];
+
+    // Workspace files
+    if (job.scope === 'workspace' || job.scope === 'tasks') {
+      const wsFiles = await WorkspaceFile.find({ isDeleted: false })
+        .select('name originalName path mimeType workspace')
+        .lean();
+      files.push(...wsFiles.map(f => ({ ...f, source: 'workspace', sourceLabel: 'Workspace File' })));
+    }
+
+    // Task attachments
+    if (job.scope === 'tasks' || job.scope === 'workspace') {
+      const tasksWithAttachments = await Task.find({
+        isActive: true,
+        'attachments.0': { $exists: true }
+      }).select('title attachments').lean();
+
+      for (const task of tasksWithAttachments) {
+        for (const att of (task.attachments || [])) {
+          files.push({
+            _id: task._id,
+            name: att.name,
+            path: att.path,
+            mimeType: att.mimeType,
+            source: 'task_attachment',
+            sourceLabel: `Task: ${task.title}`,
+            taskTitle: task.title
+          });
+        }
+      }
+    }
+
+    // Filter to only extractable file types
+    files = files.filter(f => f.path && isExtractable(f.mimeType, f.name));
+
+    if (files.length === 0) return;
+
+    // Send progress update
+    if (io) {
+      io.to(`user:${job.userId}`).emit('deep_search_progress', {
+        jobId: job._id,
+        processedChunks: job.processedChunks,
+        totalChunks: job.totalChunks + Math.ceil(files.length / CHUNK_SIZE),
+        totalFound: (job.results || []).length,
+        phase: 'files'
+      });
+    }
+
+    // Process files in chunks
+    for (let i = 0; i < files.length; i += CHUNK_SIZE) {
+      // Check cancellation
+      const fresh = await DeepSearchJob.findById(job._id);
+      if (fresh.status === 'cancelled') return;
+
+      const chunk = files.slice(i, i + CHUNK_SIZE);
+      const chunkResults = [];
+
+      for (const file of chunk) {
+        try {
+          // Resolve relative path to absolute for disk reading
+          const absPath = file.path.startsWith('/') ? file.path : path.join(__dirname, '..', file.path);
+          const text = await extractTextFromFile(absPath, file.mimeType);
+          if (!text) continue;
+
+          if (text.toLowerCase().includes(job.query.toLowerCase())) {
+            chunkResults.push({
+              entityType: 'file',
+              entityId: file._id,
+              title: `📄 ${file.originalName || file.name}`,
+              snippet: getSnippet(text, job.query, 150),
+              matchIndex: text.toLowerCase().indexOf(job.query.toLowerCase())
+            });
+          }
+        } catch {
+          // Skip files that fail to extract
+        }
+      }
+
+      if (chunkResults.length > 0) {
+        job.results = [...(job.results || []), ...chunkResults];
+        await job.save();
+
+        if (io) {
+          io.to(`user:${job.userId}`).emit('deep_search_partial', {
+            jobId: job._id,
+            newResults: chunkResults,
+            totalFound: job.results.length,
+            phase: 'files'
+          });
+        }
+
+        if (job.results.length >= MAX_RESULTS) return;
+      }
+
+      job.processedChunks = (job.processedChunks || 0) + 1;
+      await job.save();
+
+      // Delay between file chunks
+      if (i + CHUNK_SIZE < files.length) {
+        await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY / 2)); // Faster for files
+      }
+    }
+  } catch (err) {
+    console.error('File content search error:', err.message);
   }
 }
 

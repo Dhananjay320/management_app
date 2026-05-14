@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import usePushNotifications from '../hooks/usePushNotifications';
 import '../styles/onboarding.css';
 
 const TOTAL_STEPS = 6; // 0A, 0B, 1, 2, 3, 4
@@ -97,7 +98,7 @@ export default function OnboardingPage() {
           <>
             <div className="onb-step">
               <div className="onb-step-icon">🚀</div>
-              <h2>Welcome to Avadeti Team</h2>
+              <h2>Welcome to Niyoq</h2>
               <p>Your complete company management platform. Everything your team needs in one place.</p>
               <div className="onb-slides">
                 {INTRO_FEATURES.map((f, i) => (
@@ -331,6 +332,10 @@ export default function OnboardingPage() {
               <div className="onb-step-icon">🎯</div>
               <h2>Getting Started</h2>
               <p>Here are a few things to explore. You can always come back to these later.</p>
+
+              {/* Push Notification Prompt */}
+              <OnboardingPushPrompt />
+
               <div className="onb-checklist">
                 {[
                   { key: 'profile', label: 'Complete your profile', icon: '👤', path: '/profile' },
@@ -366,6 +371,45 @@ export default function OnboardingPage() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function OnboardingPushPrompt() {
+  const { permission, subscribed, loading, subscribe } = usePushNotifications();
+  const supported = typeof Notification !== 'undefined' && 'serviceWorker' in navigator;
+
+  if (!supported || subscribed) {
+    return subscribed ? (
+      <div style={{ padding: '10px 16px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: 8, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 18 }}>✅</span>
+        <span style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>Push notifications enabled!</span>
+      </div>
+    ) : null;
+  }
+
+  return (
+    <div style={{
+      padding: '16px 20px', marginBottom: 14, borderRadius: 10,
+      background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1))',
+      border: '1px solid rgba(99,102,241,0.2)',
+      display: 'flex', alignItems: 'center', gap: 14
+    }}>
+      <span style={{ fontSize: 32 }}>🔔</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Enable Notifications</div>
+        <div style={{ fontSize: 11, color: 'var(--ink-2)' }}>
+          {permission === 'denied'
+            ? 'Notifications are blocked. Please enable them in your browser settings.'
+            : 'Stay updated with messages, tasks, meetings and more — even when the app is in background.'}
+        </div>
+      </div>
+      {permission !== 'denied' && (
+        <button onClick={subscribe} disabled={loading}
+          style={{ padding: '10px 24px', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 8, background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', color: '#fff', cursor: 'pointer', fontFamily: 'Inter', whiteSpace: 'nowrap' }}>
+          {loading ? 'Enabling...' : 'Enable'}
+        </button>
+      )}
     </div>
   );
 }

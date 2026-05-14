@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Avadeti Team — Screen Navigator — Complete UX Flow</title>
+<title>Niyoq — Screen Navigator — Complete UX Flow</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -131,7 +131,7 @@ body{background:var(--bg);color:var(--t1);font-family:var(--F);font-size:13px}
   <div style="display:flex;align-items:center">
     <div class="logo">
       <div class="logo-icon">A</div>
-      <div class="logo-text">Avadeti <span>Team</span></div>
+      <div class="logo-text">Niyoq <span>Team</span></div>
     </div>
     <div class="sep"></div>
     <span class="ltag" id="screen-counter">Screen Navigator · 0 screens</span>
@@ -162,7 +162,7 @@ body{background:var(--bg);color:var(--t1);font-family:var(--F);font-size:13px}
 
 <script>
 /* ══════════════════════════════════════════════════════════
-   AVADETI TEAM — COMPLETE SCREEN NAVIGATOR
+   NIYOQ TEAM — COMPLETE SCREEN NAVIGATOR
    Joyful light theme · Desktop-first · Employee + Admin modes
 ══════════════════════════════════════════════════════════ */
 
@@ -425,7 +425,7 @@ var S={};
 /* ──────────── AUTH ──────────── */
 
 S['A-01']={n:'Login Screen',t:'Auth',mode:'all',
-  info:['Company branded login screen with Avadeti Team logo','Email + password fields with validation','Login with OTP option below','Forgot Password link','Joyful gradient background with subtle pattern'],
+  info:['Company branded login screen with Niyoq logo','Email + password fields with validation','Login with OTP option below','Forgot Password link','Joyful gradient background with subtle pattern'],
   acts:['Enter credentials → Login → C-01 Calendar','Click Login with OTP → A-02','Click Forgot Password → A-04'],leads:'Calendar Home (C-01)',
   r:function(){
     return '<div style="min-height:100%;background:linear-gradient(135deg,#667EEA 0%,#764BA2 50%,#F093FB 100%);display:flex;align-items:center;justify-content:center;padding:40px">'
@@ -433,9 +433,9 @@ S['A-01']={n:'Login Screen',t:'Auth',mode:'all',
       +'<div style="text-align:center;margin-bottom:28px">'
       +'<div style="width:56px;height:56px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;margin:0 auto 12px">A</div>'
       +'<div style="font-size:22px;font-weight:800;color:#1E293B">Welcome Back!</div>'
-      +'<div style="font-size:12px;color:#94A3B8;margin-top:4px">Sign in to Avadeti Team</div>'
+      +'<div style="font-size:12px;color:#94A3B8;margin-top:4px">Sign in to Niyoq</div>'
       +'</div>'
-      +'<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Email Address</div><div class="input-mock">ravi@avadeti.com</div></div>'
+      +'<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Email Address</div><div class="input-mock">ravi@niyoq.com</div></div>'
       +'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Password</div><div class="input-mock">••••••••</div></div>'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'
       +'<label style="display:flex;align-items:center;gap:5px;font-size:10px;color:#94A3B8"><div style="width:14px;height:14px;border:1.5px solid #E2E8F0;border-radius:3px"></div>Remember me</label>'
@@ -446,7 +446,7 @@ S['A-01']={n:'Login Screen',t:'Auth',mode:'all',
       +'<span onclick="go(\'A-02\')" style="font-size:11px;color:#6366F1;font-weight:600;cursor:pointer">Login with OTP →</span>'
       +'</div>'
       +'<div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #F0F2F7">'
-      +'<div style="font-size:10px;color:#CBD5E1">Avadeti Team v1.0 · Your company, one platform</div>'
+      +'<div style="font-size:10px;color:#CBD5E1">Niyoq v1.0 · Your company, one platform</div>'
       +'</div></div></div>';
   }
 };
@@ -463,7 +463,7 @@ S['A-02']={n:'OTP Request',t:'Auth',mode:'all',
       +'<div style="font-size:20px;font-weight:700;color:#1E293B">Login with OTP</div>'
       +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">Enter your email to request a one-time password</div>'
       +'</div>'
-      +'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Email Address</div><div class="input-mock">ravi@avadeti.com</div></div>'
+      +'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Email Address</div><div class="input-mock">ravi@niyoq.com</div></div>'
       +'<div onclick="go(\'A-03\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,.3)">Request OTP</div>'
       +'</div></div>';
   }
@@ -502,7 +502,7 @@ S['A-04']={n:'Forgot Password',t:'Auth',mode:'all',
       +'<div style="font-size:20px;font-weight:700;color:#1E293B">Forgot Password?</div>'
       +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">No worries! Enter your email and we\'ll send an OTP to your admin.</div>'
       +'</div>'
-      +'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Email Address</div><div class="input-mock">ravi@avadeti.com</div></div>'
+      +'<div style="margin-bottom:20px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:5px">Email Address</div><div class="input-mock">ravi@niyoq.com</div></div>'
       +'<div onclick="go(\'A-03\')" style="width:100%;padding:11px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer">Reset Password</div>'
       +'</div></div>';
   }
@@ -546,7 +546,7 @@ S['O-01']={n:'App Introduction',t:'Onboarding',mode:'all',
       +'</div>'
       +'<div style="width:120px;height:120px;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.1));border-radius:30px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px">'
       +'<div style="font-size:48px">🚀</div></div>'
-      +'<div style="font-size:26px;font-weight:800;color:#1E293B;margin-bottom:8px">Welcome to Avadeti Team</div>'
+      +'<div style="font-size:26px;font-weight:800;color:#1E293B;margin-bottom:8px">Welcome to Niyoq</div>'
       +'<div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:32px">Your complete company management platform.<br>Chat, tasks, meetings, attendance, and more — all in one place.</div>'
       +'<div onclick="go(\'O-02\')" style="padding:12px 32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:inline-block;box-shadow:0 4px 12px rgba(99,102,241,.3)">Get Started →</div>'
       +'<div onclick="go(\'O-06\')" style="margin-top:16px;font-size:11px;color:#94A3B8;cursor:pointer">Skip intro</div>'
@@ -562,10 +562,10 @@ S['O-02']={n:'Company Card',t:'Onboarding',mode:'all',
       +'<div style="background:#fff;border-radius:24px;padding:40px;width:440px;box-shadow:0 25px 50px rgba(0,0,0,.08)">'
       +'<div style="text-align:center;margin-bottom:24px">'
       +'<div style="width:72px;height:72px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:28px;margin:0 auto 12px">A</div>'
-      +'<div style="font-size:22px;font-weight:800;color:#1E293B">Avadeti Media</div>'
+      +'<div style="font-size:22px;font-weight:800;color:#1E293B">Niyoq Demo Co.</div>'
       +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">Digital Innovation Company</div></div>'
       +'<div style="background:#F8FAFC;border-radius:12px;padding:16px;margin-bottom:16px">'
-      +[['📍','123 Business Park, Hyderabad, India'],['📞','+91 98765 43210'],['✉️','hello@avadeti.com'],['🌐','www.avadeti.com']].map(function(r){
+      +[['📍','123 Business Park, Hyderabad, India'],['📞','+91 98765 43210'],['✉️','hello@niyoq.com'],['🌐','www.niyoq.com']].map(function(r){
         return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:11px;color:#475569"><span>'+r[0]+'</span>'+r[1]+'</div>';
       }).join('')
       +'</div>'
@@ -592,7 +592,7 @@ S['O-03']={n:'Personal Welcome',t:'Onboarding',mode:'all',
         return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F0F2F7"><span style="font-size:11px;color:#94A3B8">'+r[0]+'</span><span style="font-size:11px;font-weight:600;color:#1E293B">'+r[1]+'</span></div>';
       }).join('')
       +'</div>'
-      +'<div style="background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(236,72,153,.06));border-radius:10px;padding:14px;margin-bottom:24px;font-size:11px;color:#475569;line-height:1.6;font-style:italic">"Welcome to Avadeti Media! We believe in building great things together. Let\'s make an impact." — Team Avadeti</div>'
+      +'<div style="background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(236,72,153,.06));border-radius:10px;padding:14px;margin-bottom:24px;font-size:11px;color:#475569;line-height:1.6;font-style:italic">"Welcome to Niyoq Demo Co.! We believe in building great things together. Let\'s make an impact." — Team Niyoq</div>'
       +'<div onclick="go(\'O-04\')" style="padding:12px 32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:inline-block">Let\'s Set Up →</div>'
       +'</div></div>';
   }
@@ -663,7 +663,7 @@ S['O-06']={n:'Getting Started Checklist',t:'Onboarding',mode:'all',
       +'<div style="background:#fff;border-radius:24px;padding:40px;width:440px;box-shadow:0 25px 50px rgba(0,0,0,.08)">'
       +'<div style="text-align:center;margin-bottom:20px">'
       +'<div style="font-size:22px;font-weight:800;color:#1E293B">Getting Started 🎯</div>'
-      +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">Complete these steps to get the most out of Avadeti Team</div></div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-top:4px">Complete these steps to get the most out of Niyoq</div></div>'
       +'<div class="progress-bar" style="margin-bottom:6px"><div class="progress-fill" style="width:20%;background:linear-gradient(90deg,#6366F1,#8B5CF6)"></div></div>'
       +'<div style="font-size:9px;color:#94A3B8;text-align:right;margin-bottom:20px">1 of 5 complete</div>'
       +items.map(function(it,i){
@@ -1375,7 +1375,7 @@ S['E-01']={n:'Email Inbox',t:'Email',mode:'all',
     var emails=[
       {from:'Sarah Chen',subj:'Re: Q2 Marketing Budget',preview:'Hi Ravi, thanks for sending the updated figures...',time:'11:23 AM',unread:true,cat:'Client'},
       {from:'Priya Sharma',subj:'Sprint Review Notes',preview:'Here are the notes from today\'s sprint review meeting...',time:'10:05 AM',unread:true,cat:'Internal'},
-      {from:'GitHub',subj:'[avadeti/team-app] PR #142 merged',preview:'Your pull request has been successfully merged into main...',time:'9:30 AM',unread:false,cat:'Updates'},
+      {from:'GitHub',subj:'[niyoq/team-app] PR #142 merged',preview:'Your pull request has been successfully merged into main...',time:'9:30 AM',unread:false,cat:'Updates'},
       {from:'help@company.com',subj:'Support Ticket #891',preview:'Customer reported an issue with login on mobile browser...',time:'Yesterday',unread:false,cat:'Support',shared:true}
     ];
     return deskLayout(
@@ -1384,7 +1384,7 @@ S['E-01']={n:'Email Inbox',t:'Email',mode:'all',
       '<div style="display:flex;gap:0;background:#fff;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;height:calc(100vh - 180px)">'
       +'<div style="width:180px;border-right:1px solid #E2E8F0;padding:12px;overflow-y:auto">'
       +'<div style="font-size:9px;font-weight:700;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Accounts</div>'
-      +[['📬 All Inbox','4'],['✉️ ravi@avadeti.com','2'],['📥 help@company.com','2']].map(function(a,i){
+      +[['📬 All Inbox','4'],['✉️ ravi@niyoq.com','2'],['📥 help@company.com','2']].map(function(a,i){
         return '<div style="display:flex;justify-content:space-between;padding:6px 8px;border-radius:6px;font-size:10px;cursor:pointer;margin-bottom:2px;'+(i===0?'background:rgba(99,102,241,.06);color:#6366F1;font-weight:600':'color:#475569')+'"><span>'+a[0]+'</span><span style="color:#94A3B8">'+a[1]+'</span></div>';
       }).join('')
       +'<div style="font-size:9px;font-weight:700;color:#94A3B8;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 8px">Folders</div>'
@@ -1417,7 +1417,7 @@ S['E-03']={n:'Compose Email',t:'Email',mode:'all',
       topBar('Compose','New email'),
       '<div style="max-width:600px">'
       +'<div style="background:#fff;border-radius:12px;border:1px solid #E2E8F0;padding:20px">'
-      +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">From</div><div class="input-mock">ravi@avadeti.com ▾</div></div>'
+      +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">From</div><div class="input-mock">ravi@niyoq.com ▾</div></div>'
       +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">To</div><div class="input-mock">sarah.chen@client.com</div></div>'
       +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Subject</div><div class="input-mock" style="color:#1E293B;font-weight:600">Re: Q2 Marketing Budget — Updated Figures</div></div>'
       +'<div style="margin-bottom:12px;padding:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;min-height:200px">'
@@ -1788,7 +1788,7 @@ S['AD-02']={n:'Create Employee',t:'Admin',mode:'admin',
       +sectionHeader('👤 Identity')
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
       +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Full Name *</div><div class="input-mock">Anika Reddy</div></div>'
-      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Email *</div><div class="input-mock">anika@avadeti.com</div></div>'
+      +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Email *</div><div class="input-mock">anika@niyoq.com</div></div>'
       +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Phone</div><div class="input-mock">+91 87654 32109</div></div>'
       +'<div><div style="font-size:10px;font-weight:600;color:#475569;margin-bottom:4px">Job Title</div><div class="input-mock">UI/UX Designer</div></div>'
       +'</div>'
@@ -1935,7 +1935,7 @@ function selectScreen(id){
   var s=S[id];
   var h='<div class="desk-wrap"><div class="desk-frame"><div class="desk-bar">'
     +'<div class="desk-dots"><div class="desk-dot" style="background:#FF5F57"></div><div class="desk-dot" style="background:#FEBC2E"></div><div class="desk-dot" style="background:#28C840"></div></div>'
-    +'<div class="desk-url">app.avadetiteam.com / '+s.t.toLowerCase().replace(/ /g,'-')+' / '+s.n.toLowerCase().replace(/ /g,'-')+'</div></div>'
+    +'<div class="desk-url">app.niyoqteam.com / '+s.t.toLowerCase().replace(/ /g,'-')+' / '+s.n.toLowerCase().replace(/ /g,'-')+'</div></div>'
     +'<div class="desk-body">'+s.r()+'</div></div>'
     +'<div class="desk-label">'+s.n+' — '+s.t+'</div></div>';
 

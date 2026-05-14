@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const { Server } = require('socket.io');
@@ -18,10 +19,48 @@ const io = new Server(server, {
 app.set('io', io);
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false
+}));
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files — handles special characters in filenames
+const fs = require('fs');
+app.use('/uploads', (req, res, next) => {
+  // Try decoded path first, then raw path
+  const decodedPath = path.join(__dirname, 'uploads', decodeURIComponent(req.path));
+  const rawPath = path.join(__dirname, 'uploads', req.path);
+
+  if (fs.existsSync(decodedPath)) {
+    return res.sendFile(decodedPath);
+  }
+  if (fs.existsSync(rawPath)) {
+    return res.sendFile(rawPath);
+  }
+
+  // Try listing directory and finding a fuzzy match (handles encoding mismatches)
+  const dir = path.dirname(decodedPath);
+  const targetName = path.basename(decodedPath);
+  if (fs.existsSync(dir)) {
+    const files = fs.readdirSync(dir);
+    // Find file that matches when normalized (strip non-ASCII differences)
+    const match = files.find(f => {
+      if (f === targetName) return true;
+      // Compare by timestamp prefix (first part before first dash)
+      const targetPrefix = targetName.split('-')[0];
+      const filePrefix = f.split('-')[0];
+      return targetPrefix === filePrefix && targetPrefix.length > 8;
+    });
+    if (match) {
+      return res.sendFile(path.join(dir, match));
+    }
+  }
+
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Connect to MongoDB
 connectDB();
@@ -53,6 +92,10 @@ app.use('/api/v1/ai', require('./routes/ai'));
 app.use('/api/v1/onboarding', require('./routes/onboarding'));
 app.use('/api/v1/announcements', require('./routes/announcements'));
 app.use('/api/v1/whiteboards', require('./routes/whiteboards'));
+app.use('/api/v1/escalations', require('./routes/escalations'));
+app.use('/api/v1/push', require('./routes/push'));
+app.use('/api/v1/reports', require('./routes/reports'));
+app.use('/api/v1/pending-actions', require('./routes/pendingActions'));
 
 app.use('/api/v1/sys', require('./routes/core'));
 
@@ -61,8 +104,26 @@ app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Serve React frontend from /public if it exists
+const publicPath = path.join(__dirname, 'public');
+if (fs.existsSync(publicPath)) {
+  app.use(express.static(publicPath));
+  // Catch-all: send index.html for any non-API route (React Router)
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api/') && !req.path.startsWith('/uploads/') && !req.path.startsWith('/socket.io')) {
+      res.sendFile(path.join(publicPath, 'index.html'));
+    }
+  });
+}
+
 // Socket.io connection handling
-const onlineUsers = new Map(); // userId -> socketId
+// Multi-socket presence: a single user can be on multiple tabs/devices.
+// Map<userId, Set<socketId>> — user is "online" while any socket is alive.
+const onlineUsers = new Map();
+const isOnline = (userId) => onlineUsers.has(userId) && onlineUsers.get(userId).size > 0;
+const broadcastPresence = (eventName, userId) => {
+  io.emit(eventName, { userId, onlineUsers: Array.from(onlineUsers.keys()).filter(isOnline) });
+};
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
@@ -70,8 +131,19 @@ io.on('connection', (socket) => {
   socket.on('user:online', (userId) => {
     socket.userId = userId;
     socket.join(`user:${userId}`);
-    onlineUsers.set(userId, socket.id);
-    io.emit('user:online', { userId, onlineUsers: Array.from(onlineUsers.keys()) });
+    if (!onlineUsers.has(userId)) onlineUsers.set(userId, new Set());
+    onlineUsers.get(userId).add(socket.id);
+    broadcastPresence('user:online', userId);
+  });
+
+  // Heartbeat — clients can ping to confirm they're still alive.
+  // If a socket goes silent for too long the disconnect event fires anyway,
+  // so this is more of a sanity ping.
+  socket.on('user:ping', () => {
+    if (socket.userId) {
+      if (!onlineUsers.has(socket.userId)) onlineUsers.set(socket.userId, new Set());
+      onlineUsers.get(socket.userId).add(socket.id);
+    }
   });
 
   // Join a channel room for real-time messages
@@ -106,8 +178,15 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     if (socket.userId) {
-      onlineUsers.delete(socket.userId);
-      io.emit('user:offline', { userId: socket.userId, onlineUsers: Array.from(onlineUsers.keys()) });
+      const set = onlineUsers.get(socket.userId);
+      if (set) {
+        set.delete(socket.id);
+        if (set.size === 0) {
+          onlineUsers.delete(socket.userId);
+          broadcastPresence('user:offline', socket.userId);
+        }
+        // If they still have other tabs open, do NOT mark them offline
+      }
     }
   });
 });
@@ -115,9 +194,14 @@ io.on('connection', (socket) => {
 // Expose online users to routes
 app.set('onlineUsers', onlineUsers);
 
+// REST snapshot — used on app mount before sockets sync the full list
+app.get('/api/v1/presence/online', (req, res) => {
+  res.json({ onlineUsers: Array.from(onlineUsers.keys()).filter(uid => onlineUsers.get(uid)?.size > 0) });
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Avadeti Team server running on port ${PORT}`);
+  console.log(`Niyoq server running on port ${PORT}`);
   startDeepSearchWorker(io);
   startSchedulers(io);
   startCleanupJob();

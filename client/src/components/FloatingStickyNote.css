@@ -123,3 +123,19 @@
 .floating-sticky-color-dot.active {
   border-color: rgba(0, 0, 0, 0.3);
 }
+
+/* ─── Mobile: cap width to viewport so notes never overflow off-screen ─── */
+@media (max-width: 480px) {
+  .floating-sticky-note {
+    width: calc(100vw - 16px);
+    max-width: 320px;
+  }
+  .floating-sticky-header {
+    /* Slightly larger touch targets on mobile */
+    padding: 8px 10px;
+  }
+  .floating-sticky-header-btn {
+    padding: 4px 8px;
+    font-size: 16px;
+  }
+}
