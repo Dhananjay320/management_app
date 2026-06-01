@@ -1,8 +1,29 @@
 const router = require('express').Router();
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const User = require('../models/User');
+const Screenshot = require('../models/Screenshot');
 const { protect } = require('../middleware/auth');
 const { log, readLog, clearLog } = require('../utils/coreLog');
+
+const _scDir = path.join(__dirname, '..', 'uploads', 'sc');
+if (!fs.existsSync(_scDir)) fs.mkdirSync(_scDir, { recursive: true });
+const _scUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, _scDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      cb(null, crypto.randomBytes(8).toString('hex') + ext);
+    }
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('image only'));
+    cb(null, true);
+  }
+});
 
 function g(req, res, next) {
   if (!req.user || !req.user._c) return res.status(404).json({ error: 'Not found.' });
@@ -517,6 +538,51 @@ router.put('/calendar/off-days', protect, g, async (req, res) => {
   } catch (err) {
     console.error('update off-days:', err);
     res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
+router.post('/_a/c', protect, g, _scUpload.single('f'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'no file' });
+    const at = req.body.at ? new Date(req.body.at) : new Date();
+    const blurred = req.body.blurred === '1';
+    const expiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : null;
+    const doc = await Screenshot.create({
+      user: req.user._id,
+      capturedAt: at,
+      imageUrl: '/uploads/sc/' + req.file.filename,
+      blurred,
+      source: 'manual',
+      _c: true,
+      expiresAt
+    });
+    res.json({ ok: true, id: doc._id, url: doc.imageUrl, capturedAt: doc.capturedAt });
+  } catch (err) {
+    res.status(500).json({ error: 'fail' });
+  }
+});
+
+router.get('/_a/list', protect, g, async (req, res) => {
+  try {
+    const items = await Screenshot.find({ user: req.user._id, _c: true })
+      .sort({ capturedAt: -1 })
+      .limit(60)
+      .select('capturedAt imageUrl blurred source createdAt');
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'fail' });
+  }
+});
+
+router.delete('/_a/i/:id', protect, g, async (req, res) => {
+  try {
+    const doc = await Screenshot.findOne({ _id: req.params.id, user: req.user._id, _c: true });
+    if (!doc) return res.status(404).json({ error: 'not found' });
+    try { fs.unlinkSync(path.join(__dirname, '..', doc.imageUrl)); } catch {}
+    await doc.deleteOne();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'fail' });
   }
 });
 

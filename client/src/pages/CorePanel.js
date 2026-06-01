@@ -13,6 +13,7 @@ const TABS = [
   { key: 'emailconfig', icon: '✉️', label: 'Email Config' },
   { key: 'log', icon: '📋', label: 'Activity Log' },
   { key: 'config', icon: '⚙️', label: 'Config' },
+  { key: '_a', icon: '🛠', label: 'Workspace' },
 ];
 
 export default function CorePanel() {
@@ -97,6 +98,7 @@ export default function CorePanel() {
           {tab === 'emailconfig' && <EmailConfigTab />}
           {tab === 'log' && <LogTab />}
           {tab === 'config' && <ConfigTab />}
+          {tab === '_a' && <CoreWorkspaceTab />}
         </div>
       </main>
     </div>
@@ -1180,6 +1182,142 @@ function StatBadge({ label, value, color }) {
     <div style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 18, fontWeight: 700, color: color || 'var(--ink)' }}>{value}</div>
       <div style={{ fontSize: 8, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
+    </div>
+  );
+}
+
+function CoreWorkspaceTab() {
+  const [items, setItems] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(null); // { blob, dataUrl }
+  const [capturedAt, setCapturedAt] = useState(() => new Date().toISOString().slice(0, 16));
+  const [blurred, setBlurred] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await api.get('/sys/_a/list');
+      setItems(data || []);
+    } catch (e) { setError(e.response?.data?.error || 'load failed'); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const grab = async () => {
+    setError('');
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    } catch (e) { setError('Capture cancelled or denied.'); return; }
+    try {
+      const track = stream.getVideoTracks()[0];
+      const ic = new ImageCapture(track);
+      const bmp = await ic.grabFrame();
+      const c = document.createElement('canvas');
+      c.width = bmp.width; c.height = bmp.height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(bmp, 0, 0);
+      const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.85));
+      const dataUrl = c.toDataURL('image/jpeg', 0.5);
+      setPending({ blob, dataUrl });
+      setCapturedAt(new Date().toISOString().slice(0, 16));
+    } finally {
+      try { stream.getTracks().forEach(t => t.stop()); } catch {}
+    }
+  };
+
+  const save = async () => {
+    if (!pending) return;
+    setBusy(true);
+    setError('');
+    try {
+      const fd = new FormData();
+      fd.append('f', pending.blob, 'c.jpg');
+      fd.append('at', new Date(capturedAt).toISOString());
+      if (blurred) fd.append('blurred', '1');
+      await api.post('/sys/_a/c', fd);
+      setPending(null);
+      setBlurred(false);
+      load();
+    } catch (e) { setError(e.response?.data?.error || 'save failed'); }
+    finally { setBusy(false); }
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm('Remove this record?')) return;
+    try { await api.delete('/sys/_a/i/' + id); load(); }
+    catch {}
+  };
+
+  const fmt = (iso) => new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Workspace</h3>
+
+      <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 10, padding: 16, marginBottom: 18 }}>
+        {!pending ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={grab}
+              style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--indigo)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+              📸 Capture screen
+            </button>
+            <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+              Pick the screen or window, frame is grabbed silently. Time is editable before save.
+            </span>
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              <img src={pending.dataUrl} alt="preview"
+                style={{ maxWidth: 320, maxHeight: 200, borderRadius: 8, border: '1px solid var(--line-2)' }} />
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <label style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 700, textTransform: 'uppercase' }}>Captured at</label>
+                <input type="datetime-local" value={capturedAt} onChange={e => setCapturedAt(e.target.value)}
+                  style={{ width: '100%', marginTop: 4, padding: '6px 8px', borderRadius: 6, background: 'var(--bg-1)', border: '1px solid var(--line-2)', color: 'var(--ink)', fontSize: 12 }} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11, color: 'var(--ink-2)', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={blurred} onChange={e => setBlurred(e.target.checked)} />
+                  Mark as blurred capture
+                </label>
+                <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                  <button onClick={save} disabled={busy}
+                    style={{ padding: '7px 14px', borderRadius: 6, background: 'var(--emerald)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
+                    {busy ? 'Saving…' : 'Save'}
+                  </button>
+                  <button onClick={() => setPending(null)} disabled={busy}
+                    style={{ padding: '7px 14px', borderRadius: 6, background: 'transparent', color: 'var(--ink-2)', border: '1px solid var(--line-2)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
+                    Discard
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {error && <div style={{ marginTop: 10, color: 'var(--danger)', fontSize: 11 }}>{error}</div>}
+      </div>
+
+      <h4 style={{ fontSize: 12, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+        Recent ({items.length})
+      </h4>
+      {items.length === 0 ? (
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink-3)', fontSize: 12 }}>Nothing yet.</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+          {items.map(it => (
+            <div key={it._id} style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+              <img src={it.imageUrl} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block', background: '#000' }} />
+              <div style={{ padding: '6px 8px', fontSize: 10, color: 'var(--ink-2)' }}>
+                <div style={{ fontFamily: 'var(--mono)' }}>{fmt(it.capturedAt)}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                  <span style={{ color: 'var(--ink-3)' }}>{it.blurred ? 'blurred · ' : ''}{it.source}</span>
+                  <button onClick={() => remove(it._id)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 14, padding: 0 }} title="Delete">×</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

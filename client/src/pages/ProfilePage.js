@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import ProfilePhotoCropper from '../components/ProfilePhotoCropper';
+import MyRecordedActivity from '../components/MyRecordedActivity';
 import '../styles/onboarding.css';
 
 const GRADIENTS = [
@@ -317,6 +318,9 @@ export default function ProfilePage() {
           {pwBusy ? 'Changing...' : 'Change Password'}
         </button>
       </div>
+
+      {/* My recorded activity (monitoring transparency) */}
+      <MyRecordedActivity />
 
       {/* Settings Summary */}
       <div className="profile-section">
