@@ -30,6 +30,15 @@ const companyInfoSchema = new mongoose.Schema({
   wrapUpEarliestHour: { type: Number, default: 17, min: 0, max: 23 },   // 5 PM
   wrapUpBellHour:     { type: Number, default: 17, min: 0, max: 23 },   // hour of bell
   wrapUpBellMinute:   { type: Number, default: 50, min: 0, max: 59 },   // minute of bell — default 17:50
+  autoWrapUpTime:     { type: String, default: '20:00' },               // company-wide auto wrap (HH:MM); per-user setting overrides
+
+  // Per-type maximum break duration in minutes. Overruns are flagged in the
+  // daily report but never block the user.
+  breakPolicy: {
+    lunch:    { type: Number, default: 45 },
+    tea:      { type: Number, default: 15 },
+    personal: { type: Number, default: 20 }
+  },
 
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, {

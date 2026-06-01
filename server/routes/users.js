@@ -1,7 +1,28 @@
 const router = require('express').Router();
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const User = require('../models/User');
 const { protect, requirePower } = require('../middleware/auth');
+
+// Theme background upload — per-user, stored under uploads/theme-bg/
+const themeBgDir = path.join(__dirname, '..', 'uploads', 'theme-bg');
+if (!fs.existsSync(themeBgDir)) fs.mkdirSync(themeBgDir, { recursive: true });
+const themeBgUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, themeBgDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      cb(null, `bg-${req.user._id}-${Date.now()}${ext}`);
+    }
+  }),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Image files only'));
+    cb(null, true);
+  }
+});
 
 // TODO: Avatar upload endpoint pending — needs multer setup for frontend + backend file handling
 
@@ -48,7 +69,8 @@ router.put('/me/settings', protect, async (req, res) => {
     const allowed = [
       'calendarDefaultView', 'meetingReminder', 'wrapUpFrequency', 'autoWrapUpTime',
       'notificationSound', 'messagePreview', 'autoDND', 'autoStatusMeeting',
-      'autoStatusLeave', 'autoStatusWFH', 'mentionBreaksDND', 'broadcastDefault'
+      'autoStatusLeave', 'autoStatusWFH', 'mentionBreaksDND', 'broadcastDefault',
+      'requireSelfieAtEntry'
     ];
 
     const update = {};
@@ -56,9 +78,42 @@ router.put('/me/settings', protect, async (req, res) => {
       if (settings[key] !== undefined) update[`settings.${key}`] = settings[key];
     });
 
+    // Theme — accept as a whole object so a single PUT can set preset + overrides
+    if (settings.theme && typeof settings.theme === 'object') {
+      const t = settings.theme;
+      const themeFields = ['preset', 'windowBg', 'sidebarBg', 'topbarBg', 'cardBg', 'accent', 'ink', 'backgroundImage'];
+      themeFields.forEach(f => {
+        if (t[f] === undefined) return;
+        const maxLen = f === 'backgroundImage' ? 512 : 32;
+        update[`settings.theme.${f}`] = String(t[f]).slice(0, maxLen);
+      });
+    }
+
     const user = await User.findByIdAndUpdate(req.user._id, update, { new: true })
       .select('settings');
     res.json(user.settings);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/v1/users/me/theme-bg — upload a background image
+router.post('/me/theme-bg', protect, themeBgUpload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+    const url = '/uploads/theme-bg/' + req.file.filename;
+    await User.findByIdAndUpdate(req.user._id, { 'settings.theme.backgroundImage': url });
+    res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
+// DELETE /api/v1/users/me/theme-bg
+router.delete('/me/theme-bg', protect, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, { 'settings.theme.backgroundImage': '' });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }

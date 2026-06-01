@@ -5,7 +5,18 @@ const attendanceSchema = new mongoose.Schema({
   date: { type: String, required: true }, // YYYY-MM-DD format
   entryTime: { type: Date },
   wrapUpTime: { type: Date },
+  wrapUpMethod: { type: String, enum: ['manual', 'auto', 'admin'], default: 'manual' },
   totalHours: { type: Number, default: 0 },
+  entrySelfie: { type: String, default: '' },  // /uploads/selfies/<filename> — verification photo at clock-in
+
+  // Typed breaks taken during the work day. An open break is one with no
+  // endedAt; only one break can be open at a time (server enforces).
+  breaks: [{
+    type: { type: String, enum: ['lunch', 'tea', 'personal'], required: true },
+    startedAt: { type: Date, required: true },
+    endedAt: { type: Date },
+    note: { type: String, default: '' }
+  }],
   status: {
     type: String,
     enum: ['present', 'absent', 'leave', 'half_day', 'holiday', 'weekend', 'not_marked'],

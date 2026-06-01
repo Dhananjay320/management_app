@@ -54,8 +54,17 @@ notificationSchema.pre('save', function (next) {
   next();
 });
 
-// After saving, send push notification to user's devices
+// Capture isNew BEFORE save (it gets reset post-save). The post-save hook
+// uses this to only push on creation — modifying an existing notification
+// (mark-read, acknowledge, etc.) must NOT re-push the OS sound.
+notificationSchema.pre('save', function (next) {
+  this.$locals.wasNew = this.isNew;
+  next();
+});
+
+// After saving, send push notification to user's devices — only on insert
 notificationSchema.post('save', async function (doc) {
+  if (!doc.$locals?.wasNew) return;
   try {
     const { sendPushToUser } = require('../utils/pushSender');
     await sendPushToUser(doc.user, {

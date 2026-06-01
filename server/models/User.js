@@ -149,7 +149,28 @@ const userSchema = new mongoose.Schema({
     autoStatusLeave: { type: Boolean, default: true },
     autoStatusWFH: { type: Boolean, default: true },
     mentionBreaksDND: { type: Boolean, default: true },
-    broadcastDefault: { type: String, default: 'hidden' }
+    broadcastDefault: { type: String, default: 'hidden' },
+    requireSelfieAtEntry: { type: Boolean, default: false },  // when true, mark-entry UI asks for a webcam selfie
+    theme: {
+      preset: { type: String, default: 'indigo' },
+      // Empty strings mean "use preset values". Filled values override per zone.
+      windowBg: { type: String, default: '' },
+      sidebarBg: { type: String, default: '' },
+      topbarBg: { type: String, default: '' },
+      cardBg: { type: String, default: '' },
+      accent: { type: String, default: '' },
+      ink: { type: String, default: '' },               // text color override (for light themes)
+      backgroundImage: { type: String, default: '' }    // URL to uploaded bg image
+    }
+  },
+
+  // Monitoring consent — set when employee accepts the company's tracking policy.
+  // When CompanyMonitoring.policyVersion > acceptedVersion, the user is re-prompted.
+  monitoringConsent: {
+    acceptedAt:      { type: Date },
+    acceptedVersion: { type: Number },
+    ipAtAccept:      { type: String },
+    userAgentAtAccept: { type: String }
   },
 
   // Salary

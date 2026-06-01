@@ -213,6 +213,10 @@ export default function FileViewer({ url, name, mimeType, size, onClose }) {
   };
 
   const isTextEditable = category === 'text';
+  const isHtml = (name || '').toLowerCase().endsWith('.html') || (name || '').toLowerCase().endsWith('.htm');
+  const [htmlView, setHtmlView] = useState('preview'); // 'preview' | 'source'
+  const [htmlVp, setHtmlVp] = useState('fit'); // 'fit' | 'desktop' | 'tablet' | 'mobile'
+  const VP_WIDTHS = { fit: '100%', desktop: '1280px', tablet: '768px', mobile: '375px' };
 
   return (
     <div className="file-viewer-overlay" onClick={onClose}>
@@ -221,7 +225,18 @@ export default function FileViewer({ url, name, mimeType, size, onClose }) {
           <span className="file-viewer-title">{name || 'File'}</span>
           <div className="file-viewer-actions">
             {isTextEditable && !editing && (
-              <button className="file-viewer-btn" onClick={handleEdit}>Edit</button>
+              <>
+                <button className="file-viewer-btn" onClick={async (e) => {
+                  const btn = e.currentTarget;
+                  const original = btn.textContent;
+                  try {
+                    await navigator.clipboard.writeText(textContent || '');
+                    btn.textContent = 'Copied!';
+                  } catch { btn.textContent = 'Failed'; }
+                  setTimeout(() => { btn.textContent = original; }, 1500);
+                }}>Copy</button>
+                <button className="file-viewer-btn" onClick={handleEdit}>Edit</button>
+              </>
             )}
             {editing && (
               <>
@@ -299,6 +314,56 @@ export default function FileViewer({ url, name, mimeType, size, onClose }) {
                 onChange={e => setEditContent(e.target.value)}
                 autoFocus
               />
+            ) : isHtml ? (
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '70vh' }}>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button
+                    className={`file-viewer-btn${htmlView === 'preview' ? ' file-viewer-btn-primary' : ''}`}
+                    onClick={() => setHtmlView('preview')}
+                  >Preview</button>
+                  <button
+                    className={`file-viewer-btn${htmlView === 'source' ? ' file-viewer-btn-primary' : ''}`}
+                    onClick={() => setHtmlView('source')}
+                  >Source</button>
+                  {htmlView === 'preview' && (
+                    <>
+                      <div style={{ width: 1, height: 22, background: 'var(--line-2)', margin: '0 4px' }} />
+                      {[['fit','Fit'],['desktop','Desktop'],['tablet','Tablet'],['mobile','Mobile']].map(([k,l]) => (
+                        <button key={k}
+                          className={`file-viewer-btn${htmlVp === k ? ' file-viewer-btn-primary' : ''}`}
+                          onClick={() => setHtmlVp(k)}>{l}</button>
+                      ))}
+                      <button className="file-viewer-btn" onClick={() => {
+                        const w = window.open('', '_blank');
+                        if (w) { w.document.write(textContent || ''); w.document.close(); }
+                      }} title="Open in new tab at full window width">Open ↗</button>
+                    </>
+                  )}
+                </div>
+                {htmlView === 'preview' ? (
+                  <div style={{ flex: 1, display: 'flex', justifyContent: htmlVp === 'fit' ? 'stretch' : 'center', overflow: 'auto', background: 'var(--bg-1)', borderRadius: 8, padding: htmlVp === 'fit' ? 0 : 8 }}>
+                    <iframe
+                      title={name}
+                      srcDoc={textContent}
+                      sandbox="allow-same-origin allow-scripts allow-forms"
+                      style={{
+                        // For fixed viewports use the exact pixel width so the
+                        // page's media queries resolve to that breakpoint —
+                        // even if the modal is narrower. Scrolls horizontally.
+                        width: VP_WIDTHS[htmlVp],
+                        flexShrink: 0,
+                        height: '100%',
+                        minHeight: '65vh',
+                        border: htmlVp === 'fit' ? '1px solid var(--line-1)' : '1px solid var(--line-2)',
+                        borderRadius: 8,
+                        background: '#fff'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <pre className="file-viewer-pre" style={{ flex: 1, margin: 0 }}>{textContent}</pre>
+                )}
+              </div>
             ) : (
               <pre className="file-viewer-pre">{textContent}</pre>
             )

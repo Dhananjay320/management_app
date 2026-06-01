@@ -59,6 +59,23 @@ body {
   min-height: 100vh;
 }
 
+/* Custom user background image — covers the canvas with a tinted scrim so UI stays legible */
+html.theme-has-bg-image body {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+    var(--bg-image) center/cover no-repeat fixed,
+    var(--bg-0);
+}
+html.theme-light.theme-has-bg-image body {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.65)),
+    var(--bg-image) center/cover no-repeat fixed,
+    var(--bg-0);
+}
+/* Light mode: dim the ambient orbs and noise overlay */
+html.theme-light body::before { opacity: 0.15; mix-blend-mode: multiply; }
+html.theme-light .ad-orb { opacity: 0.08; }
+
 /* Noise overlay */
 body::before {
   content: "";

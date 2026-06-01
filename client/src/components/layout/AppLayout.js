@@ -5,6 +5,9 @@ import { useSocket } from '../../context/SocketContext';
 import api from '../../services/api';
 import usePushNotifications from '../../hooks/usePushNotifications';
 import useAutoMarkEntry from '../../hooks/useAutoMarkEntry';
+import useMonitoringConfig from '../../hooks/useMonitoringConfig';
+import MonitoringConsentModal from '../MonitoringConsentModal';
+import WorkTimer from '../WorkTimer';
 import NotificationToast from '../NotificationToast';
 import FloatingStickyNote from '../FloatingStickyNote';
 import {
@@ -60,6 +63,7 @@ export default function AppLayout() {
 
   // Auto-mark entry once per day when app opens
   useAutoMarkEntry(user);
+  const monitoring = useMonitoringConfig();
   const [autoEntryToast, setAutoEntryToast] = useState(null);
   const [autoEntryToastKind, setAutoEntryToastKind] = useState('ok');
   useEffect(() => {
@@ -305,6 +309,9 @@ export default function AppLayout() {
 
   return (
     <div className="app-shell">
+      {monitoring.needsAcceptance && (
+        <MonitoringConsentModal config={monitoring.config} onAccept={monitoring.accept} />
+      )}
       {/* Sidebar */}
       <nav className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-logo" onClick={() => navigate('/')} title="Home">
@@ -375,7 +382,7 @@ export default function AppLayout() {
             >
               <span /><span /><span />
             </button>
-            <span className="topbar-title">{pageTitle}</span>
+            {/* Topbar title intentionally hidden — inner pages render their own headers */}
           </div>
           <div style={{ flex: 1, maxWidth: 400, margin: '0 16px', position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -500,6 +507,7 @@ export default function AppLayout() {
             )}
           </div>
           <div className="topbar-right">
+            <WorkTimer />
             {hasAdminPowers && (
               <div
                 className={`admin-toggle ${adminMode ? 'on' : 'off'}`}
@@ -533,8 +541,9 @@ export default function AppLayout() {
               </div>
             </div>
 
-            <div className="topbar-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
-              {user?.name?.split(' ').map(w => w[0]).join('')}
+            <div className="topbar-avatar" onClick={() => setShowUserMenu(!showUserMenu)}
+              style={user?.avatar ? { backgroundImage: `url("${user.avatar}")`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : undefined}>
+              {!user?.avatar && (user?.name?.split(' ').map(w => w[0]).join('') || '')}
             </div>
           </div>
         </header>

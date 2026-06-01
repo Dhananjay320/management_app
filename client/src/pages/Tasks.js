@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api, { getFileUrl } from '../services/api';
 import { useAlert } from '../components/AlertModal';
+import TaskBoard from '../components/TaskBoard';
 import '../styles/tasks.css';
 // TODO: Add FormatSwitcher from '../components/FormatSwitcher' to allow switching task comments/activity between chat/email/table/calendar/document views
 
@@ -15,10 +16,11 @@ const PRIORITY_CONFIG = {
 const STATUS_CONFIG = {
   not_started: { label: 'Not Started', color: 'var(--ink-3)' },
   in_progress: { label: 'In Progress', color: '#6366F1' },
-  on_hold: { label: 'On Hold', color: '#F59E0B' },
-  done: { label: 'Done', color: '#10B981' },
-  cancelled: { label: 'Cancelled', color: '#EF4444' },
-  reopened: { label: 'Reopened', color: '#F97316' }
+  in_review:   { label: 'In Review',   color: '#A855F7' },
+  on_hold:     { label: 'On Hold',     color: '#F59E0B' },
+  done:        { label: 'Done',        color: '#10B981' },
+  cancelled:   { label: 'Cancelled',   color: '#EF4444' },
+  reopened:    { label: 'Reopened',    color: '#F97316' }
 };
 const GRADIENTS = ['linear-gradient(135deg,#6366F1,#8B5CF6)','linear-gradient(135deg,#10B981,#06B6D4)','linear-gradient(135deg,#F59E0B,#F97316)','linear-gradient(135deg,#EC4899,#8B5CF6)','linear-gradient(135deg,#EF4444,#F97316)'];
 function getGrad(id) { return GRADIENTS[((id||'').charCodeAt(0)||0) % GRADIENTS.length]; }
@@ -52,6 +54,7 @@ export default function Tasks() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [showLabelsModal, setShowLabelsModal] = useState(false);
+  const [displayFormat, setDisplayFormat] = useState(() => localStorage.getItem('niyoq-tasks-display') || 'list');
 
   const loadTasks = useCallback(async () => {
     try {
@@ -112,6 +115,13 @@ export default function Tasks() {
               <div key={k} className={`chip ${tab === k ? 'active' : ''}`} onClick={() => { setTab(k); setSelectedTask(null); }}>{l}</div>
             ))}
           </div>
+          {tab === 'tasks' && (
+            <div className="chip-group">
+              {[['list','📋 List'],['board','📊 Board']].map(([k,l]) => (
+                <div key={k} className={`chip ${displayFormat === k ? 'active' : ''}`} onClick={() => { setDisplayFormat(k); localStorage.setItem('niyoq-tasks-display', k); }}>{l}</div>
+              ))}
+            </div>
+          )}
           {tab === 'tasks' && <>
             <button className="btn btn-secondary" style={{ fontSize: 10, padding: '5px 10px' }} onClick={() => setShowLabelsModal(true)}>Manage Labels</button>
             <button className="btn btn-primary-sm" onClick={() => setTab('create')}>+ New Task</button>
@@ -126,7 +136,7 @@ export default function Tasks() {
               <div key={k} className={`task-filter-chip ${view === k ? 'active' : ''}`} onClick={() => setView(k)}>{l}</div>
             ))}
             <div style={{ width: 1, height: 20, background: 'var(--line)', margin: '0 4px' }} />
-            {[['all','All Status'],['not_started','Not Started'],['in_progress','In Progress'],['done','Done']].map(([k,l]) => (
+            {[['all','All Status'],['not_started','Not Started'],['in_progress','In Progress'],['in_review','In Review'],['done','Done']].map(([k,l]) => (
               <div key={k} className={`task-filter-chip ${filterStatus === k ? 'active' : ''}`}
                 style={filterStatus === k ? { background: (STATUS_CONFIG[k]?.color || '#6366F1') + '14', color: STATUS_CONFIG[k]?.color || '#6366F1', borderColor: (STATUS_CONFIG[k]?.color || '#6366F1') + '33' } : {}}
                 onClick={() => setFilterStatus(k)}>{l}</div>
@@ -138,7 +148,19 @@ export default function Tasks() {
                 onClick={() => setFilterPriority(k)}>{l}</div>
             ))}
           </div>
-          {loading ? <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading...</div> : (
+          {loading ? <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-3)' }}>Loading...</div> : displayFormat === 'board' ? (
+            <TaskBoard
+              tasks={filteredTasks}
+              statuses={[
+                { slug: 'not_started', label: STATUS_CONFIG.not_started.label, color: STATUS_CONFIG.not_started.color },
+                { slug: 'in_progress', label: STATUS_CONFIG.in_progress.label, color: STATUS_CONFIG.in_progress.color },
+                { slug: 'in_review',   label: STATUS_CONFIG.in_review.label,   color: STATUS_CONFIG.in_review.color },
+                { slug: 'done',        label: STATUS_CONFIG.done.label,        color: STATUS_CONFIG.done.color }
+              ]}
+              onCardClick={openTask}
+              onTaskUpdated={() => loadTasks()}
+            />
+          ) : (
             Object.entries(grouped).map(([pri, items]) => items.length > 0 && (
               <div key={pri} className="task-priority-section">
                 <div className="task-priority-header">

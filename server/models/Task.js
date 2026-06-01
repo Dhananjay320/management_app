@@ -16,7 +16,7 @@ const taskSchema = new mongoose.Schema({
 
   // Priority & Status
   priority: { type: String, enum: ['top', 'high', 'medium', 'low'], default: 'medium' },
-  status: { type: String, enum: ['not_started', 'in_progress', 'on_hold', 'done', 'cancelled', 'reopened'], default: 'not_started' },
+  status: { type: String, enum: ['not_started', 'in_progress', 'in_review', 'on_hold', 'done', 'cancelled', 'reopened'], default: 'not_started' },
   progress: { type: Number, default: 0, min: 0, max: 100 },
   statusNote: { type: String, default: '' },
 

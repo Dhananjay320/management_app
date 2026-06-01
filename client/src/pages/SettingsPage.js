@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import usePushNotifications from '../hooks/usePushNotifications';
+import { PRESETS, applyTheme, resolveTheme } from '../theme/presets';
+import MonitoringSettings from '../components/MonitoringSettings';
 import '../styles/ai.css';
 import '../styles/settings.css';
 
@@ -76,6 +78,7 @@ export default function SettingsPage() {
     autoStatusWFH: true,
     mentionBreaksDND: true,
     broadcastDefault: 'hidden',
+    theme: { preset: 'indigo', windowBg: '', sidebarBg: '', topbarBg: '', cardBg: '', accent: '', ink: '', backgroundImage: '' },
   });
   const [saveStatus, setSaveStatus] = useState('');
 
@@ -134,11 +137,33 @@ export default function SettingsPage() {
       await api.put('/users/me/settings', { settings: { [key]: value } });
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus(''), 1500);
+      // Refresh AuthContext in the background so other pages pick up the change.
+      // Do NOT await — blocking on /auth/me makes the picker feel frozen on slow connections.
+      fetchUser?.().catch(() => {});
     } catch {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus(''), 2500);
     }
   };
+
+  /* ---- Theme update: applies live + saves ---- */
+  const updateTheme = async (patch) => {
+    const nextTheme = { ...(settings.theme || {}), ...patch };
+    setSettings(prev => ({ ...prev, theme: nextTheme }));
+    applyTheme(nextTheme); // instant feedback
+    setSaveStatus('saving');
+    try {
+      await api.put('/users/me/settings', { settings: { theme: nextTheme } });
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus(''), 1500);
+      fetchUser?.().catch(() => {});
+    } catch {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus(''), 2500);
+    }
+  };
+
+  const resolvedTheme = resolveTheme(settings.theme);
 
   /* ---- AI handlers (unchanged) ---- */
   const activateWithCode = async () => {
@@ -161,7 +186,8 @@ export default function SettingsPage() {
     try { await api.delete('/ai/config'); setMessage('AI deactivated.'); loadConfig(); fetchUser(); } catch {}
   };
 
-  if (loading) return <div style={{ padding: 20, color: 'var(--ink-3)' }}>Loading...</div>;
+  // No global loading gate — render immediately so theme/calendar settings are
+  // usable even if /ai/config is slow. AI section handles its own pending state.
 
   return (
     <div className="settings-page">
@@ -209,6 +235,121 @@ export default function SettingsPage() {
             { value: 'monthly', label: 'Monthly' },
           ]}
         />
+      </SectionCard>
+
+      {/* Workplace monitoring — admin only */}
+      {(user?.role === 'main_admin' || user?.role === 'admin') && (
+        <SectionCard title="Workplace Monitoring (admin)">
+          <MonitoringSettings />
+        </SectionCard>
+      )}
+
+      {/* 1b. Appearance / Theme */}
+      <SectionCard title="Appearance">
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 10 }}>Pick a preset, or fine-tune individual zones below.</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+          {Object.entries(PRESETS).map(([key, p]) => {
+            const active = (settings.theme?.preset || 'indigo') === key;
+            return (
+              <button
+                key={key}
+                onClick={() => updateTheme({ preset: key, windowBg: '', sidebarBg: '', topbarBg: '', cardBg: '', accent: '', ink: '' })}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'stretch',
+                  width: 120, padding: 8, gap: 6, cursor: 'pointer',
+                  background: 'transparent',
+                  border: `2px solid ${active ? p.accent : 'var(--line-2)'}`,
+                  borderRadius: 10, color: 'var(--ink)'
+                }}
+              >
+                <div style={{ display: 'flex', height: 36, borderRadius: 6, overflow: 'hidden' }}>
+                  <div style={{ width: 28, background: p.sidebarBg }} />
+                  <div style={{ flex: 1, background: p.windowBg, position: 'relative' }}>
+                    <div style={{ position: 'absolute', right: 4, bottom: 4, width: 10, height: 10, borderRadius: 5, background: p.accent }} />
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center' }}>{p.label}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Background image upload */}
+        <div style={{ marginBottom: 16, padding: 12, border: '1px dashed var(--line-2)', borderRadius: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600, marginBottom: 8 }}>BACKGROUND IMAGE</div>
+          {settings.theme?.backgroundImage ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 120, height: 70, borderRadius: 6,
+                background: `url("${settings.theme.backgroundImage}") center/cover no-repeat`,
+                border: '1px solid var(--line-2)'
+              }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 11, padding: '6px 10px', background: 'var(--glass-2)', border: '1px solid var(--line-2)', borderRadius: 4, cursor: 'pointer', textAlign: 'center' }}>
+                  Replace
+                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={async e => {
+                      const f = e.target.files?.[0]; if (!f) return;
+                      const fd = new FormData(); fd.append('image', f);
+                      const { data } = await api.post('/users/me/theme-bg', fd);
+                      updateTheme({ backgroundImage: data.url });
+                    }}
+                  />
+                </label>
+                <button
+                  onClick={async () => { await api.delete('/users/me/theme-bg'); updateTheme({ backgroundImage: '' }); }}
+                  style={{ fontSize: 11, padding: '6px 10px', background: 'transparent', border: '1px solid var(--line-2)', color: 'var(--ink-3)', borderRadius: 4, cursor: 'pointer' }}
+                >Remove</button>
+              </div>
+            </div>
+          ) : (
+            <label style={{ display: 'inline-block', fontSize: 12, padding: '8px 14px', background: 'var(--glass-2)', border: '1px solid var(--line-2)', borderRadius: 6, cursor: 'pointer' }}>
+              Upload image
+              <input type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={async e => {
+                  const f = e.target.files?.[0]; if (!f) return;
+                  const fd = new FormData(); fd.append('image', f);
+                  const { data } = await api.post('/users/me/theme-bg', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                  updateTheme({ backgroundImage: data.url });
+                }}
+              />
+            </label>
+          )}
+          <div style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 6 }}>Max 8 MB. A dark/light scrim is layered on top so the UI stays readable.</div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+          {[
+            { key: 'windowBg',  label: 'Window background' },
+            { key: 'sidebarBg', label: 'Sidebar' },
+            { key: 'topbarBg',  label: 'Top bar' },
+            { key: 'cardBg',    label: 'Cards' },
+            { key: 'accent',    label: 'Accent' },
+            { key: 'ink',       label: 'Text' }
+          ].map(z => (
+            <div key={z.key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 600 }}>{z.label}</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  type="color"
+                  value={settings.theme?.[z.key] || resolvedTheme[z.key]}
+                  onChange={e => updateTheme({ [z.key]: e.target.value })}
+                  style={{ width: 36, height: 30, border: 'none', borderRadius: 6, background: 'transparent', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>
+                  {settings.theme?.[z.key] || resolvedTheme[z.key]}
+                </span>
+                {settings.theme?.[z.key] && (
+                  <button
+                    onClick={() => updateTheme({ [z.key]: '' })}
+                    style={{ marginLeft: 'auto', fontSize: 10, padding: '2px 6px', background: 'transparent', border: '1px solid var(--line-2)', color: 'var(--ink-3)', borderRadius: 4, cursor: 'pointer' }}
+                    title="Use preset value"
+                  >Reset</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </SectionCard>
 
       {/* 2. Attendance & Wrap-up */}

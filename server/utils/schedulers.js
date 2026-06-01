@@ -93,7 +93,13 @@ function startNoEntryAlertScheduler(io) {
 // Admin-configurable: rings the bell at CompanyInfo.wrapUpBellHour (default 6 PM)
 // Then every 30 min after, escalating tone.
 function startWrapUpReminderScheduler(io) {
-  setInterval(async () => {
+  // Date string (YYYY-MM-DD) of the last day we fired the bell. Prevents a
+  // mid-bell-minute server restart from re-ringing everyone after the natural
+  // tick already fired. Lives in memory; reset on restart, which is fine —
+  // we'd rather miss a "duplicate" fire than re-ring users.
+  let lastBellFiredDate = null;
+
+  const tick = async () => {
     const now = new Date();
     const hour = now.getHours();
     const minute = now.getMinutes();
@@ -103,24 +109,39 @@ function startWrapUpReminderScheduler(io) {
     const bellHour = cfg?.wrapUpBellHour ?? 17;
     const bellMinute = cfg?.wrapUpBellMinute ?? 50;
 
-    // Bell fires at the exact configured time (any minute)
-    const isBellTime = hour === bellHour && minute === bellMinute;
-    // Reminders continue at :00 and :30 after the bell
+    const todayKey = todayStr();
+    const isBellTime = hour === bellHour && minute === bellMinute && lastBellFiredDate !== todayKey;
+    // Reminders fire only in the 2 hours after the bell, at each :00 and :30
+    // tick. Without this bound the previous code fired reminders all the way
+    // until midnight (22:30, 23:00, 23:30 etc.) — which felt like spam.
+    const minutesSinceBell = (hour - bellHour) * 60 + (minute - bellMinute);
     const isReminderTime = (minute === 0 || minute === 30) &&
-      (hour > bellHour || (hour === bellHour && minute > bellMinute));
+      minutesSinceBell > 0 &&
+      minutesSinceBell <= 120;
     if (!isBellTime && !isReminderTime) return;
 
     if (await isCompanyHolidayOrOff(now)) return;
 
     try {
-      const date = todayStr();
-      const unwrapped = await Attendance.find({
-        date,
-        entryTime: { $ne: null },
-        wrapUpTime: null
-      }).populate('user', '_id name teams office weeklyOffDays');
+      // Bell time: ring ALL active users (regardless of attendance state).
+      // Reminders after bell: only nudge unwrapped attendees.
+      let targets = [];
+      if (isBellTime) {
+        const User = require('../models/User');
+        const users = await User.find({ isActive: true, _c: { $ne: true } })
+          .select('_id name teams office weeklyOffDays');
+        targets = users.map(u => ({ user: u }));
+      } else {
+        const date = todayStr();
+        const unwrapped = await Attendance.find({
+          date,
+          entryTime: { $ne: null },
+          wrapUpTime: null
+        }).populate('user', '_id name teams office weeklyOffDays');
+        targets = unwrapped;
+      }
 
-      for (const record of unwrapped) {
+      for (const record of targets) {
         if (!record.user) continue;
         if (await isOffDay(record.user, now)) continue;
 
@@ -144,19 +165,30 @@ function startWrapUpReminderScheduler(io) {
         });
 
         if (io) {
-          io.to(`user:${record.user._id}`).emit('notification:new', {
+          const payload = {
             type: 'attendance',
-            title: 'Wrap-up Reminder',
+            title: ringBell ? '🔔 Wrap-up Bell' : 'Wrap-up Reminder',
             message: title,
-            // Client uses this to play the bell sound. Suppressed on mobile WebView.
-            playSound: ringBell
-          });
+            // Stable ID for client-side dedupe — one bell per calendar day.
+            bellId: ringBell ? `wrapup-${todayKey}` : undefined
+          };
+          io.to(`user:${record.user._id}`).emit('notification:new', { ...payload, playSound: ringBell });
         }
       }
+      // Mark today as fired AFTER we've finished emitting so we don't double-fire
+      if (isBellTime) lastBellFiredDate = todayKey;
     } catch (err) {
       console.error('Wrap-up reminder scheduler error:', err);
     }
-  }, 60000);
+  };
+  // Align to the top of each minute so a deploy mid-minute doesn't skip
+  // the bell window. Fire immediately too in case we just crossed it.
+  tick();
+  const msToNextMinute = 60000 - (Date.now() % 60000);
+  setTimeout(() => {
+    tick();
+    setInterval(tick, 60000);
+  }, msToNextMinute);
 }
 
 // ─── Meeting Unseen Alert Scheduler ───
@@ -401,16 +433,112 @@ function startMonthlySalaryScheduler() {
   }, 60000);
 }
 
+// ─── Auto Wrap-Up Scheduler ───
+// Per-user: each user has `settings.autoWrapUpTime` (default 20:00, HH:MM 24h).
+// When their local-clock time hits that value, if they marked entry today but
+// haven't wrapped up, the server wraps them up automatically. This is the
+// safety net for people who forget — runs entirely on the backend so it works
+// regardless of whether the app is open.
+function startAutoWrapUpScheduler(io) {
+  const tick = async () => {
+    try {
+      const date = todayStr();
+      const now = new Date();
+      const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const CompanyInfo = require('../models/CompanyInfo');
+      const cfg = await CompanyInfo.findOne().select('autoWrapUpTime').catch(() => null);
+      const companyDefault = cfg?.autoWrapUpTime || '20:00';
+
+      // Pull all attendance records that still need wrap-up today
+      const open = await Attendance.find({
+        date,
+        entryTime: { $ne: null },
+        wrapUpTime: null
+      }).populate('user', '_id name settings admins manager weeklyOffDays');
+
+      const Notification = require('../models/Notification');
+
+      for (const record of open) {
+        if (!record.user) continue;
+        // Skip if user is off today (shouldn't normally have attendance row, but
+        // belt-and-suspenders).
+        if (await isOffDay(record.user, now)) continue;
+
+        // Per-user setting overrides company default
+        const target = record.user.settings?.autoWrapUpTime || companyDefault;
+        // Trigger when current time >= target. Compare HH:MM strings lexically —
+        // works because both are zero-padded 24h.
+        if (hhmm < target) continue;
+
+        // Do the wrap-up
+        record.wrapUpTime = now;
+        record.wrapUpMethod = 'auto';
+        record.totalHours = Math.round((now - record.entryTime) / (1000 * 60 * 60) * 100) / 100;
+        await record.save();
+
+        const localTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        // Notify the user
+        await Notification.create({
+          user: record.user._id,
+          type: 'attendance',
+          title: 'Auto wrap-up',
+          message: `You forgot to wrap up — we did it for you at ${localTime}. Total ${record.totalHours}h.`
+        });
+        if (io) {
+          io.to(`user:${record.user._id}`).emit('notification:new', {
+            type: 'attendance',
+            title: 'Auto wrap-up',
+            message: `You forgot to wrap up — we did it for you at ${localTime}.`
+          });
+        }
+
+        // Notify the user's attendance admin + manager (same fan-out as manual wrap-up)
+        const notifyIds = new Set();
+        if (record.user.admins?.attendance) notifyIds.add(String(record.user.admins.attendance));
+        if (record.user.manager) notifyIds.add(String(record.user.manager._id || record.user.manager));
+        notifyIds.delete(String(record.user._id));
+        for (const uid of notifyIds) {
+          await Notification.create({
+            user: uid,
+            type: 'attendance',
+            title: 'Auto wrap-up',
+            message: `${record.user.name} was auto-wrapped at ${localTime} (no manual wrap-up).`
+          });
+          if (io) {
+            io.to(`user:${uid}`).emit('notification:new', {
+              type: 'attendance',
+              title: 'Auto wrap-up',
+              message: `${record.user.name} was auto-wrapped at ${localTime}.`
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Auto wrap-up scheduler error:', err);
+    }
+  };
+  // Aligned tick so a deploy mid-minute doesn't skip the trigger window.
+  tick();
+  const msToNextMinute = 60000 - (Date.now() % 60000);
+  setTimeout(() => {
+    tick();
+    setInterval(tick, 60000);
+  }, msToNextMinute);
+}
+
 function startSchedulers(io) {
   startNoEntryAlertScheduler(io);
   startWrapUpReminderScheduler(io);
+  startAutoWrapUpScheduler(io);
   startMeetingUnseenAlertScheduler(io);
   startTaskDeadlineReminderScheduler(io);
   startOverdueTaskScheduler(io);
   startNotificationCleanupScheduler();
   startDeepSearchCleanupScheduler();
   startMonthlySalaryScheduler();
-  console.log('All schedulers started (attendance, meeting, task reminders, overdue tasks, retention cleanup, monthly salary)');
+  console.log('All schedulers started (attendance, wrap-up, auto-wrap-up, meeting, task reminders, overdue tasks, retention cleanup, monthly salary)');
 }
 
 module.exports = { startSchedulers };

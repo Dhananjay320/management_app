@@ -11,7 +11,7 @@
 /* ─── Sidebar (expanded 200px / collapsed 56px) ─── */
 .sidebar {
   width: 200px;
-  background: var(--glass);
+  background: var(--sidebar-bg, var(--glass));
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border-right: 1px solid var(--line);
@@ -84,7 +84,7 @@
   justify-content: flex-start;
   gap: 10px;
   padding: 0 12px;
-  color: var(--ink-2);
+  color: var(--sidebar-ink-2, var(--ink-2));
   cursor: pointer;
   transition: all 0.18s var(--transition);
   position: relative;
@@ -116,7 +116,7 @@
 .sidebar.collapsed .sidebar-divider { width: 24px; align-self: center; }
 .sidebar-item:hover {
   background: var(--glass-2);
-  color: var(--ink);
+  color: var(--sidebar-ink, var(--ink));
   transform: translateX(2px);
 }
 .sidebar-item.active {
@@ -157,7 +157,7 @@
 /* ─── Top Bar ─── */
 .topbar {
   height: 54px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  background: var(--topbar-bg, linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)));
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-bottom: 1px solid var(--line-2);
@@ -179,13 +179,13 @@
 .topbar-title {
   font-size: 17px;
   font-weight: 800;
-  color: var(--ink);
+  color: var(--topbar-ink, var(--ink));
   letter-spacing: -0.3px;
 }
 
 .topbar-sub {
   font-size: 12px;
-  color: var(--ink-3);
+  color: var(--topbar-ink-2, var(--ink-3));
 }
 
 .topbar-right {

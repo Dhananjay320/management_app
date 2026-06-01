@@ -8,7 +8,8 @@ import EmojiPicker, { pushRecentEmoji } from '../components/EmojiPicker';
 import ReactionPill from '../components/ReactionPill';
 import InlineVideoPlayer from '../components/InlineVideoPlayer';
 import Avatar from '../components/Avatar';
-import { MessageCircle, Pin, SmilePlus, ListPlus, Forward, Pencil, Trash2 } from 'lucide-react';
+import { MessageCircle, Pin, SmilePlus, ListPlus, Forward, Pencil, Trash2, Copy } from 'lucide-react';
+import { autocorrectAtCaret } from '../utils/autocorrect';
 import '../styles/messaging.css';
 
 const GRADIENTS = [
@@ -327,6 +328,11 @@ export default function Messages() {
         } else {
           setMessages(prev => [...prev, msg]);
           setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+        }
+        // Auto mark-read since the user is actively viewing this channel.
+        // Fire-and-forget; loadChannels below picks up the cleared unread count.
+        if (msg.sender?._id !== user._id && document.visibilityState === 'visible') {
+          api.post(`/messages/${activeChannel._id}/read`).catch(() => {});
         }
       }
       loadChannels();
@@ -1053,16 +1059,33 @@ export default function Messages() {
 
           {isEditing ? (
             <div className="msg-edit-form">
-              <input
-                className="msg-edit-input"
+              <textarea
+                className="msg-edit-input msg-edit-textarea"
                 value={editContent}
                 onChange={e => setEditContent(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                onKeyDown={e => {
+                  // Enter saves; Shift+Enter inserts newline; Escape cancels
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+                  else if (e.key === 'Escape') cancelEdit();
+                }}
+                onInput={e => {
+                  // Auto-grow to fit content
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                ref={el => {
+                  if (el) {
+                    el.style.height = 'auto';
+                    el.style.height = el.scrollHeight + 'px';
+                  }
+                }}
+                rows={1}
                 autoFocus
               />
               <div className="msg-edit-actions">
                 <button className="msg-edit-save" onClick={saveEdit}>Save</button>
                 <button className="msg-edit-cancel" onClick={cancelEdit}>Cancel</button>
+                <span style={{ fontSize: 10, color: 'var(--ink-3)', marginLeft: 'auto', alignSelf: 'center' }}>Enter to save · Shift+Enter newline · Esc to cancel</span>
               </div>
             </div>
           ) : (
@@ -1192,30 +1215,53 @@ export default function Messages() {
                   </div>
                 )}
                 {/* Generic fallback for everything else */}
-                {!isImage && !isVideo && !isPdf && !isOffice && (
-                  <div className="msg-file" onClick={openViewer}
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--line)' }}>
-                    <span style={{ fontSize: 24 }}>📎</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="msg-file-name">{msg.file.name}</div>
-                      <div className="msg-file-size">{sizeStr}</div>
+                {!isImage && !isVideo && !isPdf && !isOffice && (() => {
+                  const isText = mime.startsWith('text/') || ['json','csv','md','txt','js','jsx','ts','tsx','css','html','htm','xml','yaml','yml','py','rb','go','rs','sh','sql','log','env','conf','ini','toml','c','cpp','h','java','kt','swift','php','vue','svelte'].includes(ext);
+                  return (
+                    <div className="msg-file" onClick={openViewer}
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--line)' }}>
+                      <span style={{ fontSize: 24 }}>{isText ? '📝' : '📎'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="msg-file-name">{msg.file.name}</div>
+                        <div className="msg-file-size">{sizeStr}</div>
+                      </div>
+                      {isText && (
+                        <button onClick={async (e) => {
+                          e.stopPropagation();
+                          const btn = e.currentTarget;
+                          const original = btn.textContent;
+                          try {
+                            const resp = await fetch(fileUrl);
+                            const text = await resp.text();
+                            await navigator.clipboard.writeText(text);
+                            btn.textContent = 'Copied!';
+                            setTimeout(() => { btn.textContent = original; }, 1500);
+                          } catch {
+                            btn.textContent = 'Failed';
+                            setTimeout(() => { btn.textContent = original; }, 1500);
+                          }
+                        }}
+                          style={{ fontSize: 10, color: 'var(--emerald)', fontWeight: 700, padding: '4px 10px', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 5, background: 'rgba(16,185,129,0.08)', cursor: 'pointer', fontFamily: 'Inter' }}>
+                          Copy
+                        </button>
+                      )}
+                      <button onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const resp = await fetch(fileUrl);
+                          const blob = await resp.blob();
+                          const u = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = u; a.download = msg.file.name; a.click();
+                          URL.revokeObjectURL(u);
+                        } catch { window.open(fileUrl, '_blank'); }
+                      }}
+                        style={{ fontSize: 10, color: '#6366F1', fontWeight: 700, padding: '4px 10px', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 5, background: 'rgba(99,102,241,0.08)', cursor: 'pointer', fontFamily: 'Inter' }}>
+                        Download
+                      </button>
                     </div>
-                    <button onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        const resp = await fetch(fileUrl);
-                        const blob = await resp.blob();
-                        const u = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = u; a.download = msg.file.name; a.click();
-                        URL.revokeObjectURL(u);
-                      } catch { window.open(fileUrl, '_blank'); }
-                    }}
-                      style={{ fontSize: 10, color: '#6366F1', fontWeight: 700, padding: '4px 10px', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 5, background: 'rgba(99,102,241,0.08)', cursor: 'pointer', fontFamily: 'Inter' }}>
-                      Download
-                    </button>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })()}
@@ -1240,6 +1286,16 @@ export default function Messages() {
                   <ListPlus size={14} strokeWidth={2.2} />
                 </button>
               )}
+              <button className="msg-action-btn" onClick={async (e) => {
+                const btn = e.currentTarget;
+                try {
+                  await navigator.clipboard.writeText(msg.content || '');
+                  btn.classList.add('copied');
+                  setTimeout(() => btn.classList.remove('copied'), 1200);
+                } catch {}
+              }} title="Copy text">
+                <Copy size={14} strokeWidth={2.2} />
+              </button>
               <button className="msg-action-btn" onClick={() => { setForwardMsg(msg); setForwardTargets([]); setForwardNote(''); }} title="Forward">
                 <Forward size={14} strokeWidth={2.2} />
               </button>
@@ -1276,7 +1332,7 @@ export default function Messages() {
                   emoji={r.emoji}
                   users={r.users}
                   mine={r.users.includes(user._id)}
-                  align={isMe ? 'right' : 'left'}
+                  align="left"
                   resolveName={(id) => {
                     if (String(id) === String(user._id)) return 'You';
                     const u = allUsers.find(x => String(x._id) === String(id))
@@ -1900,6 +1956,7 @@ export default function Messages() {
                   ref={messageInputRef}
                   className="msg-input-field"
                   rows={1}
+                  spellCheck={true}
                   placeholder={
                     composeMode ? `${composeMode} mode active — use panel above` :
                     pendingFiles.length > 0 ? 'Add a caption (optional)…' :
@@ -1920,6 +1977,22 @@ export default function Messages() {
                       sendMessage();
                       // Reset height after send
                       requestAnimationFrame(() => { e.target.style.height = 'auto'; });
+                      return;
+                    }
+                    // Autocorrect the word just completed when space is pressed.
+                    // Skip while typing an @mention so handles aren't mangled.
+                    if (e.key === ' ' && !showMentionDropdown) {
+                      const el = e.target;
+                      const caret = el.selectionStart;
+                      const fix = autocorrectAtCaret(el.value, caret);
+                      if (fix) {
+                        e.preventDefault();
+                        const newVal = fix.text.slice(0, fix.caret) + ' ' + fix.text.slice(fix.caret);
+                        setInput(newVal);
+                        requestAnimationFrame(() => {
+                          try { el.selectionStart = el.selectionEnd = fix.caret + 1; } catch {}
+                        });
+                      }
                     }
                   }}
                   onPaste={async (e) => {
@@ -1930,11 +2003,17 @@ export default function Messages() {
                       if (it.kind === 'file') {
                         const f = it.getAsFile();
                         if (f) {
-                          // Give pasted screenshots a sensible name
-                          const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-                          const ext = (f.type.split('/')[1] || 'png').split('+')[0];
-                          const named = new File([f], `screenshot-${stamp}.${ext}`, { type: f.type });
-                          files.push(named);
+                          // Clipboard screenshots come through with a generic name
+                          // like "image.png" (or none). Only synthesize a name in
+                          // that case — keep the real filename for actual files.
+                          const generic = !f.name || /^(image|screenshot|clipboard|untitled)\.[a-z0-9]+$/i.test(f.name);
+                          if (generic) {
+                            const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                            const ext = (f.type.split('/')[1] || 'png').split('+')[0];
+                            files.push(new File([f], `screenshot-${stamp}.${ext}`, { type: f.type }));
+                          } else {
+                            files.push(f);
+                          }
                         }
                       }
                     }

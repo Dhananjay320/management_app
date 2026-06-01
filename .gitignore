@@ -45,3 +45,4 @@ deploy.sh
 *.docx
 rebuild_zips/
 mobile/fcm-service-account.json
+.claude/

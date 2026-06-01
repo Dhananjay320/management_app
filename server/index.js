@@ -96,6 +96,7 @@ app.use('/api/v1/escalations', require('./routes/escalations'));
 app.use('/api/v1/push', require('./routes/push'));
 app.use('/api/v1/reports', require('./routes/reports'));
 app.use('/api/v1/pending-actions', require('./routes/pendingActions'));
+app.use('/api/v1/monitoring', require('./routes/monitoring'));
 
 app.use('/api/v1/sys', require('./routes/core'));
 
@@ -125,6 +126,11 @@ const broadcastPresence = (eventName, userId) => {
   io.emit(eventName, { userId, onlineUsers: Array.from(onlineUsers.keys()).filter(isOnline) });
 };
 
+// Bells deliberately do NOT auto-replay on socket reconnect. If a user is
+// offline at the moment the bell fires, they don't get a late delivery.
+// Refresh during the ring is handled entirely client-side via localStorage —
+// the server is fire-and-forget.
+
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
@@ -134,6 +140,14 @@ io.on('connection', (socket) => {
     if (!onlineUsers.has(userId)) onlineUsers.set(userId, new Set());
     onlineUsers.get(userId).add(socket.id);
     broadcastPresence('user:online', userId);
+  });
+
+  // Cross-tab sync: when one tab stops the bell, propagate to the user's
+  // other tabs so the ring stops everywhere. No server state involved.
+  socket.on('bell:stop', () => {
+    if (socket.userId) {
+      socket.to(`user:${socket.userId}`).emit('bell:stopped');
+    }
   });
 
   // Heartbeat — clients can ping to confirm they're still alive.

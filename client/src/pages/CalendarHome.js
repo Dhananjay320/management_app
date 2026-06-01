@@ -45,11 +45,20 @@ function dateStr(d) { return d.toISOString().split('T')[0]; }
 function isToday(d) { return dateStr(d) === dateStr(new Date()); }
 
 export default function CalendarHome() {
-  // eslint-disable-next-line no-unused-vars
-  const { user: _user } = useAuth();
+  const { user } = useAuth();
   const { adminMode } = useOutletContext();
   const navigate = useNavigate();
-  const [view, setView] = useState('weekly');
+  const [view, setView] = useState(user?.settings?.calendarDefaultView || 'weekly');
+  // Track which default we've already applied so user can still manually
+  // change view during the session without it snapping back.
+  const appliedDefaultRef = useRef(user?.settings?.calendarDefaultView || 'weekly');
+  useEffect(() => {
+    const next = user?.settings?.calendarDefaultView;
+    if (next && next !== appliedDefaultRef.current) {
+      appliedDefaultRef.current = next;
+      setView(next);
+    }
+  }, [user?.settings?.calendarDefaultView]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
   const [, setAttendance] = useState([]);

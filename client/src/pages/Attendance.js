@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../components/AlertModal';
+import AttendanceCalendar from '../components/AttendanceCalendar';
+import SelfieCapture from '../components/SelfieCapture';
+import BreakTracker from '../components/BreakTracker';
+import TeamAttendanceView from '../components/TeamAttendanceView';
 import api from '../services/api';
 import '../styles/attendance.css';
 
@@ -34,22 +38,55 @@ export default function Attendance() {
     return () => clearInterval(t);
   }, []);
 
+  const [selfieOpen, setSelfieOpen] = useState(false);
+  const [pendingCoords, setPendingCoords] = useState(null);
+
   const markEntry = async () => {
-    setLoading(true);
-    setResult(null);
-    try {
-      // Try to get GPS location
-      let coordinates = null;
+    // If user has opted into selfie verification, capture the photo first,
+    // then the camera modal calls back into `submitEntry` with the blob.
+    if (user?.settings?.requireSelfieAtEntry) {
+      setLoading(true);
       try {
         const pos = await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true, timeout: 10000, maximumAge: 0
           });
         });
-        coordinates = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      } catch {}
+        setPendingCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      } catch {
+        setPendingCoords(null);
+      } finally {
+        setLoading(false);
+      }
+      setSelfieOpen(true);
+      return;
+    }
+    return submitEntry(null);
+  };
+
+  const submitEntry = async (selfieBlob) => {
+    setLoading(true);
+    setResult(null);
+    try {
+      let coordinates = pendingCoords;
+      if (!coordinates) {
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true, timeout: 10000, maximumAge: 0
+            });
+          });
+          coordinates = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        } catch {}
+      }
 
       const { data } = await api.post('/attendance/mark-entry', { coordinates });
+      // Best-effort selfie upload after entry is created
+      if (selfieBlob) {
+        const fd = new FormData();
+        fd.append('selfie', selfieBlob, 'selfie.jpg');
+        try { await api.post('/attendance/entry-selfie', fd); } catch {}
+      }
       setTodayAtt(data);
       setResult({
         type: 'success',
@@ -64,18 +101,41 @@ export default function Attendance() {
       }
     } finally {
       setLoading(false);
+      setPendingCoords(null);
     }
   };
 
   const wrapUp = async () => {
-    // Guard against accidental wrap-up — require explicit confirmation
-    const ok = window.confirm(
-      'Wrap up your day now?\n\n' +
-      'Once you wrap up, your day is closed and the entry time gets locked. ' +
-      'You will not be able to undo this.\n\n' +
-      'Are you sure?'
-    );
+    // Min-hours nudge: if user has worked less than 8 hours, show a clearer
+    // confirm prompt with the actual gap. Pure UX nudge — backend still allows
+    // wrap-up at any time.
+    const MIN_HOURS = 8;
+    const entryMs = todayAtt?.entryTime ? new Date(todayAtt.entryTime).getTime() : null;
+    const workedMs = entryMs ? Date.now() - entryMs : 0;
+    const workedH = workedMs / 3_600_000;
+
+    let ok;
+    if (entryMs && workedH < MIN_HOURS) {
+      const hWhole = Math.floor(workedH);
+      const mPart = Math.round((workedH - hWhole) * 60);
+      const shortBy = MIN_HOURS - workedH;
+      const sh = Math.floor(shortBy);
+      const sm = Math.round((shortBy - sh) * 60);
+      ok = await dialog.confirm(
+        `You've worked ${hWhole}h ${mPart}m today — ${sh}h ${sm}m short of the ${MIN_HOURS}h minimum.\n\n` +
+        `If you wrap up now, today will be logged as a partial day. ` +
+        `You can always wrap up later when you're done.\n\n` +
+        `Wrap up anyway?`,
+        'Wrap up early?'
+      );
+    } else {
+      ok = await dialog.confirm(
+        'Once you wrap up, your day is closed and the entry time gets locked. You will not be able to undo this.\n\nAre you sure?',
+        'Wrap up your day?'
+      );
+    }
     if (!ok) return;
+
     setLoading(true);
     try {
       const { data } = await api.post('/attendance/wrap-up');
@@ -124,10 +184,16 @@ export default function Attendance() {
 
   return (
     <div>
+      <SelfieCapture
+        open={selfieOpen}
+        onCancel={() => { setSelfieOpen(false); setPendingCoords(null); }}
+        onCapture={(blob) => { setSelfieOpen(false); submitEntry(blob); }}
+      />
       <div className="page-header">
         <div className="page-title">Attendance</div>
         <div className="chip-group">
           {[['mark','Mark Entry'],['history','History'],['leave','Request Leave'],
+            ...((user.powers?.attendance?.viewTeam || user.role === 'main_admin') ? [['team','Team']] : []),
             ...(user.powers?.attendance?.editRecords ? [['approvals','Pending Approvals']] : [])
           ].map(([k,l]) => (
             <div key={k} className={`chip ${tab === k ? 'active' : ''}`} onClick={() => setTab(k)}>{l}</div>
@@ -161,9 +227,17 @@ export default function Attendance() {
 
             <div className="att-status">
               {todayAtt?.entryTime && <div><span className="check">✓</span> Entry at {new Date(todayAtt.entryTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ({todayAtt.verificationMethod})</div>}
+              {todayAtt?.entrySelfie && (
+                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <img src={todayAtt.entrySelfie} alt="Entry selfie"
+                    style={{ width: 36, height: 36, borderRadius: 18, objectFit: 'cover', border: '1px solid var(--line-2)' }} />
+                  <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>📸 Selfie verified at entry</span>
+                </div>
+              )}
               {todayAtt?.wrapUpTime && <div><span className="check">✓</span> Wrapped up at {new Date(todayAtt.wrapUpTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} ({todayAtt.totalHours}h)</div>}
               {!todayAtt?.entryTime && user.workType === 'full_remote' && <div>You're remote — no location check needed</div>}
             </div>
+            <BreakTracker todayAtt={todayAtt} onChange={loadData} />
           </div>
 
           {stats && (
@@ -188,7 +262,9 @@ export default function Attendance() {
       )}
 
       {tab === 'history' && (
-        <div className="table-container">
+        <>
+          <AttendanceCalendar history={history} />
+          <div className="table-container">
           <div className="att-history-row" style={{ background: 'var(--glass)', borderBottom: '1px solid var(--line)', fontSize: 10, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase' }}>
             <div>Date</div><div>Entry</div><div>Wrap Up</div><div>Hours</div><div>Status</div>
           </div>
@@ -216,10 +292,13 @@ export default function Attendance() {
             );
           })}
           {history.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink-3)' }}>No records this month.</div>}
-        </div>
+          </div>
+        </>
       )}
 
       {tab === 'leave' && <LeaveRequestForm onSuccess={loadData} />}
+
+      {tab === 'team' && <TeamAttendanceView />}
 
       {tab === 'approvals' && <LeaveApprovals />}
     </div>

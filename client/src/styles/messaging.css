@@ -522,6 +522,21 @@
   color: var(--ink);
   background: var(--glass-2);
 }
+/* Multi-line edit textarea — auto-grows; matches bubble width and line-height */
+.msg-edit-textarea {
+  display: block;
+  resize: none;
+  overflow: hidden;
+  min-height: 32px;
+  max-height: 60vh;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.18);
+}
 .msg-edit-actions {
   display: flex;
   gap: 6px;

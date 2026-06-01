@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import { applyTheme } from '../theme/presets';
 
 const AuthContext = createContext(null);
 
@@ -23,6 +24,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => { fetchUser(); }, [fetchUser]);
+
+  // Re-apply theme whenever user (and therefore user.settings.theme) changes
+  useEffect(() => {
+    applyTheme(user?.settings?.theme);
+  }, [user?.settings?.theme]);
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });

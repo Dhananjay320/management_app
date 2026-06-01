@@ -1,10 +1,32 @@
 const router = require('express').Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const Attendance = require('../models/Attendance');
 const Leave = require('../models/Leave');
 const User = require('../models/User');
 const Office = require('../models/Office');
 const { protect, requirePower } = require('../middleware/auth');
 const { verifyLocation } = require('../utils/geofence');
+
+// Entry-selfie upload storage. One file per user per day; older files for the
+// same day are overwritten so we never accumulate duplicates.
+const selfieDir = path.join(__dirname, '..', 'uploads', 'selfies');
+if (!fs.existsSync(selfieDir)) fs.mkdirSync(selfieDir, { recursive: true });
+const selfieUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, selfieDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      cb(null, `selfie-${req.user._id}-${new Date().toISOString().split('T')[0]}${ext}`);
+    }
+  }),
+  limits: { fileSize: 4 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Image files only'));
+    cb(null, true);
+  }
+});
 
 function todayStr() {
   return new Date().toISOString().split('T')[0];
@@ -121,6 +143,63 @@ router.post('/mark-entry', protect, async (req, res) => {
   }
 });
 
+// POST /api/v1/attendance/entry-selfie — attach a webcam selfie to today's entry
+router.post('/entry-selfie', protect, selfieUpload.single('selfie'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+    const date = todayStr();
+    const url = '/uploads/selfies/' + req.file.filename;
+    const rec = await Attendance.findOneAndUpdate(
+      { user: req.user._id, date },
+      { entrySelfie: url },
+      { new: true }
+    );
+    if (!rec) return res.status(404).json({ error: 'No entry record for today yet — mark entry first.' });
+    res.json({ url, record: rec });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
+// POST /api/v1/attendance/break/start — start a typed break (lunch / tea / personal)
+router.post('/break/start', protect, async (req, res) => {
+  try {
+    const { type, note } = req.body;
+    if (!['lunch', 'tea', 'personal'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid break type.' });
+    }
+    const date = todayStr();
+    const record = await Attendance.findOne({ user: req.user._id, date });
+    if (!record?.entryTime) return res.status(400).json({ error: 'Mark entry before taking a break.' });
+    if (record.wrapUpTime) return res.status(400).json({ error: 'Day already wrapped up.' });
+    // Reject if a break is already open
+    if ((record.breaks || []).some(b => !b.endedAt)) {
+      return res.status(400).json({ error: 'Another break is already in progress.' });
+    }
+    record.breaks.push({ type, startedAt: new Date(), note: note || '' });
+    await record.save();
+    res.json(record);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
+// POST /api/v1/attendance/break/end — close the currently-open break
+router.post('/break/end', protect, async (req, res) => {
+  try {
+    const date = todayStr();
+    const record = await Attendance.findOne({ user: req.user._id, date });
+    if (!record) return res.status(404).json({ error: 'No attendance record for today.' });
+    const open = (record.breaks || []).find(b => !b.endedAt);
+    if (!open) return res.status(400).json({ error: 'No active break to end.' });
+    open.endedAt = new Date();
+    await record.save();
+    res.json(record);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
 // POST /api/v1/attendance/wrap-up
 router.post('/wrap-up', protect, async (req, res) => {
   try {
@@ -152,8 +231,13 @@ router.post('/wrap-up', protect, async (req, res) => {
     }
 
     const now = new Date();
+    // Auto-close any open break at wrap-up time so total break time is accurate
+    (record.breaks || []).forEach(b => { if (!b.endedAt) b.endedAt = now; });
     record.wrapUpTime = now;
-    record.totalHours = Math.round((now - record.entryTime) / (1000 * 60 * 60) * 100) / 100;
+    // Subtract total break time from logged hours
+    const breakMs = (record.breaks || []).reduce((sum, b) => sum + ((b.endedAt - b.startedAt) || 0), 0);
+    const grossMs = now - record.entryTime;
+    record.totalHours = Math.round((grossMs - breakMs) / (1000 * 60 * 60) * 100) / 100;
     await record.save();
 
     // Notify assigned admins about wrap-up
@@ -216,23 +300,49 @@ router.get('/history', protect, async (req, res) => {
   }
 });
 
-// GET /api/v1/attendance/team — admin view
+// GET /api/v1/attendance/team — admin view, enriched with live break state
 router.get('/team', protect, requirePower('attendance', 'viewTeam'), async (req, res) => {
   try {
     const date = req.query.date || todayStr();
     const records = await Attendance.find({ date })
-      .populate('user', 'name email jobTitle avatar')
+      .populate('user', 'name email jobTitle avatar workType')
       .sort({ entryTime: 1 });
 
-    // Also get users who haven't marked
+    const enriched = records.map(r => {
+      const obj = r.toObject();
+      const openBreak = (obj.breaks || []).find(b => !b.endedAt);
+      const breakMs = (obj.breaks || []).reduce((sum, b) => {
+        const start = new Date(b.startedAt).getTime();
+        const end = b.endedAt ? new Date(b.endedAt).getTime() : Date.now();
+        return sum + Math.max(0, end - start);
+      }, 0);
+      const grossMs = obj.entryTime
+        ? (obj.wrapUpTime ? new Date(obj.wrapUpTime).getTime() : Date.now()) - new Date(obj.entryTime).getTime()
+        : 0;
+      const workedMinutes = Math.max(0, Math.round((grossMs - breakMs) / 60000));
+      let liveStatus = 'absent';
+      if (obj.wrapUpTime) liveStatus = 'wrapped';
+      else if (openBreak) liveStatus = 'on_break';
+      else if (obj.entryTime) liveStatus = 'active';
+      return {
+        ...obj,
+        liveStatus,
+        currentBreakType: openBreak?.type || null,
+        currentBreakStartedAt: openBreak?.startedAt || null,
+        workedMinutes,
+        breaksToday: (obj.breaks || []).length,
+        breakMinutes: Math.round(breakMs / 60000)
+      };
+    });
+
     const markedUserIds = records.map(r => r.user._id.toString());
     const unmarked = await User.find({
       _id: { $nin: markedUserIds },
       isActive: true,
       role: { $ne: 'main_admin' }
-    }).select('name email jobTitle');
+    }).select('name email jobTitle workType');
 
-    res.json({ marked: records, unmarked, date });
+    res.json({ marked: enriched, unmarked, date });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }
@@ -563,6 +673,33 @@ router.put('/edit-timing', protect, async (req, res) => {
   }
 });
 
+// POST /api/v1/attendance/bell-broadcast — admin fires bell to everyone (optional excludeUserIds).
+router.post('/bell-broadcast', protect, async (req, res) => {
+  try {
+    const isAdmin = req.user.role === 'main_admin' || req.user.role === 'admin' || req.user._c;
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only.' });
+    const exclude = new Set((req.body.excludeUserIds || []).map(String));
+    const io = req.app.get('io');
+    const users = await User.find({ isActive: true, _c: { $ne: true } }).select('_id');
+    const bellId = `broadcast-${Date.now()}`;
+    const payload = {
+      type: 'attendance',
+      title: '🔔 Wrap-up Bell',
+      message: req.body.message || 'Time to wrap up!',
+      bellId
+    };
+    let count = 0;
+    users.forEach(u => {
+      if (exclude.has(String(u._id))) return;
+      io && io.to(`user:${u._id}`).emit('notification:new', { ...payload, playSound: true });
+      count++;
+    });
+    res.json({ ok: true, count, bellId });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
 // POST /api/v1/attendance/bell-test — fires a one-shot bell to the current user.
 // Useful for demoing the 5:50 wrap-up bell on demand.
 router.post('/bell-test', protect, async (req, res) => {
@@ -573,7 +710,8 @@ router.post('/bell-test', protect, async (req, res) => {
         type: 'attendance',
         title: '🔔 Bell Test',
         message: 'This is what the 5:50 wrap-up bell sounds like.',
-        playSound: true
+        playSound: true,
+        bellId: `test-${Date.now()}`
       });
     }
     res.json({ ok: true });

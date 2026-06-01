@@ -156,7 +156,7 @@ router.get('/:channelId', protect, async (req, res) => {
 });
 
 // POST /api/v1/messages/:channelId — send message
-router.post('/:channelId', protect, async (req, res) => {
+router.post('/:channelId([a-fA-F0-9]{24})', protect, async (req, res) => {
   try {
     const { content, type, file, parentMessage, mentions } = req.body;
 
@@ -421,6 +421,19 @@ router.post('/:channelId/task', protect, async (req, res) => {
   }
 });
 
+// POST /api/v1/messages/:channelId/read — mark all messages in a channel as read for current user
+router.post('/:channelId/read', protect, async (req, res) => {
+  try {
+    await Message.updateMany(
+      { channel: req.params.channelId, readBy: { $ne: req.user._id } },
+      { $addToSet: { readBy: req.user._id } }
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // GET /api/v1/messages/:channelId/:messageId/read-receipts — who has seen
 router.get('/:channelId/:messageId/read-receipts', protect, async (req, res) => {
   try {
@@ -458,9 +471,6 @@ router.put('/:channelId/:messageId', protect, async (req, res) => {
 });
 
 // DELETE /api/v1/messages/:channelId/:messageId — delete message (sender or admin)
-// POST /api/v1/messages/forward — forward a message to one or more channels.
-// Preserves content + file attachment + linkPreview; prefixes with a
-// "Forwarded from <original sender>" header line.
 router.post('/forward', protect, async (req, res) => {
   try {
     const { messageId, targetChannelIds, note } = req.body;

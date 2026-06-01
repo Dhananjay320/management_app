@@ -53,7 +53,10 @@ export function SocketProvider({ children }) {
       s.disconnect();
       setSocket(null);
     };
-  }, [user]);
+    // Only re-create the socket when the user identity changes (login/logout),
+    // NOT on every settings refresh which produces a new `user` object reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?._id]);
 
   const joinChannel = (channelId) => {
     if (!channelId) return;
