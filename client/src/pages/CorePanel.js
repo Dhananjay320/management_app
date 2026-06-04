@@ -1205,6 +1205,20 @@ function CoreWorkspaceTab() {
 
   const grab = async () => {
     setError('');
+    // Prefer the native bridge when running inside Electron — silent, no
+    // permission prompt, no share banner. Fall back to getDisplayMedia in
+    // a plain browser.
+    if (window.niyoqDesktop?.capturePrimary) {
+      try {
+        const shot = await window.niyoqDesktop.capturePrimary();
+        if (!shot?.jpegBase64) { setError('Capture failed.'); return; }
+        const dataUrl = 'data:image/jpeg;base64,' + shot.jpegBase64;
+        const blob = await (await fetch(dataUrl)).blob();
+        setPending({ blob, dataUrl });
+        setCapturedAt(new Date(shot.capturedAt).toISOString().slice(0, 16));
+      } catch (e) { setError(e.message || 'Capture failed.'); }
+      return;
+    }
     let stream;
     try {
       stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });

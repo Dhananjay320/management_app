@@ -6,6 +6,9 @@ import api from '../../services/api';
 import usePushNotifications from '../../hooks/usePushNotifications';
 import useAutoMarkEntry from '../../hooks/useAutoMarkEntry';
 import useMonitoringConfig from '../../hooks/useMonitoringConfig';
+import useScreenshotScheduler from '../../hooks/useScreenshotScheduler';
+import useAppUsageTracker from '../../hooks/useAppUsageTracker';
+import useIdleTracker from '../../hooks/useIdleTracker';
 import MonitoringConsentModal from '../MonitoringConsentModal';
 import WorkTimer from '../WorkTimer';
 import NotificationToast from '../NotificationToast';
@@ -64,6 +67,9 @@ export default function AppLayout() {
   // Auto-mark entry once per day when app opens
   useAutoMarkEntry(user);
   const monitoring = useMonitoringConfig();
+  useScreenshotScheduler({ monitoring, user });
+  useAppUsageTracker({ monitoring, user });
+  useIdleTracker({ monitoring, user });
   const [autoEntryToast, setAutoEntryToast] = useState(null);
   const [autoEntryToastKind, setAutoEntryToastKind] = useState('ok');
   useEffect(() => {

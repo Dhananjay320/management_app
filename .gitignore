@@ -46,3 +46,5 @@ deploy.sh
 rebuild_zips/
 mobile/fcm-service-account.json
 .claude/
+electron/assets/icon.iconset/
+electron/dist/

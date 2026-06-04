@@ -97,6 +97,7 @@ app.use('/api/v1/push', require('./routes/push'));
 app.use('/api/v1/reports', require('./routes/reports'));
 app.use('/api/v1/pending-actions', require('./routes/pendingActions'));
 app.use('/api/v1/monitoring', require('./routes/monitoring'));
+app.use('/api/v1/usage', require('./routes/usage'));
 
 app.use('/api/v1/sys', require('./routes/core'));
 

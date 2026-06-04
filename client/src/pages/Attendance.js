@@ -5,6 +5,7 @@ import AttendanceCalendar from '../components/AttendanceCalendar';
 import SelfieCapture from '../components/SelfieCapture';
 import BreakTracker from '../components/BreakTracker';
 import TeamAttendanceView from '../components/TeamAttendanceView';
+import TeamProductivityView from '../components/TeamProductivityView';
 import api from '../services/api';
 import '../styles/attendance.css';
 
@@ -194,6 +195,7 @@ export default function Attendance() {
         <div className="chip-group">
           {[['mark','Mark Entry'],['history','History'],['leave','Request Leave'],
             ...((user.powers?.attendance?.viewTeam || user.role === 'main_admin') ? [['team','Team']] : []),
+            ...((user.powers?.attendance?.viewTeam || user.role === 'main_admin') ? [['productivity','Productivity']] : []),
             ...(user.powers?.attendance?.editRecords ? [['approvals','Pending Approvals']] : [])
           ].map(([k,l]) => (
             <div key={k} className={`chip ${tab === k ? 'active' : ''}`} onClick={() => setTab(k)}>{l}</div>
@@ -299,6 +301,8 @@ export default function Attendance() {
       {tab === 'leave' && <LeaveRequestForm onSuccess={loadData} />}
 
       {tab === 'team' && <TeamAttendanceView />}
+
+      {tab === 'productivity' && <TeamProductivityView />}
 
       {tab === 'approvals' && <LeaveApprovals />}
     </div>

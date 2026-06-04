@@ -12,18 +12,72 @@
   "build": {
     "appId": "com.niyoq.team",
     "productName": "Niyoq",
+    "copyright": "Avadeti Media",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "assets/**",
+      "node_modules/**/*",
+      "!node_modules/**/{CHANGELOG.md,README.md,readme.md,test,tests,*.d.ts,LICENSE,LICENCE}"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/active-win/main",
+      "node_modules/active-win/main.exe",
+      "node_modules/active-win/lib/**/*.node"
+    ],
     "mac": {
       "category": "public.app-category.business",
-      "target": ["dmg", "zip"]
+      "icon": "assets/icon.icns",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription":               "Niyoq uses the camera for selfie verification at clock-in.",
+        "NSMicrophoneUsageDescription":           "Niyoq does not use the microphone.",
+        "NSScreenCaptureUsageDescription":        "Niyoq captures screen images for work activity tracking. Only enabled if your company turns it on, and you can see every screenshot in your profile.",
+        "NSAppleEventsUsageDescription":          "Niyoq reads the foreground window title for productivity tracking.",
+        "NSLocationUsageDescription":             "Niyoq verifies your location at clock-in.",
+        "NSAccessibilityUsageDescription":        "Niyoq reads the foreground app/window title to categorize productive time. No keystrokes are recorded."
+      }
+    },
+    "dmg": {
+      "title": "Niyoq",
+      "icon": "assets/icon.icns"
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "icon": "assets/icon.png",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
     },
     "linux": {
-      "target": ["AppImage", "deb"]
+      "icon": "assets/icon.png",
+      "category": "Office",
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ]
     }
   },
   "dependencies": {
+    "active-win": "^8.2.1",
     "electron-is-dev": "^2.0.0"
   },
   "devDependencies": {

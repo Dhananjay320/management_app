@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
+import AppCategorizationPanel from './AppCategorizationPanel';
 
 // Admin-only Monitoring switches. Lives inside the Settings page.
 // Every feature defaults off; toggling `enabled` bumps the policyVersion
@@ -148,6 +149,12 @@ export default function MonitoringSettings() {
         onToggle={() => save({ appUsage: { enabled: !cfg.appUsage.enabled } })}>
         <NumInput label="Retention" value={cfg.appUsage.retentionDays} min={1} max={365}
           onChange={v => save({ appUsage: { retentionDays: v } })} suffix="days" />
+        <div style={{ flex: '1 1 100%', marginTop: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+            App categorization
+          </div>
+          <AppCategorizationPanel />
+        </div>
       </Row>
 
       <Row icon="⚡" title="Activity level (keystroke + mouse counts)"

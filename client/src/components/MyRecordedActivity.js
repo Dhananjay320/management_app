@@ -37,9 +37,20 @@ export default function MyRecordedActivity() {
   const { config, bypass, loading: monLoading } = useMonitoringConfig();
   const [today, setToday] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [screenshots, setScreenshots] = useState([]);
+  const [appUsage, setAppUsage] = useState([]);
+  const [productivity, setProductivity] = useState(null);
 
   useEffect(() => {
     api.get('/attendance/today').then(r => setToday(r.data)).catch(() => setToday(null)).finally(() => setLoading(false));
+    api.get('/usage/screenshots', { params: { limit: 60 } }).then(r => setScreenshots(r.data || [])).catch(() => setScreenshots([]));
+    const from = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    api.get('/usage/app-summary', { params: { from } })
+      .then(r => setAppUsage(r.data?.totals || []))
+      .catch(() => setAppUsage([]));
+    api.get('/usage/productivity', { params: { from } })
+      .then(r => setProductivity(r.data))
+      .catch(() => setProductivity(null));
   }, []);
 
   // Sys users see a marker that they're exempt from all monitoring.
@@ -147,19 +158,104 @@ export default function MyRecordedActivity() {
         </Card>
       )}
 
-      {/* Screenshots — placeholder until the Electron pipeline + storage land */}
+      {/* Screenshots — real timeline if any exist, placeholder otherwise */}
       {config?.screenshots?.enabled && (
         <Card title="📸 Recorded screenshots"
           subtitle={`Captured every ${config.screenshots.intervalMinutes} min · kept ${config.screenshots.retentionDays} days · ${config.screenshots.mode} mode`}>
-          <EmptyState icon="🖼" message="No screenshots have been captured yet. They'll show here as a timeline once the desktop tracker is running." />
+          {screenshots.length === 0 ? (
+            <EmptyState icon="🖼" message="No screenshots captured yet. Open the Niyoq desktop app to start recording." />
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+              {screenshots.map(s => (
+                <a key={s._id} href={getFileUrl(s.imageUrl)} target="_blank" rel="noreferrer"
+                  style={{ display: 'block', background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 8, overflow: 'hidden', textDecoration: 'none' }}>
+                  <img src={getFileUrl(s.imageUrl)} alt=""
+                    style={{ width: '100%', height: 90, objectFit: 'cover', display: 'block', background: '#000' }} />
+                  <div style={{ padding: '5px 7px', fontSize: 10, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>
+                    {new Date(s.capturedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                    {s.blurred ? ' · blur' : ''}
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
         </Card>
       )}
 
-      {/* App usage — placeholder */}
+      {/* Productivity score — only if we have any data */}
+      {config?.appUsage?.enabled && productivity && productivity.productivityPct !== null && (
+        <Card title="📈 Productivity score (last 24h)"
+          subtitle={`Based on ${productivity.totalMinutes} min of tracked app usage. Uncategorized apps are excluded.`}>
+          {(() => {
+            const pct = productivity.productivityPct;
+            const color = pct >= 70 ? 'var(--emerald)' : pct >= 40 ? 'var(--amber)' : 'var(--danger)';
+            const b = productivity.buckets || {};
+            const total = Math.max(1, b.productive + b.neutral + b.unproductive);
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                <div style={{
+                  width: 88, height: 88, borderRadius: '50%',
+                  background: `conic-gradient(${color} ${pct * 3.6}deg, var(--bg-1) 0)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative'
+                }}>
+                  <div style={{ width: 70, height: 70, borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color }}>{pct}%</div>
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  {[
+                    ['Productive', b.productive, 'var(--emerald)'],
+                    ['Neutral', b.neutral, 'var(--ink-3)'],
+                    ['Unproductive', b.unproductive, 'var(--danger)']
+                  ].map(([label, mins, c]) => (
+                    <div key={label} style={{ marginBottom: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3, color: 'var(--ink-2)' }}>
+                        <span style={{ fontWeight: 600 }}>{label}</span>
+                        <span style={{ fontFamily: 'var(--mono)' }}>{mins}m</span>
+                      </div>
+                      <div style={{ height: 4, background: 'var(--bg-1)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${(mins / total) * 100}%`, background: c }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </Card>
+      )}
+
+      {/* App usage — real top-apps if any, placeholder otherwise */}
       {config?.appUsage?.enabled && (
-        <Card title="🪟 App & website usage"
-          subtitle={`Kept ${config.appUsage.retentionDays} days. Only window titles, no content.`}>
-          <EmptyState icon="📊" message="Nothing recorded yet. App usage shows here once the desktop tracker has been running for a few minutes." />
+        <Card title="🪟 App & window usage (last 24h)"
+          subtitle={`Kept ${config.appUsage.retentionDays} days. Only app + window title, never input content.`}>
+          {appUsage.length === 0 ? (
+            <EmptyState icon="📊" message="No samples yet. Open the Niyoq desktop app and stay clocked in for a minute." />
+          ) : (
+            (() => {
+              const max = Math.max(...appUsage.map(a => a.minutes), 1);
+              return (
+                <div>
+                  {appUsage.slice(0, 10).map(a => {
+                    const pct = (a.minutes / max) * 100;
+                    const mins = Math.round(a.minutes);
+                    return (
+                      <div key={a.app} style={{ marginBottom: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
+                          <span style={{ color: 'var(--ink-2)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.app}</span>
+                          <span style={{ color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>{mins < 1 ? '<1m' : `${mins}m`}</span>
+                        </div>
+                        <div style={{ height: 4, background: 'var(--bg-1)', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--indigo)', transition: 'width 0.2s' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
+          )}
         </Card>
       )}
 
