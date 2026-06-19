@@ -46,20 +46,37 @@ export default function useScreenshotScheduler({ monitoring, user }) {
           schedule();
           return;
         }
-        const shot = await window.niyoqDesktop.capturePrimary();
-        if (shot?.jpegBase64) {
-          lastCaptureRef.current = Date.now();
-          const blob = await (await fetch('data:image/jpeg;base64,' + shot.jpegBase64)).blob();
+
+        // Multi-monitor: capture every connected display in parallel; otherwise
+        // just the primary. Each display goes up as a separate Screenshot row
+        // tagged with its capturedAt so the timeline stays consistent.
+        const uploadOne = async (jpegBase64, capturedAtIso, displayName) => {
+          const blob = await (await fetch('data:image/jpeg;base64,' + jpegBase64)).blob();
           const fd = new FormData();
-          fd.append('image', blob, 'auto.jpg');
-          fd.append('capturedAt', new Date(shot.capturedAt).toISOString());
+          fd.append('image', blob, `auto-${displayName || 'primary'}.jpg`);
+          fd.append('capturedAt', capturedAtIso);
+          if (displayName) fd.append('displayName', displayName);
           try {
             await api.post('/usage/screenshot', fd);
           } catch (err) {
-            // Server tells us to stop if config flipped off mid-session, or to
-            // skip silently when the user isn't clocked in.
-            if (err.response?.data?.stop) { stoppedRef.current = true; return; }
-            // Anything else: log and continue scheduling
+            if (err.response?.data?.stop) { stoppedRef.current = true; }
+          }
+        };
+
+        if (sc.multiScreen && window.niyoqDesktop.captureScreens) {
+          const shots = await window.niyoqDesktop.captureScreens();
+          if (Array.isArray(shots) && shots.length > 0) {
+            lastCaptureRef.current = Date.now();
+            const capturedAtIso = new Date().toISOString();
+            await Promise.all(shots.map((s, i) =>
+              uploadOne(s.dataUrl, capturedAtIso, s.name || `screen-${i + 1}`)
+            ));
+          }
+        } else {
+          const shot = await window.niyoqDesktop.capturePrimary();
+          if (shot?.jpegBase64) {
+            lastCaptureRef.current = Date.now();
+            await uploadOne(shot.jpegBase64, new Date(shot.capturedAt).toISOString(), null);
           }
         }
       } catch {}
@@ -93,6 +110,7 @@ export default function useScreenshotScheduler({ monitoring, user }) {
     monitoring.config?.screenshots?.enabled,
     monitoring.config?.screenshots?.intervalMinutes,
     monitoring.config?.screenshots?.mode,
+    monitoring.config?.screenshots?.multiScreen,
     monitoring.bypass,
     monitoring.needsAcceptance,
     user?._id

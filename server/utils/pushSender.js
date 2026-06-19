@@ -42,10 +42,22 @@ async function sendPushToUser(userId, payload) {
       try {
         // Web Push (browser)
         if (sub.webPush?.endpoint) {
-          await webPush.sendNotification({
-            endpoint: sub.webPush.endpoint,
-            keys: sub.webPush.keys
-          }, webPayload);
+          try {
+            await webPush.sendNotification({
+              endpoint: sub.webPush.endpoint,
+              keys: sub.webPush.keys
+            }, webPayload);
+            console.log('[WebPush] OK', String(userId).slice(-6), 'endpoint:', sub.webPush.endpoint.substring(0, 50), 'title:', payload.title);
+          } catch (e) {
+            // 410 Gone / 404 NotFound → user unsubscribed or browser purged the sub
+            // Anything else → log it so we know push is broken (often 401/403 = VAPID misconfigured)
+            if (e.statusCode === 410 || e.statusCode === 404) {
+              console.log('[WebPush] EXPIRED — deactivating', String(userId).slice(-6), 'endpoint:', sub.webPush.endpoint.substring(0, 50));
+              await PushSubscription.findByIdAndUpdate(sub._id, { isActive: false });
+            } else {
+              console.warn('[WebPush] FAIL', String(userId).slice(-6), 'status:', e.statusCode, 'body:', e.body || e.message);
+            }
+          }
         }
 
         // Expo Push (Android/iOS via Expo Push Service — handles FCM internally)
@@ -53,9 +65,9 @@ async function sendPushToUser(userId, payload) {
           await sendExpoPush(sub.expoPushToken, payload);
         }
       } catch (err) {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          await PushSubscription.findByIdAndUpdate(sub._id, { isActive: false });
-        }
+        // Outer catch — shouldn't normally fire since each transport has its own.
+        // Kept for safety so a malformed sub doesn't kill the loop.
+        console.warn('[Push] UNEXPECTED ERROR for sub', sub._id, err.message);
       }
     }
   } catch (err) {

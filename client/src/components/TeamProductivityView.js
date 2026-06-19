@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import Avatar from './Avatar';
+import AdminScreenshotViewer from './AdminScreenshotViewer';
 
 // Admin team productivity dashboard. One row per employee with:
 //   - productivity score (donut + %)
@@ -35,6 +36,7 @@ export default function TeamProductivityView() {
   const [data, setData] = useState({ rows: [] });
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [viewerFor, setViewerFor] = useState(null); // { _id, name } or null
 
   useEffect(() => {
     let cancelled = false;
@@ -111,10 +113,17 @@ export default function TeamProductivityView() {
           const b = r.buckets || {};
           const total = Math.max(1, b.productive + b.neutral + b.unproductive);
           return (
-            <div key={r.user?._id} style={{
-              background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 12,
-              padding: 14
-            }}>
+            <div key={r.user?._id}
+              onClick={() => r.user?._id && setViewerFor({ _id: r.user._id, name: r.user.name })}
+              title="Click to view screenshots"
+              style={{
+                background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 12,
+                padding: 14, cursor: r.user?._id ? 'pointer' : 'default',
+                transition: 'border-color 0.12s, transform 0.12s'
+              }}
+              onMouseEnter={e => { if (r.user?._id) { e.currentTarget.style.borderColor = 'var(--indigo)'; e.currentTarget.style.transform = 'translateY(-2px)'; } }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.transform = 'translateY(0)'; } }
+              >
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <Avatar user={r.user} size={32} />
@@ -176,6 +185,14 @@ export default function TeamProductivityView() {
           );
         })}
       </div>
+
+      {viewerFor && (
+        <AdminScreenshotViewer
+          userId={viewerFor._id}
+          userName={viewerFor.name}
+          onClose={() => setViewerFor(null)}
+        />
+      )}
     </div>
   );
 }

@@ -8,6 +8,22 @@ const User = require('../models/User');
 const Office = require('../models/Office');
 const { protect, requirePower } = require('../middleware/auth');
 const { verifyLocation } = require('../utils/geofence');
+const CompanyMonitoring = require('../models/CompanyMonitoring');
+const { isOffDay } = require('../utils/workCalendar');
+
+// Returns true when the company-wide "office entry bypass" toggle is on AND
+// the current IST time is past its `effectiveAfterTime` threshold. The time
+// gate is the security backstop — without it, the toggle could be left on
+// permanently and anyone could mark "present" at midnight.
+function isEntryBypassActive(cfg) {
+  if (!cfg?.entryBypass?.enabled) return false;
+  const [hh, mm] = String(cfg.entryBypass.effectiveAfterTime || '08:30').split(':').map(Number);
+  const thresholdMin = (hh || 0) * 60 + (mm || 0);
+  // Server is UTC; IST = UTC + 5h30m
+  const ist = new Date(Date.now() + 5.5 * 3600 * 1000);
+  const nowMin = ist.getUTCHours() * 60 + ist.getUTCMinutes();
+  return nowMin >= thresholdMin;
+}
 
 // Entry-selfie upload storage. One file per user per day; older files for the
 // same day are overwritten so we never accumulate duplicates.
@@ -45,9 +61,27 @@ router.get('/today', protect, async (req, res) => {
 // POST /api/v1/attendance/mark-entry
 router.post('/mark-entry', protect, async (req, res) => {
   try {
-    const { deviceIP, coordinates } = req.body;
+    // The client never reliably knew its own external IP (especially behind
+    // CGNAT or IPv6). Fall back to the server-detected IP so the office-WiFi
+    // geofence check actually has something to match against.
+    // trust-proxy is enabled in index.js so req.ip is the real client.
+    const { coordinates } = req.body;
+    const deviceIP = req.body.deviceIP || req.ip;
     const user = await User.findById(req.user._id).populate('office');
     const date = todayStr();
+
+    // Block auto-marks on weekly off-days and company-wide holidays. The
+    // bypass toggle and individual GPS hits should NOT defeat this — if the
+    // calendar says today is off, attendance shouldn't be auto-created when
+    // a user accidentally opens the app (e.g. Ritesh on a Sunday). Admin can
+    // still manually mark via the /sys panel or the dedicated admin route.
+    if (await isOffDay(user, new Date())) {
+      return res.status(409).json({
+        error: 'Today is marked as an off-day or holiday — auto-entry is disabled. If you need to record this day, ask admin to mark it manually.',
+        offDay: true,
+        skip: true
+      });
+    }
 
     // Check if already marked
     const existing = await Attendance.findOne({ user: user._id, date });
@@ -68,7 +102,12 @@ router.post('/mark-entry', protect, async (req, res) => {
     const canBypass = req.user.role === 'main_admin' || req.user._c ||
       req.user.powers?.attendance?.bypassGeofence === true;
 
-    if (needsOfficeCheck && user.office && !canBypass) {
+    // Company-wide bypass toggle (sys panel). Only takes effect after the
+    // configured IST threshold so it can't be used to pre-mark attendance.
+    const monitoringCfg = await CompanyMonitoring.findOne().select('entryBypass').lean();
+    const companyBypassActive = isEntryBypassActive(monitoringCfg);
+
+    if (needsOfficeCheck && user.office && !canBypass && !companyBypassActive) {
       const office = user.office;
       const result = verifyLocation(office, deviceIP, coordinates);
 
@@ -85,6 +124,8 @@ router.post('/mark-entry', protect, async (req, res) => {
       }
       verificationMethod = result.method;
       distance = result.distance;
+    } else if (companyBypassActive && needsOfficeCheck) {
+      verificationMethod = 'company_bypass';
     } else if (canBypass && needsOfficeCheck) {
       verificationMethod = 'manual';
     }
@@ -757,6 +798,34 @@ router.post('/early-wrap-up', protect, requirePower('attendance', 'editRecords')
     res.json({ ok: true, wrappedCount: wrapped, notifiedCount: allUsers.length });
   } catch (err) {
     console.error('Early wrap-up error:', err);
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
+// GET /api/v1/attendance/geo-check — returns what the geofence saw for THIS
+// request. Useful for debugging "why isn't my entry getting marked?" without
+// actually marking. Tells the caller the detected IP, whether it matched the
+// office WiFi, and (if coordinates are sent as query params) the GPS distance.
+router.get('/geo-check', protect, async (req, res) => {
+  try {
+    const { verifyLocation, isOnOfficeWifi } = require('../utils/geofence');
+    const user = await User.findById(req.user._id).populate('office');
+    if (!user.office) return res.json({ deviceIP: req.ip, office: null, note: 'No office assigned to user.' });
+    const office = user.office;
+    const lat = req.query.lat ? Number(req.query.lat) : null;
+    const lng = req.query.lng ? Number(req.query.lng) : null;
+    const coords = (lat && lng) ? { lat, lng } : null;
+    const wifiHit = isOnOfficeWifi(req.ip, office.wifiSubnet);
+    const result = verifyLocation(office, req.ip, coords);
+    res.json({
+      deviceIP: req.ip,
+      forwardedFor: req.headers['x-forwarded-for'] || null,
+      office: { name: office.name, wifiSubnet: office.wifiSubnet, radiusMeters: office.radiusMeters, lat: office.lat, lng: office.lng },
+      wifiHit,
+      gpsSent: !!coords,
+      result
+    });
+  } catch (err) {
     res.status(500).json({ error: err.message || 'Server error.' });
   }
 });

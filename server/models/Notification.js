@@ -6,7 +6,7 @@ const notificationSchema = new mongoose.Schema({
   // Type groups
   type: {
     type: String,
-    enum: ['emergency', 'task', 'message', 'meeting', 'approval', 'announcement', 'salary', 'attendance', 'email', 'system'],
+    enum: ['emergency', 'task', 'message', 'meeting', 'approval', 'announcement', 'salary', 'attendance', 'email', 'system', 'productivity'],
     required: true
   },
 

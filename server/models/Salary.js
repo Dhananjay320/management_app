@@ -50,6 +50,7 @@ const salaryMonthlySchema = new mongoose.Schema({
   absentDays: { type: Number, default: 0 },
   halfDays: { type: Number, default: 0 },
   leaveDays: { type: Number, default: 0 },
+  holidayDays: { type: Number, default: 0 }, // company-wide holidays in this month — paid, not deducted
   unapprovedLeaveDays: { type: Number, default: 0 },
 
   // Deductions itemized

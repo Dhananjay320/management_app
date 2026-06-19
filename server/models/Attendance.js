@@ -25,7 +25,7 @@ const attendanceSchema = new mongoose.Schema({
   halfDayType: { type: String, enum: ['morning', 'afternoon'] },
 
   // Verification
-  verificationMethod: { type: String, enum: ['wifi', 'gps', 'manual', 'remote', 'admin_edit'] },
+  verificationMethod: { type: String, enum: ['wifi', 'gps', 'manual', 'remote', 'admin_edit', 'company_bypass'] },
   distanceMeters: { type: Number }, // Stored for admin reference, never shown to employee
   deviceIP: { type: String },
   coordinates: {

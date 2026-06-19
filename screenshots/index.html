@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Niyoq — Local Demo Screenshots</title>
+<style>
+  body{font-family:system-ui,-apple-system,Inter,sans-serif;background:#0B0F19;color:#E2E8F0;margin:0;padding:24px 32px}
+  h1{font-size:28px;font-weight:800;margin:0 0 8px;background:linear-gradient(135deg,#6366F1,#8B5CF6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:#94A3B8;font-size:13px;margin-bottom:24px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:18px}
+  .card{background:rgba(15,23,42,0.6);border:1px solid #1E293B;border-radius:12px;overflow:hidden;transition:transform .2s,border-color .2s}
+  .card:hover{transform:translateY(-2px);border-color:#6366F1}
+  .card img{display:block;width:100%;height:auto}
+  .cap{padding:10px 14px;border-top:1px solid #1E293B}
+  .num{display:inline-block;background:rgba(99,102,241,0.18);color:#A5B4FC;font-weight:700;padding:1px 7px;border-radius:5px;font-size:11px;font-family:ui-monospace,monospace}
+  .name{color:#F1F5F9;font-weight:600;margin-left:6px}
+  .desc{color:#94A3B8;font-size:11px;margin-top:3px}
+  .section-title{font-size:14px;color:#A5B4FC;text-transform:uppercase;letter-spacing:.08em;margin:30px 0 10px}
+  .responsive{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+  .responsive .card{flex:1;min-width:240px}
+</style></head>
+<body>
+  <h1>Niyoq — Local Demo</h1>
+  <div class="sub">Local instance running on <code>localhost:3001</code> with dummy data · Captured 2026-06-19 · 1280×800 viewport · Logged in as Rajesh (main_admin) and System (sys account)</div>
+
+  <div class="section-title">📐 Responsive Audit — Calendar at four widths (no cut-off)</div>
+  <div class="responsive">
+    <div class="card"><img src="02_calendar_1440.png"><div class="cap"><span class="num">1440</span><span class="name">Desktop</span></div></div>
+    <div class="card"><img src="02b_calendar_1280.png"><div class="cap"><span class="num">1280</span><span class="name">Laptop</span></div></div>
+    <div class="card"><img src="02c_calendar_1024.png"><div class="cap"><span class="num">1024</span><span class="name">Tablet</span></div></div>
+    <div class="card"><img src="02d_calendar_mobile.png"><div class="cap"><span class="num">375</span><span class="name">Mobile</span></div></div>
+  </div>
+
+  <div class="section-title">🚪 Login</div>
+  <div class="grid">
+    <div class="card"><img src="01_login.png"><div class="cap"><span class="num">01</span><span class="name">Login — 1440px</span><div class="desc">Two-panel gradient layout</div></div></div>
+    <div class="card"><img src="01b_login_1280.png"><div class="cap"><span class="num">01b</span><span class="name">Login — 1280px</span><div class="desc">Same layout, narrower</div></div></div>
+  </div>
+
+  <div class="section-title">👤 Employee features (logged in as Rajesh)</div>
+  <div class="grid">
+    <div class="card"><img src="02b_calendar_1280.png"><div class="cap"><span class="num">02</span><span class="name">Calendar</span><div class="desc">Weekly / monthly / daily views, event entry pill</div></div></div>
+    <div class="card"><img src="03_attendance.png"><div class="cap"><span class="num">03</span><span class="name">Attendance</span><div class="desc">Mark entry / wrap-up / leave history</div></div></div>
+    <div class="card"><img src="04_messages.png"><div class="cap"><span class="num">04</span><span class="name">Messages</span><div class="desc">Channels (#noticeboard, #general) + DMs with sample chat</div></div></div>
+    <div class="card"><img src="05_tasks.png"><div class="cap"><span class="num">05</span><span class="name">Tasks</span><div class="desc">Priority groups, status badges, 6 dummy tasks</div></div></div>
+    <div class="card"><img src="06_workspace.png"><div class="cap"><span class="num">06</span><span class="name">Workspace</span><div class="desc">Documents, notes, links, files (TipTap)</div></div></div>
+    <div class="card"><img src="07_meetings.png"><div class="cap"><span class="num">07</span><span class="name">Meetings</span><div class="desc">Schedule, MoM, attendees</div></div></div>
+    <div class="card"><img src="08_email.png"><div class="cap"><span class="num">08</span><span class="name">Email</span><div class="desc">"Not Configured" placeholder — needs SMTP config</div></div></div>
+    <div class="card"><img src="09_sticky_notes.png"><div class="cap"><span class="num">09</span><span class="name">Sticky Notes</span><div class="desc">Grid layout with color-picker notes</div></div></div>
+    <div class="card"><img src="10_activity.png"><div class="cap"><span class="num">10</span><span class="name">Activity</span><div class="desc">Daily activities, RSVP, audience filter</div></div></div>
+    <div class="card"><img src="11_team_feed.png"><div class="cap"><span class="num">11</span><span class="name">Team Feed</span><div class="desc">Social posts, comments, reactions</div></div></div>
+    <div class="card"><img src="12_salary.png"><div class="cap"><span class="num">12</span><span class="name">Salary</span><div class="desc">Monthly breakdown, disputes</div></div></div>
+    <div class="card"><img src="13_notifications.png"><div class="cap"><span class="num">13</span><span class="name">Notifications</span><div class="desc">Type groups, emergency acknowledge</div></div></div>
+    <div class="card"><img src="14_whiteboards.png"><div class="cap"><span class="num">14</span><span class="name">Whiteboards</span><div class="desc">Collaborative canvas list</div></div></div>
+    <div class="card"><img src="15_reports.png"><div class="cap"><span class="num">15</span><span class="name">Reports</span><div class="desc">Daily summaries</div></div></div>
+    <div class="card"><img src="16_settings.png"><div class="cap"><span class="num">16</span><span class="name">Settings</span><div class="desc">AI config, push, preferences</div></div></div>
+    <div class="card"><img src="17_profile.png"><div class="cap"><span class="num">17</span><span class="name">Profile</span><div class="desc">Self profile + change password</div></div></div>
+  </div>
+
+  <div class="section-title">🛡️ Admin (still as Rajesh — main_admin)</div>
+  <div class="grid">
+    <div class="card"><img src="18_admin_users.png"><div class="cap"><span class="num">18</span><span class="name">Admin → Users</span><div class="desc">Employee table with search, role + work-type filters</div></div></div>
+  </div>
+
+  <div class="section-title">⚡ Sys panel (god mode — logged in as System account)</div>
+  <div class="grid">
+    <div class="card"><img src="19_sys_users.png"><div class="cap"><span class="num">19</span><span class="name">/sys → Users</span><div class="desc">User CRUD, force-logout, password reset</div></div></div>
+    <div class="card"><img src="20_sys_wfh_tracking.png"><div class="cap"><span class="num">20</span><span class="name">/sys → WFH Tracking</span><div class="desc">All 5 toggles, multi-monitor, scoring weights</div></div></div>
+    <div class="card"><img src="21_sys_crashes.png"><div class="cap"><span class="num">21</span><span class="name">/sys → Crash Reports</span><div class="desc">Type filter, stack trace, mark resolved</div></div></div>
+    <div class="card"><img src="22_sys_offices.png"><div class="cap"><span class="num">22</span><span class="name">/sys → Offices</span><div class="desc">GPS + multi-subnet wifi + detect-my-IP probe</div></div></div>
+  </div>
+
+  <div class="section-title">📝 Responsiveness verdict</div>
+  <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:14px 18px;max-width:920px;line-height:1.6">
+    <strong>No content cut-off at any width tested.</strong> Document width matches viewport width at <code>375 / 1024 / 1280 / 1440</code>. The only elements that extend past the edge are the decorative blurred gradient orbs (<code>.ad-orb</code> class) which are intentionally positioned for visual effect. The sidebar collapses to a hamburger menu below ~900px. <br><br>
+    If you're seeing cut-off on YOUR window, it's likely because: (a) browser is zoomed in (Cmd+0 to reset), (b) the window is narrower than 1024 AND you're inside a feature that needs more horizontal space (Calendar weekly view, salary breakdown table). Tell me which page + window size and I can fix.
+  </div>
+</body></html>

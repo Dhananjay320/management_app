@@ -58,6 +58,15 @@ async function generateMonthlySalary(userId, month, year, options = {}) {
 
   const workingDays = getWorkingDays(year, month);
 
+  // Count company-wide holidays that fell in this month (paid, no deduction).
+  // Imported lazily to avoid circular requires.
+  const CalendarEvent = require('../models/CalendarEvent');
+  const holidayDays = await CalendarEvent.countDocuments({
+    type: 'holiday',
+    isCompanyWide: true,
+    date: { $regex: `^${monthStr}` }
+  });
+
   const deductions = [];
   if (absentDays > 0 && perAbsentDay > 0) {
     deductions.push({ name: 'Absent days', amount: absentDays * perAbsentDay, count: absentDays });
@@ -97,6 +106,7 @@ async function generateMonthlySalary(userId, month, year, options = {}) {
     { user: userId, month, year },
     {
       baseSalary, workingDays, presentDays, absentDays, halfDays, leaveDays,
+      holidayDays,
       unapprovedLeaveDays: unapprovedLeaves,
       deductions, totalDeductions,
       tds, pf, esi, totalTax,

@@ -11,6 +11,7 @@ import useAppUsageTracker from '../../hooks/useAppUsageTracker';
 import useIdleTracker from '../../hooks/useIdleTracker';
 import MonitoringConsentModal from '../MonitoringConsentModal';
 import WorkTimer from '../WorkTimer';
+import MarkEntryPill from '../MarkEntryPill';
 import NotificationToast from '../NotificationToast';
 import FloatingStickyNote from '../FloatingStickyNote';
 import {
@@ -513,6 +514,7 @@ export default function AppLayout() {
             )}
           </div>
           <div className="topbar-right">
+            <MarkEntryPill />
             <WorkTimer />
             {hasAdminPowers && (
               <div

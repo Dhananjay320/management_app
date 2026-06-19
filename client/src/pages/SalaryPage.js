@@ -194,10 +194,10 @@ export default function SalaryPage() {
                       <button className="sal-detail-btn" onClick={async () => {
                         try {
                           const response = await api.get(`/salary/monthly/${user._id}/${selectedRecord.year}/${selectedRecord.month}/pdf`, { responseType: 'blob' });
-                          const url = window.URL.createObjectURL(new Blob([response.data]));
+                          const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
                           const a = document.createElement('a');
                           a.href = url;
-                          a.download = `salary_${MONTHS[selectedRecord.month]}_${selectedRecord.year}.txt`;
+                          a.download = `salary_${(user.name || 'employee').replace(/\s+/g, '_')}_${MONTHS[selectedRecord.month]}_${selectedRecord.year}.pdf`;
                           a.click();
                           window.URL.revokeObjectURL(url);
                         } catch {}

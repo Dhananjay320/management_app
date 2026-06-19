@@ -217,7 +217,11 @@ export default function Messages() {
   const [mentionResults, setMentionResults] = useState([]);
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
 
-  // Forward modal
+  // Seen-by popover state — opened when user clicks "Seen by N" pill on own message
+  const [seenByMsg, setSeenByMsg] = useState(null);
+
+  // Forward modal — `forwardMsg` is a single message OR `{ bulk: true, ids: [...] }`
+  // when the user forwards a batch from select mode.
   const [forwardMsg, setForwardMsg] = useState(null);
   const [forwardTargets, setForwardTargets] = useState([]);
   const [forwardNote, setForwardNote] = useState('');
@@ -226,19 +230,67 @@ export default function Messages() {
     if (forwardTargets.length === 0) return;
     setForwardBusy(true);
     try {
-      const r = await api.post('/messages/forward', {
-        messageId: forwardMsg._id,
-        targetChannelIds: forwardTargets,
-        note: forwardNote
-      });
-      setForwardMsg(null);
-      setForwardTargets([]);
-      setForwardNote('');
-      dialog.alert(`✓ Forwarded to ${r.data.forwarded} ${r.data.forwarded === 1 ? 'chat' : 'chats'}`);
+      // Bulk path — forwarding many messages from select mode. We call the
+      // single-message endpoint once per message; backend already handles the
+      // N-target fan-out. Errors per-message are surfaced together at the end.
+      if (forwardMsg?.bulk && Array.isArray(forwardMsg.ids)) {
+        const ids = forwardMsg.ids;
+        const results = await Promise.allSettled(ids.map(id =>
+          api.post('/messages/forward', {
+            messageId: id,
+            targetChannelIds: forwardTargets,
+            note: forwardNote
+          })
+        ));
+        const failed = results.filter(r => r.status === 'rejected').length;
+        const okCount = ids.length - failed;
+        setForwardMsg(null);
+        setForwardTargets([]);
+        setForwardNote('');
+        setSelectMode(false);
+        setSelectedMsgIds(new Set());
+        if (failed > 0) {
+          dialog.alert(`Forwarded ${okCount} of ${ids.length} message${ids.length === 1 ? '' : 's'} to ${forwardTargets.length} chat${forwardTargets.length === 1 ? '' : 's'}. ${failed} failed.`);
+        } else {
+          dialog.alert(`✓ Forwarded ${okCount} message${okCount === 1 ? '' : 's'} to ${forwardTargets.length} chat${forwardTargets.length === 1 ? '' : 's'}`);
+        }
+      } else {
+        const r = await api.post('/messages/forward', {
+          messageId: forwardMsg._id,
+          targetChannelIds: forwardTargets,
+          note: forwardNote
+        });
+        setForwardMsg(null);
+        setForwardTargets([]);
+        setForwardNote('');
+        dialog.alert(`✓ Forwarded to ${r.data.forwarded} ${r.data.forwarded === 1 ? 'chat' : 'chats'}`);
+      }
     } catch (e) {
       dialog.alert('Forward failed: ' + (e.response?.data?.error || e.message), 'Error');
     }
     setForwardBusy(false);
+  };
+
+  // Bulk-delete handler called from the select-mode toolbar. Loops the existing
+  // per-message endpoint; backend authorisation runs per-message (only your own
+  // messages, or any if admin).
+  const bulkDeleteMessages = async () => {
+    if (selectedMsgIds.size === 0 || !activeChannel) return;
+    const ok = await dialog.confirm(
+      `Delete ${selectedMsgIds.size} message${selectedMsgIds.size === 1 ? '' : 's'}? This cannot be undone.`,
+      'Delete messages?'
+    );
+    if (!ok) return;
+    const ids = [...selectedMsgIds];
+    const results = await Promise.allSettled(ids.map(id =>
+      api.delete(`/messages/${activeChannel._id}/${id}`)
+    ));
+    const failed = results.filter(r => r.status === 'rejected').length;
+    setSelectMode(false);
+    setSelectedMsgIds(new Set());
+    if (failed > 0) {
+      dialog.alert(`Deleted ${ids.length - failed} of ${ids.length}. ${failed} couldn't be deleted (you can only delete your own messages).`);
+    }
   };
 
   // Close inline dropdowns (mention, emoji, compose picker) on any outside click.
@@ -297,7 +349,12 @@ export default function Messages() {
     setActiveChannel(channel);
     prevChannelRef.current = channel._id;
     joinChannel(channel._id);
-    loadMessages(channel._id);
+    // Optimistically zero out the unread badge for this channel — gives instant
+    // feedback even before the loadMessages mark-read round-trip completes.
+    setChannels(prev => prev.map(c => c._id === channel._id ? { ...c, unreadCount: 0 } : c));
+    // Load messages (which also marks them as read on the server), then refresh
+    // the channel list so the sidebar's unread counters reflect server truth.
+    loadMessages(channel._id).then(() => loadChannels());
     // Pre-load channel members so @mentions work without opening the side panel
     api.get(`/messages/${channel._id}/members`)
       .then(r => setChannelMembers(r.data || []))
@@ -310,14 +367,15 @@ export default function Messages() {
     setMsgSearch('');
     setMsgSearchResults([]);
     setMobileSidebar(false);
-  }, [joinChannel, leaveChannel, loadMessages]);
+  }, [joinChannel, leaveChannel, loadMessages, loadChannels]);
 
   // Socket listeners
   useEffect(() => {
     if (!socket) return;
 
-    const handleMessage = (msg) => {
-      if (msg.channel === activeChannel?._id) {
+    const handleMessage = async (msg) => {
+      const isForActive = String(msg.channel) === String(activeChannel?._id);
+      if (isForActive) {
         if (msg.parentMessage) {
           // It's a thread reply
           if (threadParent && msg.parentMessage === threadParent._id) {
@@ -330,10 +388,21 @@ export default function Messages() {
           setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
         }
         // Auto mark-read since the user is actively viewing this channel.
-        // Fire-and-forget; loadChannels below picks up the cleared unread count.
+        // AWAIT the mark-read before refreshing channels so the sidebar count
+        // doesn't show a stale "1 unread" on a message the user just saw.
         if (msg.sender?._id !== user._id && document.visibilityState === 'visible') {
-          api.post(`/messages/${activeChannel._id}/read`).catch(() => {});
+          try { await api.post(`/messages/${activeChannel._id}/read`); } catch {}
+          // Optimistically zero out the unread badge for this channel
+          setChannels(prev => prev.map(c => c._id === activeChannel._id ? { ...c, unreadCount: 0 } : c));
         }
+      } else if (msg.sender?._id !== user._id) {
+        // Message for a non-active channel — bump that channel's unread count
+        // optimistically so the badge appears instantly, then reconcile via loadChannels.
+        setChannels(prev => prev.map(c =>
+          String(c._id) === String(msg.channel)
+            ? { ...c, unreadCount: (c.unreadCount || 0) + 1, lastMessage: msg, lastMessageAt: msg.createdAt }
+            : c
+        ));
       }
       loadChannels();
     };
@@ -371,6 +440,23 @@ export default function Messages() {
       setThreadReplies(prev => prev.map(m => m._id === msg._id ? { ...m, ...msg } : m));
     };
 
+    // Belt-and-suspenders refresh of the active channel. Socket events are the
+    // primary path, but browsers throttle setInterval/sockets on backgrounded
+    // tabs and the socket can be briefly disconnected on flaky office WiFi —
+    // both cases can swallow a new message. We refresh on:
+    //   - socket reconnect (fills the gap during disconnect)
+    //   - tab becomes visible (catches throttled-tab missed events)
+    //   - every 25s while the tab is visible (cheap fallback)
+    const refreshActive = () => {
+      if (activeChannel?._id) loadMessages(activeChannel._id);
+      loadChannels();
+    };
+    const onVisibility = () => { if (document.visibilityState === 'visible') refreshActive(); };
+    const onReconnect = () => refreshActive();
+    const poll = setInterval(() => {
+      if (document.visibilityState === 'visible') refreshActive();
+    }, 25000);
+
     socket.on('message:received', handleMessage);
     socket.on('user:typing', handleTyping);
     socket.on('user:stop-typing', handleStopTyping);
@@ -378,6 +464,8 @@ export default function Messages() {
     socket.on('message:edited', handleEdited);
     socket.on('message:deleted', handleDeleted);
     socket.on('message:updated', handleUpdated);
+    socket.on('connect', onReconnect);
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       socket.off('message:received', handleMessage);
@@ -387,8 +475,11 @@ export default function Messages() {
       socket.off('message:edited', handleEdited);
       socket.off('message:deleted', handleDeleted);
       socket.off('message:updated', handleUpdated);
+      socket.off('connect', onReconnect);
+      document.removeEventListener('visibilitychange', onVisibility);
+      clearInterval(poll);
     };
-  }, [socket, activeChannel, user._id, loadChannels, threadParent]);
+  }, [socket, activeChannel, user._id, loadChannels, loadMessages, threadParent]);
 
   const sendMessage = async () => {
     if (!activeChannel) return;
@@ -1323,6 +1414,35 @@ export default function Messages() {
             </div>
           )}
 
+          {/* Seen-by pill — only shown in channels and groups (not DMs).
+              DMs already show a single "✓✓ Seen" at the bottom of the chat tail;
+              repeating "Seen by 1/1" on every bubble there is just noise. */}
+          {isMe && !msg.isDeleted && Array.isArray(msg.readBy)
+            && activeChannel?.type !== 'dm' && (() => {
+            // Count members other than the sender — those are the potential readers
+            const totalReaders = Math.max(0, (activeChannel?.members?.length || 0) - 1);
+            // readBy includes the sender themselves; subtract them out
+            const seenCount = Math.max(0, msg.readBy.filter(id => id !== user._id).length);
+            // Skip when there's only one other member — the chat-tail Seen tick covers it
+            if (totalReaders <= 1) return null;
+            const allSeen = seenCount >= totalReaders;
+            return (
+              <div
+                onClick={(e) => { e.stopPropagation(); setSeenByMsg(msg); }}
+                title="Click to see who has seen this message"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '1px 8px', borderRadius: 10, marginTop: 4, alignSelf: 'flex-end',
+                  fontSize: 9, fontWeight: 600, cursor: 'pointer',
+                  background: allSeen ? 'rgba(16,185,129,0.10)' : 'rgba(99,102,241,0.10)',
+                  color: allSeen ? '#10B981' : '#6366F1',
+                  border: `1px solid ${allSeen ? 'rgba(16,185,129,0.25)' : 'rgba(99,102,241,0.25)'}`
+                }}>
+                {allSeen ? '✓✓' : '👁'} Seen by {seenCount}/{totalReaders}
+              </div>
+            );
+          })()}
+
           {/* Reactions display — hover any pill to see who reacted */}
           {msg.reactions?.length > 0 && (
             <div className="msg-reactions">
@@ -1614,6 +1734,16 @@ export default function Messages() {
               >
                 {aiLoading ? 'Summarizing...' : selectMode ? `Summarize (${selectedMsgIds.size})` : '\u2728 Summarize'}
               </button>
+              <button
+                onClick={() => {
+                  if (selectMode) { setSelectMode(false); setSelectedMsgIds(new Set()); }
+                  else { setSelectMode(true); }
+                }}
+                title={selectMode ? 'Exit select mode' : 'Select multiple messages to forward or delete'}
+                style={{ padding: '4px 10px', border: `1px solid ${selectMode ? '#6366F1' : 'var(--line)'}`, borderRadius: 6, fontSize: 10, background: selectMode ? 'rgba(99,102,241,0.18)' : 'var(--glass)', color: selectMode ? '#6366F1' : 'var(--ink-3)', cursor: 'pointer', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}
+              >
+                {selectMode ? `☑ Selecting (${selectedMsgIds.size})` : '☑ Select'}
+              </button>
               <button className={`msg-header-btn ${rightPanel === 'pinned' ? 'active' : ''}`} onClick={() => openRightPanel('pinned')} title="Pinned messages">📌</button>
               <button className={`msg-header-btn ${rightPanel === 'files' ? 'active' : ''}`} onClick={() => openRightPanel('files')} title="Files">📁</button>
               <button className={`msg-header-btn ${rightPanel === 'members' ? 'active' : ''}`} onClick={() => openRightPanel('members')} title="Members">👥</button>
@@ -1622,15 +1752,30 @@ export default function Messages() {
 
           <div className="msg-chat-main">
             <div className="msg-chat-body-wrap">
-              {/* Select mode bar */}
+              {/* Select mode bar — bulk Forward / Delete / Summarize */}
               {selectMode && (
-                <div style={{ padding: '6px 14px', background: 'rgba(99,102,241,0.08)', borderBottom: '1px solid rgba(99,102,241,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                <div style={{ padding: '6px 14px', background: 'rgba(99,102,241,0.08)', borderBottom: '1px solid rgba(99,102,241,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
                   <span style={{ fontSize: 11, color: '#6366F1', fontWeight: 600 }}>
                     Click messages to select ({selectedMsgIds.size} selected)
                   </span>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <button onClick={() => setSelectedMsgIds(new Set(messages.map(m => m._id)))}
                       style={{ padding: '3px 8px', fontSize: 9, border: '1px solid #6366F1', borderRadius: 4, background: 'rgba(99,102,241,0.06)', color: '#6366F1', cursor: 'pointer', fontFamily: 'Inter' }}>Select All</button>
+                    <button onClick={() => {
+                        if (selectedMsgIds.size === 0) { dialog.alert('Select at least one message first.'); return; }
+                        setForwardMsg({ bulk: true, ids: [...selectedMsgIds] });
+                        setForwardTargets([]);
+                        setForwardNote('');
+                      }}
+                      disabled={selectedMsgIds.size === 0}
+                      style={{ padding: '3px 10px', fontSize: 10, border: '1px solid #6366F1', borderRadius: 4, background: selectedMsgIds.size > 0 ? '#6366F1' : 'rgba(99,102,241,0.20)', color: selectedMsgIds.size > 0 ? '#fff' : '#6366F1', cursor: selectedMsgIds.size > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Inter', fontWeight: 600 }}>
+                      ➤ Forward ({selectedMsgIds.size})
+                    </button>
+                    <button onClick={bulkDeleteMessages}
+                      disabled={selectedMsgIds.size === 0}
+                      style={{ padding: '3px 10px', fontSize: 10, border: '1px solid rgba(239,68,68,0.5)', borderRadius: 4, background: 'rgba(239,68,68,0.08)', color: '#EF4444', cursor: selectedMsgIds.size > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Inter', fontWeight: 600, opacity: selectedMsgIds.size > 0 ? 1 : 0.5 }}>
+                      🗑 Delete
+                    </button>
                     <button onClick={() => { setSelectMode(false); setSelectedMsgIds(new Set()); }}
                       style={{ padding: '3px 8px', fontSize: 9, border: '1px solid var(--line)', borderRadius: 4, background: 'var(--glass)', color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'Inter' }}>Cancel</button>
                   </div>
@@ -2247,23 +2392,60 @@ export default function Messages() {
         </div>
       )}
 
-      {/* Forward Message Modal */}
+      {/* Seen-By Modal — lazy-loads the read-receipt list when opened */}
+      {seenByMsg && (
+        <SeenByModal
+          message={seenByMsg}
+          channel={activeChannel}
+          currentUserId={user._id}
+          onClose={() => setSeenByMsg(null)}
+        />
+      )}
+
+      {/* Forward Message Modal — handles single OR bulk (forwardMsg.bulk) */}
       {forwardMsg && (
         <div className="msg-task-overlay" onClick={() => setForwardMsg(null)}>
           <div className="msg-task-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
             <div className="msg-task-modal-header">
-              <span>➤ Forward Message</span>
+              <span>➤ Forward {forwardMsg.bulk ? `${forwardMsg.ids.length} Messages` : 'Message'}</span>
               <button className="msg-task-modal-close" onClick={() => setForwardMsg(null)}>✕</button>
             </div>
             <div style={{ padding: 16 }}>
-              {/* Preview of message being forwarded */}
+              {/* Preview — single message OR bulk summary */}
               <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, marginBottom: 12, borderLeft: '3px solid var(--indigo)' }}>
-                <div style={{ fontSize: 10, color: 'var(--ink-3)', fontWeight: 700, marginBottom: 4 }}>
-                  From {forwardMsg.sender?.name || 'Unknown'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--ink)', whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {forwardMsg.content || (forwardMsg.file ? `📎 ${forwardMsg.file.name}` : '(no content)')}
-                </div>
+                {forwardMsg.bulk ? (
+                  <>
+                    <div style={{ fontSize: 10, color: 'var(--ink-3)', fontWeight: 700, marginBottom: 6 }}>
+                      Forwarding {forwardMsg.ids.length} messages from this chat
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-2)', maxHeight: 110, overflow: 'auto' }}>
+                      {forwardMsg.ids.slice(0, 4).map(id => {
+                        const m = messages.find(x => x._id === id);
+                        if (!m) return null;
+                        const txt = m.content || (m.file ? `📎 ${m.file.name}` : '(media)');
+                        return (
+                          <div key={id} style={{ padding: '2px 0', borderBottom: '1px solid var(--line)' }}>
+                            <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>{m.sender?.name || '?'}:</span> {txt.slice(0, 80)}{txt.length > 80 ? '…' : ''}
+                          </div>
+                        );
+                      })}
+                      {forwardMsg.ids.length > 4 && (
+                        <div style={{ padding: '4px 0', color: 'var(--ink-4)', fontSize: 10, fontStyle: 'italic' }}>
+                          …and {forwardMsg.ids.length - 4} more
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 10, color: 'var(--ink-3)', fontWeight: 700, marginBottom: 4 }}>
+                      From {forwardMsg.sender?.name || 'Unknown'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink)', whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {forwardMsg.content || (forwardMsg.file ? `📎 ${forwardMsg.file.name}` : '(no content)')}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Optional note */}
@@ -2385,6 +2567,82 @@ export default function Messages() {
           onClose={() => setViewingFile(null)}
         />
       )}
+    </div>
+  );
+}
+
+// Modal that fetches the read-receipt list lazily and shows who has seen the
+// message. Splits members into "seen" and "not yet seen" so the sender knows
+// who's still pending. Works for channels, groups, and DMs alike.
+function SeenByModal({ message, channel, currentUserId, onClose }) {
+  const [seen, setSeen] = useState(null); // null | array of users
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get(`/messages/${channel?._id}/${message._id}/read-receipts`)
+      .then(r => { if (!cancelled) setSeen(r.data?.readBy || []); })
+      .catch(() => { if (!cancelled) setSeen([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [message._id, channel?._id]);
+
+  // Build pending list: members - sender - already-seen
+  const members = channel?.members || [];
+  const seenIds = new Set((seen || []).map(u => u._id));
+  const pending = members.filter(m => m._id !== currentUserId && !seenIds.has(m._id));
+  // The receipt list includes the sender themselves; hide them from the "seen" list
+  const seenWithoutSender = (seen || []).filter(u => u._id !== currentUserId);
+
+  return (
+    <div className="msg-task-overlay" onClick={onClose}>
+      <div className="msg-task-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+        <div className="msg-task-modal-header">
+          <span>👁 Seen by</span>
+          <button className="msg-task-modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: 16 }}>
+          <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 12, fontStyle: 'italic', maxHeight: 60, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            "{(message.content || message.file?.name || '(media)').slice(0, 100)}"
+          </div>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: 20, color: 'var(--ink-3)', fontSize: 12 }}>Loading…</div>
+          ) : (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#10B981', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>
+                Seen ({seenWithoutSender.length})
+              </div>
+              {seenWithoutSender.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', padding: '6px 0' }}>No one has seen this yet.</div>
+              ) : (
+                <div style={{ marginBottom: 16 }}>
+                  {seenWithoutSender.map(u => (
+                    <div key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+                      <Avatar user={u} size={28} />
+                      <div style={{ fontSize: 12, color: 'var(--ink)' }}>{u.name}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {pending.length > 0 && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>
+                    Not yet seen ({pending.length})
+                  </div>
+                  {pending.map(u => (
+                    <div key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', opacity: 0.55 }}>
+                      <Avatar user={u} size={28} />
+                      <div style={{ fontSize: 12, color: 'var(--ink-2)' }}>{u.name}</div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

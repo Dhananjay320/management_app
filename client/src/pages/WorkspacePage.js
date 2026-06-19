@@ -23,6 +23,84 @@ export default function WorkspacePage() {
   const [memberUsers, setMemberUsers] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
 
+  // Multi-select state — set of "<type>:<id>" so a doc and a file with the same
+  // id don't collide. Active only on the Documents / Files tabs.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareChannels, setShareChannels] = useState([]); // available channels
+  const [shareTargets, setShareTargets] = useState([]);   // chosen channel IDs
+  const [shareNote, setShareNote] = useState('');
+  const [shareBusy, setShareBusy] = useState(false);
+
+  const toggleItem = (type, id) => {
+    const key = `${type}:${id}`;
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+  const isSelected = (type, id) => selectedItems.has(`${type}:${id}`);
+  const clearSelection = () => { setSelectedItems(new Set()); setSelectMode(false); };
+
+  // Bulk delete — calls each item's delete endpoint, then reloads
+  const bulkDelete = async () => {
+    if (selectedItems.size === 0) return;
+    if (!window.confirm(`Delete ${selectedItems.size} item${selectedItems.size === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    const items = [...selectedItems];
+    await Promise.all(items.map(async (key) => {
+      const [type, id] = key.split(':');
+      try {
+        if (type === 'doc') await api.delete(`/workspace/documents/${id}`);
+        else if (type === 'file') await api.delete(`/workspace/${selectedWs}/files/${id}`);
+      } catch {}
+    }));
+    clearSelection();
+    openWorkspace(selectedWs);
+  };
+
+  // Open the share modal — load the user's channels lazily
+  const openShare = async () => {
+    if (selectedItems.size === 0) return;
+    setShareOpen(true);
+    setShareTargets([]);
+    setShareNote('');
+    try {
+      const { data } = await api.get('/messages/channels');
+      setShareChannels(data || []);
+    } catch {
+      setShareChannels([]);
+    }
+  };
+
+  // Build a single message per target channel listing every selected item with
+  // a link to it. Documents get an in-app deep link; files get the file URL.
+  const doShare = async () => {
+    if (shareTargets.length === 0 || selectedItems.size === 0) return;
+    setShareBusy(true);
+    const items = [...selectedItems];
+    const lines = items.map(key => {
+      const [type, id] = key.split(':');
+      if (type === 'doc') {
+        const d = wsDetail?.documents?.find(x => x._id === id);
+        return `📄 ${d?.title || 'Document'} — ${window.location.origin}/workspace?doc=${id}`;
+      } else {
+        const f = wsDetail?.files?.find(x => x._id === id);
+        const url = f ? getFileUrl(f.path || f.url) : '';
+        return `📎 ${f?.originalName || f?.name || 'File'} — ${url}`;
+      }
+    });
+    const body = (shareNote ? shareNote + '\n\n' : '') + lines.join('\n');
+    await Promise.all(shareTargets.map(channelId =>
+      api.post(`/messages/${channelId}`, { content: body, type: 'text' }).catch(() => {})
+    ));
+    setShareBusy(false);
+    setShareOpen(false);
+    clearSelection();
+    alert(`Shared to ${shareTargets.length} channel${shareTargets.length === 1 ? '' : 's'}.`);
+  };
+
   const loadWorkspaces = useCallback(async () => {
     try { const { data } = await api.get('/workspace'); setWorkspaces(data); } catch {} finally { setLoading(false); }
   }, []);
@@ -201,23 +279,38 @@ export default function WorkspacePage() {
 
       {activeTab === 'documents' && (
         <div>
-          <div style={{ marginBottom: 12 }}><button className="btn btn-primary-sm" onClick={createDocument}>+ New Document</button></div>
-          {wsDetail?.documents?.map(doc => (
-            <div key={doc._id} className="ws-doc-item" onClick={() => openDocument(doc._id)}>
-              <div className="ws-doc-icon">📄</div>
-              <div style={{ flex: 1 }}>
-                <div className="ws-doc-title">{doc.title}</div>
-                <div className="ws-doc-meta">
-                  {doc.lastEditedBy?.name && `Edited by ${doc.lastEditedBy.name} · `}
-                  {new Date(doc.updatedAt).toLocaleDateString()}
-                  {doc.classification !== 'personal' && <span className="badge-pill" style={{ marginLeft: 6, background: doc.classification === 'company' ? 'rgba(99,102,241,0.08)' : 'rgba(16,185,129,0.08)', color: doc.classification === 'company' ? '#6366F1' : '#10B981' }}>{doc.classification}</span>}
-                  {doc.tags?.map((tag, ti) => (
-                    <span key={ti} className="badge-pill" style={{ marginLeft: 4, background: 'rgba(139,92,246,0.08)', color: '#8B5CF6', fontSize: 9 }}>{tag}</span>
-                  ))}
+          <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
+            <button className="btn btn-primary-sm" onClick={createDocument}>+ New Document</button>
+            <button className="btn btn-secondary" onClick={() => { setSelectMode(s => !s); setSelectedItems(new Set()); }}>
+              {selectMode ? '✕ Exit Select' : '☑ Select Multiple'}
+            </button>
+          </div>
+          {wsDetail?.documents?.map(doc => {
+            const selected = isSelected('doc', doc._id);
+            return (
+              <div key={doc._id} className="ws-doc-item"
+                onClick={() => selectMode ? toggleItem('doc', doc._id) : openDocument(doc._id)}
+                style={selectMode ? { background: selected ? 'rgba(99,102,241,0.10)' : undefined, borderColor: selected ? 'var(--indigo)' : undefined } : undefined}>
+                {selectMode && (
+                  <input type="checkbox" checked={selected} onChange={() => toggleItem('doc', doc._id)}
+                    onClick={e => e.stopPropagation()}
+                    style={{ marginRight: 8, width: 16, height: 16, accentColor: 'var(--indigo)' }} />
+                )}
+                <div className="ws-doc-icon">📄</div>
+                <div style={{ flex: 1 }}>
+                  <div className="ws-doc-title">{doc.title}</div>
+                  <div className="ws-doc-meta">
+                    {doc.lastEditedBy?.name && `Edited by ${doc.lastEditedBy.name} · `}
+                    {new Date(doc.updatedAt).toLocaleDateString()}
+                    {doc.classification !== 'personal' && <span className="badge-pill" style={{ marginLeft: 6, background: doc.classification === 'company' ? 'rgba(99,102,241,0.08)' : 'rgba(16,185,129,0.08)', color: doc.classification === 'company' ? '#6366F1' : '#10B981' }}>{doc.classification}</span>}
+                    {doc.tags?.map((tag, ti) => (
+                      <span key={ti} className="badge-pill" style={{ marginLeft: 4, background: 'rgba(139,92,246,0.08)', color: '#8B5CF6', fontSize: 9 }}>{tag}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {(!wsDetail?.documents || wsDetail.documents.length === 0) && <div style={{ color: 'var(--ink-4)', fontSize: 12, padding: 20, textAlign: 'center' }}>No documents yet</div>}
         </div>
       )}
@@ -256,7 +349,7 @@ export default function WorkspacePage() {
 
       {activeTab === 'files' && (
         <div>
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
             <label className="btn btn-primary-sm" style={{ cursor: 'pointer' }}>
               📎 Upload File
               <input type="file" style={{ display: 'none' }} onChange={async (e) => {
@@ -273,20 +366,116 @@ export default function WorkspacePage() {
                 e.target.value = '';
               }} />
             </label>
+            <button className="btn btn-secondary" onClick={() => { setSelectMode(s => !s); setSelectedItems(new Set()); }}>
+              {selectMode ? '✕ Exit Select' : '☑ Select Multiple'}
+            </button>
           </div>
-          {wsDetail?.files?.map(file => (
-            <div key={file._id} className="ws-doc-item" style={{ cursor: 'pointer' }} onClick={() => setViewingFile({ url: getFileUrl(file.path || file.url), name: file.originalName || file.name, mimeType: file.mimeType, size: file.originalSize })}>
-              <div className="ws-doc-icon">📎</div>
-              <div style={{ flex: 1 }}>
-                <div className="ws-doc-title">{file.originalName || file.name}</div>
-                <div className="ws-doc-meta">
-                  {file.uploadedBy?.name && `Uploaded by ${file.uploadedBy.name} · `}
-                  {file.originalSize ? `${(file.originalSize / 1024).toFixed(1)} KB` : ''}
+          {wsDetail?.files?.map(file => {
+            const selected = isSelected('file', file._id);
+            return (
+              <div key={file._id} className="ws-doc-item"
+                style={{ cursor: 'pointer', ...(selectMode && selected ? { background: 'rgba(99,102,241,0.10)', borderColor: 'var(--indigo)' } : {}) }}
+                onClick={() => selectMode
+                  ? toggleItem('file', file._id)
+                  : setViewingFile({ url: getFileUrl(file.path || file.url), name: file.originalName || file.name, mimeType: file.mimeType, size: file.originalSize })
+                }>
+                {selectMode && (
+                  <input type="checkbox" checked={selected} onChange={() => toggleItem('file', file._id)}
+                    onClick={e => e.stopPropagation()}
+                    style={{ marginRight: 8, width: 16, height: 16, accentColor: 'var(--indigo)' }} />
+                )}
+                <div className="ws-doc-icon">📎</div>
+                <div style={{ flex: 1 }}>
+                  <div className="ws-doc-title">{file.originalName || file.name}</div>
+                  <div className="ws-doc-meta">
+                    {file.uploadedBy?.name && `Uploaded by ${file.uploadedBy.name} · `}
+                    {file.originalSize ? `${(file.originalSize / 1024).toFixed(1)} KB` : ''}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {(!wsDetail?.files || wsDetail.files.length === 0) && <div style={{ color: 'var(--ink-4)', fontSize: 12, padding: 20, textAlign: 'center' }}>No files yet</div>}
+        </div>
+      )}
+
+      {/* Sticky bulk-action toolbar — appears whenever items are selected */}
+      {selectedItems.size > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(15,17,28,0.96)', backdropFilter: 'blur(12px)',
+          border: '1px solid var(--line)', borderRadius: 12, padding: '10px 16px',
+          display: 'flex', alignItems: 'center', gap: 12, zIndex: 100,
+          boxShadow: '0 12px 32px rgba(0,0,0,0.4)'
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
+            {selectedItems.size} selected
+          </span>
+          <button className="btn btn-primary-sm" onClick={openShare}>➤ Forward to channel</button>
+          <button className="btn btn-secondary" onClick={bulkDelete} style={{ color: 'var(--danger)' }}>🗑 Delete</button>
+          <button className="btn btn-secondary" onClick={clearSelection}>Cancel</button>
+        </div>
+      )}
+
+      {/* Share/Forward modal — pick one or more channels to receive a single
+          combined message listing all the selected items. */}
+      {shareOpen && (
+        <div onClick={() => setShareOpen(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(15,17,28,0.78)', zIndex: 200,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 14,
+            width: 'min(480px, 95vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column'
+          }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>➤</span>
+              <div style={{ flex: 1, fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>
+                Forward {selectedItems.size} item{selectedItems.size === 1 ? '' : 's'}
+              </div>
+              <button onClick={() => setShareOpen(false)}
+                style={{ background: 'transparent', color: 'var(--ink-3)', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>
+            </div>
+            <div style={{ padding: 14, overflowY: 'auto' }}>
+              <textarea value={shareNote} onChange={e => setShareNote(e.target.value)}
+                placeholder="Add a note (optional)…" rows={2}
+                style={{ width: '100%', background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, padding: 10, color: 'var(--ink)', fontSize: 12, fontFamily: 'inherit', resize: 'vertical' }} />
+
+              <div style={{ marginTop: 14, fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+                Choose channels ({shareTargets.length})
+              </div>
+              {shareChannels.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--ink-3)', textAlign: 'center', padding: 16 }}>Loading channels…</div>
+              ) : (
+                <div style={{ background: 'var(--glass)', border: '1px solid var(--line)', borderRadius: 8, maxHeight: 280, overflowY: 'auto' }}>
+                  {shareChannels.map(ch => {
+                    const checked = shareTargets.includes(ch._id);
+                    const icon = ch.type === 'dm' ? '👤' : ch.type === 'channel' ? '#' : '🔒';
+                    return (
+                      <div key={ch._id}
+                        onClick={() => setShareTargets(prev => checked ? prev.filter(x => x !== ch._id) : [...prev, ch._id])}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                          borderBottom: '1px solid var(--line)', cursor: 'pointer',
+                          background: checked ? 'rgba(99,102,241,0.08)' : 'transparent'
+                        }}>
+                        <input type="checkbox" checked={checked} readOnly
+                          style={{ accentColor: 'var(--indigo)', width: 14, height: 14 }} />
+                        <span style={{ fontSize: 13 }}>{icon}</span>
+                        <span style={{ fontSize: 12, color: 'var(--ink)' }}>{ch.name || ch.members?.map(m => m.name).join(', ') || 'Unnamed'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '10px 14px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-secondary" onClick={() => setShareOpen(false)}>Cancel</button>
+              <button className="btn btn-primary-sm" onClick={doShare} disabled={shareBusy || shareTargets.length === 0}>
+                {shareBusy ? 'Sending…' : `Send to ${shareTargets.length}`}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

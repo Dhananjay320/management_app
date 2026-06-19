@@ -48,3 +48,4 @@ mobile/fcm-service-account.json
 .claude/
 electron/assets/icon.iconset/
 electron/dist/
+.playwright-mcp/

@@ -15,6 +15,7 @@ export default function useAutoMarkEntry(user) {
   const markedRef = useRef(false);          // confirmed entry exists today
   const inFlightRef = useRef(false);        // an attempt is currently running
   const lastAttemptRef = useRef(0);         // ms timestamp of last attempt
+  const slowdownRef = useRef(null);         // handle for the slow interval phase
 
   useEffect(() => {
     if (!user || user._c) return;
@@ -35,7 +36,10 @@ export default function useAutoMarkEntry(user) {
       if (cancelled) return;
       if (markedRef.current) return;                       // already marked today
       if (inFlightRef.current) return;                     // request in flight
-      if (Date.now() - lastAttemptRef.current < 90 * 1000) return; // 90s debounce
+      // Shorter debounce on mount/visibility/online triggers (user-initiated),
+      // longer on the periodic interval so we don't hammer the server.
+      const debounce = (trigger === 'interval') ? 90 * 1000 : 20 * 1000;
+      if (Date.now() - lastAttemptRef.current < debounce) return;
       inFlightRef.current = true;
       lastAttemptRef.current = Date.now();
 
@@ -67,6 +71,12 @@ export default function useAutoMarkEntry(user) {
           markedRef.current = true;
           return;
         }
+        // 409 off-day / holiday → stop retrying for the rest of the day.
+        // Backend sets `offDay: true` when today is a Sunday or holiday.
+        if (err?.response?.status === 409 && err?.response?.data?.offDay) {
+          markedRef.current = true; // sentinel so we don't retry — resets on next page load (next day)
+          return;
+        }
         const detail = err?.response?.data?.error || err?.message;
         console.warn(`[Niyoq] Auto-entry failed (${trigger}):`, err?.response?.status, detail);
         window.dispatchEvent(new CustomEvent('auto-entry-failed', {
@@ -90,15 +100,28 @@ export default function useAutoMarkEntry(user) {
     const onOnline = () => attempt('online');
     window.addEventListener('online', onOnline);
 
-    // 4. Slow periodic retry — every 2 minutes — so a user who opened the app
-    //    too early (still en route to office) gets marked when they arrive.
-    const interval = setInterval(() => attempt('interval'), 2 * 60 * 1000);
+    // 4. Fast early retries (every 30s for the first 3 minutes) for GPS-warmup
+    //    cases, then slow down to every 2 minutes.
+    let tickCount = 0;
+    const interval = setInterval(() => {
+      tickCount++;
+      attempt('interval');
+    }, 30 * 1000);
+    // After 3 minutes of 30s ticks, swap to a 2-minute cadence
+    const slowdown = setTimeout(() => {
+      clearInterval(interval);
+      const slow = setInterval(() => attempt('interval'), 2 * 60 * 1000);
+      // Save handle so cleanup catches it
+      slowdownRef.current = slow;
+    }, 3 * 60 * 1000);
 
     return () => {
       cancelled = true;
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('online', onOnline);
       clearInterval(interval);
+      clearTimeout(slowdown);
+      if (slowdownRef.current) clearInterval(slowdownRef.current);
     };
   }, [user]);
 }

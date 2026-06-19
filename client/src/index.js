@@ -3,11 +3,19 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import CrashBoundary from './components/CrashBoundary';
+import { installCrashReporter } from './utils/crashReporter';
+
+// Install global error handlers BEFORE rendering — catches errors during the
+// very first paint that ErrorBoundary couldn't see.
+installCrashReporter();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <CrashBoundary>
+      <App />
+    </CrashBoundary>
   </React.StrictMode>
 );
 

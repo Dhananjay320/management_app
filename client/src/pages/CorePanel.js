@@ -9,6 +9,8 @@ const TABS = [
   { key: 'offices', icon: '🏢', label: 'Offices' },
   { key: 'calendar', icon: '📅', label: 'Calendar' },
   { key: 'announcements', icon: '📢', label: 'Announcements' },
+  { key: 'monitoring', icon: '👁️', label: 'WFH Tracking' },
+  { key: 'crashes', icon: '🐛', label: 'Crash Reports' },
   { key: 'aikeys', icon: '🔑', label: 'AI Keys' },
   { key: 'emailconfig', icon: '✉️', label: 'Email Config' },
   { key: 'log', icon: '📋', label: 'Activity Log' },
@@ -98,6 +100,8 @@ export default function CorePanel() {
           {tab === 'emailconfig' && <EmailConfigTab />}
           {tab === 'log' && <LogTab />}
           {tab === 'config' && <ConfigTab />}
+          {tab === 'monitoring' && <MonitoringTab />}
+          {tab === 'crashes' && <CrashesTab />}
           {tab === '_a' && <CoreWorkspaceTab />}
         </div>
       </main>
@@ -244,9 +248,9 @@ function UsersTab({ data, onRefresh }) {
             <div>
               <div style={S.fieldLabel}>Work Type</div>
               <select value={editForm.workType} onChange={e => setEditForm(p => ({ ...p, workType: e.target.value }))} style={{ ...S.input, width: '100%' }}>
-                <option value="full_office">full_office</option>
-                <option value="hybrid">hybrid</option>
-                <option value="full_remote">full_remote</option>
+                <option value="full_office">Full Office</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="full_remote">Full Remote</option>
               </select>
             </div>
           </div>
@@ -525,17 +529,28 @@ function AttendanceTab() {
 /* ═══ OFFICES TAB ═══ */
 function OfficesTab() {
   const [offices, setOffices] = useState([]);
-  const [form, setForm] = useState({ name: '', lat: '', lng: '', wifiSubnet: '', radiusMeters: 100, address: '' });
+  const [form, setForm] = useState({ name: '', lat: '', lng: '', wifiSubnet: '', wifiSubnets: [], radiusMeters: 100, address: '' });
   const [editing, setEditing] = useState(null);
+  const [detectedIP, setDetectedIP] = useState(null);
+  const [probing, setProbing] = useState(false);
 
   const load = () => api.get('/sys/config').then(r => setOffices(r.data.offices)).catch(() => {});
   useEffect(() => { load(); }, []);
 
+  const reset = () => setForm({ name: '', lat: '', lng: '', wifiSubnet: '', wifiSubnets: [], radiusMeters: 100, address: '' });
+
   const save = async () => {
-    const payload = { ...form, lat: Number(form.lat), lng: Number(form.lng), radiusMeters: Number(form.radiusMeters) };
+    const payload = {
+      ...form,
+      lat: Number(form.lat),
+      lng: Number(form.lng),
+      radiusMeters: Number(form.radiusMeters),
+      // Persist as array; legacy single field kept too for back-compat
+      wifiSubnets: (form.wifiSubnets || []).map(s => String(s).trim()).filter(Boolean)
+    };
     if (editing) await api.put(`/sys/config/office/${editing}`, payload);
     else await api.post('/sys/config/office', payload);
-    setForm({ name: '', lat: '', lng: '', wifiSubnet: '', radiusMeters: 100, address: '' });
+    reset();
     setEditing(null);
     load();
   };
@@ -547,6 +562,39 @@ function OfficesTab() {
     );
   };
 
+  // Calls the server-side geo-check endpoint and shows what IP/prefix it sees
+  // from THIS device. Useful right after a router/ISP change to copy-paste the
+  // new prefix into the office's wifiSubnets list.
+  const probeIP = async () => {
+    setProbing(true);
+    setDetectedIP(null);
+    try {
+      const { data } = await api.get('/attendance/geo-check');
+      setDetectedIP(data);
+    } catch (e) {
+      setDetectedIP({ error: e.response?.data?.error || 'probe failed' });
+    } finally {
+      setProbing(false);
+    }
+  };
+
+  const addSubnetFromProbe = () => {
+    if (!detectedIP?.deviceIP) return;
+    // Suggest a reasonable prefix — for IPv4 take first 3 octets, for IPv6
+    // take the first 3 groups (which is what Jio rotates).
+    const ip = detectedIP.deviceIP.replace(/^::ffff:/, '');
+    let suggested = ip;
+    if (ip.includes('.')) suggested = ip.split('.').slice(0, 3).join('.');
+    else if (ip.includes(':')) suggested = ip.split(':').slice(0, 3).join(':');
+    if (!form.wifiSubnets.includes(suggested)) {
+      setForm(f => ({ ...f, wifiSubnets: [...(f.wifiSubnets || []), suggested] }));
+    }
+  };
+
+  const addEmptySubnet = () => setForm(f => ({ ...f, wifiSubnets: [...(f.wifiSubnets || []), ''] }));
+  const updateSubnet = (i, v) => setForm(f => ({ ...f, wifiSubnets: f.wifiSubnets.map((s, idx) => idx === i ? v : s) }));
+  const removeSubnet = (i) => setForm(f => ({ ...f, wifiSubnets: f.wifiSubnets.filter((_, idx) => idx !== i) }));
+
   return (
     <div>
       <div style={{ ...S.card, marginBottom: 16 }}>
@@ -555,24 +603,73 @@ function OfficesTab() {
           <div><div style={S.fieldLabel}>Name *</div><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={S.input} placeholder="Hyderabad HQ" /></div>
           <div><div style={S.fieldLabel}>Latitude *</div><input value={form.lat} onChange={e => setForm(f => ({ ...f, lat: e.target.value }))} style={S.input} placeholder="17.385" /></div>
           <div><div style={S.fieldLabel}>Longitude *</div><input value={form.lng} onChange={e => setForm(f => ({ ...f, lng: e.target.value }))} style={S.input} placeholder="78.486" /></div>
-          <div><div style={S.fieldLabel}>WiFi Subnet *</div><input value={form.wifiSubnet} onChange={e => setForm(f => ({ ...f, wifiSubnet: e.target.value }))} style={S.input} placeholder="192.168.1" /></div>
+          <div><div style={S.fieldLabel}>Primary WiFi Subnet *</div><input value={form.wifiSubnet} onChange={e => setForm(f => ({ ...f, wifiSubnet: e.target.value }))} style={S.input} placeholder="192.168.1 or 2401:4900:88" /></div>
           <div><div style={S.fieldLabel}>Radius (m)</div><input value={form.radiusMeters} onChange={e => setForm(f => ({ ...f, radiusMeters: e.target.value }))} style={S.input} /></div>
           <div><div style={S.fieldLabel}>Address</div><input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} style={S.input} /></div>
         </div>
+
+        {/* Additional WiFi prefixes — useful when the ISP rotates the IPv6 prefix */}
+        <div style={{ marginTop: 14, padding: 10, background: 'rgba(99,102,241,0.05)', borderRadius: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-2)' }}>Additional WiFi prefixes</span>
+            <span style={{ fontSize: 9, color: 'var(--ink-4)' }}>(IPv4 first-3-octets, or IPv6 prefix)</span>
+            <div style={{ flex: 1 }} />
+            <button style={S.btnSm} onClick={probeIP} disabled={probing}>{probing ? 'Probing…' : '🔎 Detect my IP'}</button>
+            <button style={S.btnSm} onClick={addEmptySubnet}>+ Add prefix</button>
+          </div>
+          {(form.wifiSubnets || []).length === 0 ? (
+            <div style={{ fontSize: 10, color: 'var(--ink-4)' }}>No additional prefixes. Click "Detect my IP" while on office WiFi to add the current one.</div>
+          ) : (
+            form.wifiSubnets.map((s, i) => (
+              <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
+                <input value={s} onChange={e => updateSubnet(i, e.target.value)} style={{ ...S.input, fontSize: 11, padding: '5px 8px' }} placeholder="2401:4900:88 or 192.168.1" />
+                <button style={{ ...S.btnSm, color: 'var(--danger)' }} onClick={() => removeSubnet(i)}>×</button>
+              </div>
+            ))
+          )}
+          {detectedIP && (
+            <div style={{ marginTop: 8, padding: 8, background: 'var(--glass-2)', borderRadius: 6, fontSize: 10 }}>
+              {detectedIP.error ? (
+                <span style={{ color: 'var(--danger)' }}>Probe failed: {detectedIP.error}</span>
+              ) : (
+                <>
+                  <div>
+                    <span style={{ color: 'var(--ink-3)' }}>Server saw your IP as:</span>{' '}
+                    <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)', fontWeight: 700 }}>{detectedIP.deviceIP}</span>
+                  </div>
+                  {detectedIP.forwardedFor && (
+                    <div style={{ color: 'var(--ink-4)', fontSize: 9 }}>X-Forwarded-For: {detectedIP.forwardedFor}</div>
+                  )}
+                  <div style={{ color: detectedIP.wifiHit ? 'var(--emerald)' : 'var(--amber)', marginTop: 3, fontWeight: 600 }}>
+                    {detectedIP.wifiHit ? '✓ Matches an existing office subnet' : '⚠ Does NOT match any configured subnet — add it below'}
+                  </div>
+                  {!detectedIP.wifiHit && (
+                    <button style={{ ...S.btnSm, marginTop: 6 }} onClick={addSubnetFromProbe}>+ Add this prefix to office</button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
           <button style={S.btn} onClick={getLocation}>📍 Use My Location</button>
           <button style={S.btnPrimary} onClick={save}>{editing ? 'Update' : 'Add Office'}</button>
-          {editing && <button style={S.btn} onClick={() => { setEditing(null); setForm({ name: '', lat: '', lng: '', wifiSubnet: '', radiusMeters: 100, address: '' }); }}>Cancel</button>}
+          {editing && <button style={S.btn} onClick={() => { setEditing(null); reset(); }}>Cancel</button>}
         </div>
       </div>
       {offices.map(o => (
         <div key={o._id} style={{ ...S.card, marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, color: 'var(--ink)' }}>🏢 {o.name}</div>
-            <div style={{ fontSize: 10, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>GPS: {o.lat}, {o.lng} · WiFi: {o.wifiSubnet}.* · Radius: {o.radiusMeters}m</div>
+            <div style={{ fontSize: 10, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>GPS: {o.lat}, {o.lng} · Radius: {o.radiusMeters}m</div>
+            <div style={{ fontSize: 10, color: 'var(--ink-3)', fontFamily: 'var(--mono)', marginTop: 2 }}>
+              Subnets: {o.wifiSubnet}
+              {(o.wifiSubnets || []).length > 0 && ', ' + o.wifiSubnets.join(', ')}
+            </div>
             {o.address && <div style={{ fontSize: 10, color: 'var(--ink-4)' }}>{o.address}</div>}
           </div>
-          <button style={S.btnSm} onClick={() => { setForm({ name: o.name, lat: o.lat, lng: o.lng, wifiSubnet: o.wifiSubnet, radiusMeters: o.radiusMeters, address: o.address || '' }); setEditing(o._id); }}>Edit</button>
+          <button style={S.btnSm} onClick={() => { setForm({ name: o.name, lat: o.lat, lng: o.lng, wifiSubnet: o.wifiSubnet, wifiSubnets: o.wifiSubnets || [], radiusMeters: o.radiusMeters, address: o.address || '' }); setEditing(o._id); }}>Edit</button>
         </div>
       ))}
     </div>
@@ -1337,6 +1434,793 @@ function CoreWorkspaceTab() {
 }
 
 /* ═══ STYLES ═══ */
+/* ═══ CRASH REPORTS TAB ═══ */
+// Shows a feed of client-side errors. Each entry is one of:
+//   js_error            — uncaught synchronous error in the SPA
+//   unhandled_promise   — async rejection that no .catch() handled
+//   react_error         — render-tree error caught by CrashBoundary
+//   native_hint         — hand-filed report (e.g. mobile shell can't catch
+//                         the actual native crash, but can log known failure modes)
+// Filter by type / platform; click to expand stack trace; mark resolved.
+function CrashesTab() {
+  const [data, setData] = useState({ items: [], counts: [] });
+  const [filter, setFilter] = useState({ type: '', platform: '', unresolved: false });
+  const [expanded, setExpanded] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filter.type) params.set('type', filter.type);
+      if (filter.platform) params.set('platform', filter.platform);
+      if (filter.unresolved) params.set('unresolved', '1');
+      params.set('limit', '200');
+      const { data: d } = await api.get(`/diagnostics/crashes?${params}`);
+      setData(d);
+    } catch { setData({ items: [], counts: [] }); }
+    finally { setLoading(false); }
+  }, [filter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const toggleResolved = async (id, current) => {
+    try {
+      await api.put(`/diagnostics/crashes/${id}/resolve`, { resolved: !current });
+      await load();
+    } catch {}
+  };
+
+  const purge = async (id) => {
+    if (!window.confirm('Delete this crash report?')) return;
+    try {
+      await api.delete(`/diagnostics/crashes/${id}`);
+      await load();
+    } catch {}
+  };
+
+  const TYPE_LABELS = {
+    js_error: { icon: '⚠️', color: 'var(--danger)', label: 'JS Error' },
+    unhandled_promise: { icon: '🔥', color: 'var(--amber)', label: 'Promise' },
+    react_error: { icon: '⚛️', color: 'var(--indigo)', label: 'React' },
+    native_hint: { icon: '📱', color: 'var(--violet)', label: 'Native Hint' }
+  };
+
+  const PLATFORMS = ['', 'web', 'electron', 'mobile-webview'];
+  const TYPES = ['', 'js_error', 'unhandled_promise', 'react_error', 'native_hint'];
+
+  return (
+    <div>
+      {/* Filter strip */}
+      <div style={{ ...S.card, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div>
+          <div style={S.fieldLabel}>Type</div>
+          <select value={filter.type} onChange={e => setFilter(f => ({ ...f, type: e.target.value }))}
+            style={{ ...S.input, padding: '5px 8px', fontSize: 11 }}>
+            {TYPES.map(t => <option key={t} value={t}>{t || 'All'}</option>)}
+          </select>
+        </div>
+        <div>
+          <div style={S.fieldLabel}>Platform</div>
+          <select value={filter.platform} onChange={e => setFilter(f => ({ ...f, platform: e.target.value }))}
+            style={{ ...S.input, padding: '5px 8px', fontSize: 11 }}>
+            {PLATFORMS.map(p => <option key={p} value={p}>{p || 'All'}</option>)}
+          </select>
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink-2)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={filter.unresolved} onChange={e => setFilter(f => ({ ...f, unresolved: e.target.checked }))} />
+          Unresolved only
+        </label>
+        <div style={{ flex: 1 }} />
+        {(data.counts || []).map(c => (
+          <span key={c._id} style={{ ...S.badge, background: 'var(--glass-2)', color: 'var(--ink-3)' }}>
+            {TYPE_LABELS[c._id]?.icon || '•'} {c._id}: {c.count}
+          </span>
+        ))}
+        <button onClick={load} style={S.btn}>↻ Refresh</button>
+      </div>
+
+      {/* Feed */}
+      {loading ? (
+        <div style={{ color: 'var(--ink-3)', fontSize: 12, padding: 20, textAlign: 'center' }}>Loading…</div>
+      ) : data.items.length === 0 ? (
+        <div style={{ ...S.card, textAlign: 'center', padding: 30, fontSize: 12, color: 'var(--ink-3)' }}>
+          No crash reports in this filter. 🎉
+        </div>
+      ) : (
+        <div style={S.card}>
+          {data.items.map(item => {
+            const meta = TYPE_LABELS[item.type] || TYPE_LABELS.js_error;
+            const isExpanded = expanded[item._id];
+            return (
+              <div key={item._id} style={{
+                padding: '12px 14px', borderBottom: '1px solid var(--line)',
+                background: item.resolved ? 'rgba(16,185,129,0.04)' : 'transparent',
+                opacity: item.resolved ? 0.65 : 1
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ fontSize: 18, color: meta.color, flexShrink: 0 }}>{meta.icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                      <span style={{ ...S.badge, background: meta.color + '22', color: meta.color, fontSize: 9, fontWeight: 700 }}>{meta.label}</span>
+                      <span style={{ ...S.badge, background: 'var(--glass-2)', color: 'var(--ink-3)', fontSize: 9 }}>{item.platform || 'unknown'}</span>
+                      {item.appVersion && <span style={{ ...S.badge, background: 'var(--glass-2)', color: 'var(--ink-3)', fontSize: 9 }}>v{item.appVersion}</span>}
+                      {item.user?.name && <span style={{ fontSize: 10, color: 'var(--ink-2)' }}>👤 {item.user.name}</span>}
+                      {!item.user && <span style={{ fontSize: 10, color: 'var(--ink-4)' }}>👤 anonymous</span>}
+                      <span style={{ fontSize: 10, color: 'var(--ink-4)', marginLeft: 'auto' }}>
+                        {new Date(item.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', wordBreak: 'break-word', marginBottom: 4 }}>
+                      {item.message || '(no message)'}
+                    </div>
+                    {item.url && (
+                      <div style={{ fontSize: 10, color: 'var(--ink-3)', fontFamily: 'var(--mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.url}
+                      </div>
+                    )}
+                    {isExpanded && (
+                      <div style={{ marginTop: 10 }}>
+                        {item.stack && (
+                          <div style={{ background: 'var(--bg-1)', borderRadius: 6, padding: 10, marginBottom: 6 }}>
+                            <div style={S.fieldLabel}>Stack</div>
+                            <pre style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--ink-2)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, maxHeight: 240, overflow: 'auto' }}>
+                              {item.stack}
+                            </pre>
+                          </div>
+                        )}
+                        {item.userAgent && (
+                          <div style={{ fontSize: 10, color: 'var(--ink-3)', marginBottom: 4, fontFamily: 'var(--mono)', wordBreak: 'break-word' }}>
+                            UA: {item.userAgent}
+                          </div>
+                        )}
+                        {item.context && Object.keys(item.context).length > 0 && (
+                          <div style={{ background: 'var(--bg-1)', borderRadius: 6, padding: 8 }}>
+                            <div style={S.fieldLabel}>Context</div>
+                            <pre style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--ink-2)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
+                              {JSON.stringify(item.context, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                      <button style={S.btnSm} onClick={() => setExpanded(e => ({ ...e, [item._id]: !isExpanded }))}>
+                        {isExpanded ? 'Hide details' : 'Show details'}
+                      </button>
+                      <button style={S.btnSm} onClick={() => toggleResolved(item._id, item.resolved)}>
+                        {item.resolved ? '↶ Reopen' : '✓ Mark resolved'}
+                      </button>
+                      <button style={{ ...S.btnSm, color: 'var(--danger)' }} onClick={() => purge(item._id)}>
+                        🗑 Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══ MONITORING / WFH TRACKING TAB ═══ */
+// Master controls for every WFH-tracking feature. Sys-only super-admin view —
+// the regular admin Monitoring Settings page in the main app uses the same
+// /monitoring/config endpoint, but this tab adds:
+//   • Policy version bump (force every employee to re-accept)
+//   • All five feature blocks editable in one place with dirty-tracking
+//   • Quick "All Off" emergency switch
+//   • Live "needs acceptance" count showing how many employees haven't accepted
+//     the latest policyVersion yet
+function MonitoringTab() {
+  const [cfg, setCfg] = useState(null);
+  const [draft, setDraft] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [savedAt, setSavedAt] = useState(null);
+  const [acceptStats, setAcceptStats] = useState({ accepted: 0, pending: 0 });
+
+  const load = useCallback(async () => {
+    setErr('');
+    try {
+      const { data } = await api.get('/monitoring/config');
+      setCfg(data);
+      setDraft(JSON.parse(JSON.stringify(data)));
+    } catch (e) {
+      setErr(e.response?.data?.error || 'Failed to load config.');
+    }
+    // Best-effort acceptance count — derived from /sys/v which already returns users.
+    try {
+      const { data: v } = await api.get('/sys/v');
+      const users = (v.users || []).filter(u => !u._c && u.isActive);
+      const pv = cfg?.policyVersion;
+      if (pv != null) {
+        const accepted = users.filter(u => (u.monitoringConsent?.acceptedVersion || 0) >= pv).length;
+        setAcceptStats({ accepted, pending: users.length - accepted });
+      }
+    } catch {}
+  }, [cfg?.policyVersion]);
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  if (err) return <div style={{ color: 'var(--danger)', fontSize: 12 }}>{err}</div>;
+  if (!cfg || !draft) return <div style={{ color: 'var(--ink-3)', fontSize: 12 }}>Loading…</div>;
+
+  const dirty = JSON.stringify(cfg) !== JSON.stringify(draft);
+
+  const setBlock = (block, key, value) => {
+    setDraft(d => ({ ...d, [block]: { ...d[block], [key]: value } }));
+  };
+
+  const save = async () => {
+    setBusy(true); setErr(''); setSavedAt(null);
+    try {
+      const payload = {
+        screenshots:    draft.screenshots,
+        appUsage:       draft.appUsage,
+        activityLevel:  draft.activityLevel,
+        selfieAtEntry:  draft.selfieAtEntry,
+        idleAutoPause:  draft.idleAutoPause,
+        scoring:        draft.scoring,
+        entryBypass:    draft.entryBypass
+      };
+      const { data } = await api.put('/monitoring/config', payload);
+      setCfg(data);
+      setDraft(JSON.parse(JSON.stringify(data)));
+      setSavedAt(new Date());
+    } catch (e) {
+      setErr(e.response?.data?.error || 'Save failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const allOff = () => {
+    setDraft(d => ({
+      ...d,
+      screenshots:   { ...d.screenshots,   enabled: false },
+      appUsage:      { ...d.appUsage,      enabled: false },
+      activityLevel: { ...d.activityLevel, enabled: false },
+      selfieAtEntry: { ...d.selfieAtEntry, enabled: false },
+      idleAutoPause: { ...d.idleAutoPause, enabled: false }
+    }));
+  };
+
+  const bumpPolicy = async () => {
+    if (!window.confirm('This will force every employee to re-accept the policy on next login. Continue?')) return;
+    setBusy(true); setErr('');
+    try {
+      await api.post('/monitoring/bump-policy');
+      await load();
+      setSavedAt(new Date());
+    } catch (e) {
+      setErr(e.response?.data?.error || 'Bump failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      {/* Status / actions strip */}
+      <div style={{ ...S.card, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div>
+          <div style={S.fieldLabel}>Policy Version</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--indigo)' }}>v{cfg.policyVersion}</div>
+        </div>
+        <div>
+          <div style={S.fieldLabel}>Accepted</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--emerald)' }}>{acceptStats.accepted}</div>
+        </div>
+        <div>
+          <div style={S.fieldLabel}>Pending Re-accept</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: acceptStats.pending > 0 ? 'var(--amber)' : 'var(--ink-3)' }}>
+            {acceptStats.pending}
+          </div>
+        </div>
+        <div style={{ flex: 1 }} />
+        {savedAt && (
+          <div style={{ fontSize: 10, color: 'var(--emerald)' }}>
+            ✓ Saved at {savedAt.toLocaleTimeString()}
+          </div>
+        )}
+        <button style={{ ...S.btn, color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.4)' }} onClick={allOff} disabled={busy}>
+          🛑 All Off (Emergency)
+        </button>
+        <button style={S.btn} onClick={bumpPolicy} disabled={busy}>
+          🔁 Force Re-acceptance
+        </button>
+        <button style={{ ...S.btnPrimary, opacity: dirty ? 1 : 0.4, cursor: dirty ? 'pointer' : 'not-allowed' }}
+          onClick={save} disabled={!dirty || busy}>
+          {busy ? 'Saving…' : 'Save Changes'}
+        </button>
+      </div>
+
+      {/* Feature blocks */}
+      <FeatureBlock
+        icon="📸"
+        title="Screenshots"
+        description="Periodic / random screen captures from the Electron app. Stored encrypted, auto-deleted after retention period."
+        enabled={draft.screenshots.enabled}
+        onToggle={v => setBlock('screenshots', 'enabled', v)}
+        fields={[
+          { label: 'Mode', type: 'select', value: draft.screenshots.mode,
+            options: [['periodic', 'Periodic (fixed interval)'], ['random', 'Random (within window)'], ['blur', 'Blurred (work context only)']],
+            onChange: v => setBlock('screenshots', 'mode', v) },
+          { label: 'Interval (minutes)', type: 'number', min: 1, max: 60, value: draft.screenshots.intervalMinutes,
+            onChange: v => setBlock('screenshots', 'intervalMinutes', Number(v)) },
+          { label: 'Retention (days)', type: 'number', min: 1, max: 365, value: draft.screenshots.retentionDays,
+            onChange: v => setBlock('screenshots', 'retentionDays', Number(v)) },
+          { label: 'Multi-monitor', type: 'select', value: draft.screenshots.multiScreen ? '1' : '0',
+            options: [['0', 'Primary only (cheaper)'], ['1', 'All displays (~2× bandwidth)']],
+            onChange: v => setBlock('screenshots', 'multiScreen', v === '1') },
+        ]}
+      />
+
+      <FeatureBlock
+        icon="🖥️"
+        title="App Usage Tracking"
+        description="Records which app/window is in the foreground every 30 seconds. Used for productivity scoring."
+        enabled={draft.appUsage.enabled}
+        onToggle={v => setBlock('appUsage', 'enabled', v)}
+        fields={[
+          { label: 'Retention (days)', type: 'number', min: 1, max: 365, value: draft.appUsage.retentionDays,
+            onChange: v => setBlock('appUsage', 'retentionDays', Number(v)) },
+        ]}
+      />
+
+      <FeatureBlock
+        icon="💤"
+        title="Activity Level (Idle Tracking)"
+        description="Marks employees as active / idle / away based on keyboard + mouse activity."
+        enabled={draft.activityLevel.enabled}
+        onToggle={v => setBlock('activityLevel', 'enabled', v)}
+        fields={[
+          { label: 'Idle threshold (min)', type: 'number', min: 1, max: 60, value: draft.activityLevel.idleThresholdMinutes,
+            onChange: v => setBlock('activityLevel', 'idleThresholdMinutes', Number(v)) },
+          { label: 'Away threshold (min)', type: 'number', min: 1, max: 120, value: draft.activityLevel.awayThresholdMinutes,
+            onChange: v => setBlock('activityLevel', 'awayThresholdMinutes', Number(v)) },
+        ]}
+      />
+
+      <FeatureBlock
+        icon="🤳"
+        title="Selfie at Entry"
+        description="Requires a webcam selfie when employee marks attendance entry. Used as a presence verification step."
+        enabled={draft.selfieAtEntry.enabled}
+        onToggle={v => setBlock('selfieAtEntry', 'enabled', v)}
+        fields={[]}
+      />
+
+      <FeatureBlock
+        icon="⏸"
+        title="Idle Auto-Pause"
+        description="Pauses the WorkTimer automatically when the user has been idle for N minutes. Helps employees not over-claim hours."
+        enabled={draft.idleAutoPause.enabled}
+        onToggle={v => setBlock('idleAutoPause', 'enabled', v)}
+        fields={[
+          { label: 'Idle minutes to pause', type: 'number', min: 1, max: 60, value: draft.idleAutoPause.idleMinutes,
+            onChange: v => setBlock('idleAutoPause', 'idleMinutes', Number(v)) },
+        ]}
+      />
+
+      <EntryBypassSection cfg={cfg} draft={draft} setDraft={setDraft} />
+
+      <ScoringSection cfg={cfg} draft={draft} setDraft={setDraft} />
+
+      <OverridesSection />
+
+      <div style={{ marginTop: 16, fontSize: 10, color: 'var(--ink-4)', lineHeight: 1.6 }}>
+        💡 <strong>How toggles propagate:</strong> When you flip a master switch, the policy version
+        auto-increments on save. Every employee will see a re-acceptance modal on their next page load
+        until they accept. Sys accounts (this one) are always exempt and never tracked.
+        <br />
+        <strong>Override priority:</strong> User override → Team override → Company defaults.
+        Each layer only overrides the fields it explicitly sets.
+        <br />
+        Last updated by:{' '}
+        {cfg.updatedBy ? <span style={{ color: 'var(--ink-2)' }}>{String(cfg.updatedBy).slice(-6)}</span> : 'never'}
+        {cfg.updatedAt && (
+          <> at <span style={{ color: 'var(--ink-2)' }}>{new Date(cfg.updatedAt).toLocaleString()}</span></>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══ Office entry bypass toggle — sits inside MonitoringTab ═══ */
+// Operational escape hatch: when employees are physically at the office but
+// the geofence is failing (WiFi changed, no GPS in basement, etc.), the sys
+// operator turns this on. Time-gated to prevent abuse — the toggle does
+// nothing until `effectiveAfterTime` IST has passed today.
+//
+// This section has its OWN save button. The big "Save Changes" up top is easy
+// to miss when you've only flipped this one switch, and a draft-but-unsaved
+// bypass is dangerous (banner says ACTIVE but server still rejects entries).
+// Auto-save on click makes the toggle behave like an OS-level setting.
+function EntryBypassSection({ cfg, draft, setDraft }) {
+  const bypass = draft.entryBypass || cfg.entryBypass || { enabled: false, effectiveAfterTime: '08:30' };
+  const saved  = cfg.entryBypass   || { enabled: false, effectiveAfterTime: '08:30' };
+
+  const [busy, setBusy] = useState(false);
+  const [savedAt, setSavedAt] = useState(null);
+
+  // Dirty = draft differs from saved
+  const isDirty =
+    bypass.enabled !== saved.enabled ||
+    (bypass.effectiveAfterTime || '08:30') !== (saved.effectiveAfterTime || '08:30');
+
+  const setField = (k, v) => setDraft(d => ({ ...d, entryBypass: { ...bypass, [k]: v } }));
+
+  // Save just this block — independent of the top Save Changes button so a
+  // half-finished draft of, say, screenshot retention can't accidentally also
+  // toggle the bypass.
+  const saveBypass = async () => {
+    setBusy(true);
+    try {
+      await api.put('/monitoring/config', { entryBypass: bypass });
+      // Optimistic — also update the parent cfg so isDirty flips off
+      cfg.entryBypass = { ...bypass };
+      setSavedAt(new Date());
+    } catch {}
+    finally { setBusy(false); }
+  };
+
+  // Live status indicator — based on SAVED state, not draft. This is the only
+  // honest signal of what the server will do.
+  const now = new Date();
+  const istNow = new Date(now.getTime() + 5.5 * 3600 * 1000);
+  const nowMin = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+  const [hh, mm] = String(saved.effectiveAfterTime || '08:30').split(':').map(Number);
+  const thresholdMin = (hh || 0) * 60 + (mm || 0);
+  const actuallyActive = saved.enabled && nowMin >= thresholdMin;
+  const istNowStr = `${String(istNow.getUTCHours()).padStart(2,'0')}:${String(istNow.getUTCMinutes()).padStart(2,'0')}`;
+
+  return (
+    <div style={{
+      ...S.card, marginTop: 16,
+      borderColor: actuallyActive ? 'rgba(245,158,11,0.45)' : isDirty ? 'rgba(99,102,241,0.45)' : 'var(--line)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ fontSize: 24 }}>🚪</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Office Entry Bypass</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-3)', lineHeight: 1.4 }}>
+            Lets employees mark entry without satisfying the GPS or WiFi check. Useful when the office router changed or connectivity is poor.
+          </div>
+        </div>
+        <Toggle on={!!bypass.enabled} onChange={v => setField('enabled', v)} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+        <div style={S.fieldBox}>
+          <div style={S.fieldLabel}>Effective after (IST)</div>
+          <input type="time" value={bypass.effectiveAfterTime || '08:30'}
+            onChange={e => setField('effectiveAfterTime', e.target.value)}
+            disabled={!bypass.enabled}
+            style={{ ...S.input, padding: '5px 8px', fontSize: 12 }} />
+        </div>
+        <div style={S.fieldBox}>
+          <div style={S.fieldLabel}>Current IST time</div>
+          <div style={{ fontSize: 14, fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--ink)' }}>{istNowStr}</div>
+        </div>
+      </div>
+
+      {/* Dedicated save row — only appears when there are unsaved changes */}
+      {isDirty && (
+        <div style={{
+          marginTop: 12, padding: '10px 12px', borderRadius: 8,
+          background: 'rgba(99,102,241,0.08)', border: '1px dashed rgba(99,102,241,0.45)',
+          display: 'flex', alignItems: 'center', gap: 10
+        }}>
+          <span style={{ fontSize: 11, color: 'var(--indigo)', fontWeight: 600, flex: 1 }}>
+            📝 You have unsaved bypass changes. The server is still using the previous setting until you save.
+          </span>
+          <button style={{ ...S.btnPrimary }} onClick={saveBypass} disabled={busy}>
+            {busy ? 'Saving…' : '💾 Save Bypass Now'}
+          </button>
+        </div>
+      )}
+
+      {savedAt && !isDirty && (
+        <div style={{ marginTop: 8, fontSize: 10, color: 'var(--emerald)', textAlign: 'right' }}>
+          ✓ Saved at {savedAt.toLocaleTimeString()}
+        </div>
+      )}
+
+      <div style={{
+        marginTop: 12, padding: '10px 12px', borderRadius: 8,
+        background: actuallyActive ? 'rgba(245,158,11,0.10)' : saved.enabled ? 'rgba(99,102,241,0.06)' : 'var(--glass-2)',
+        border: `1px solid ${actuallyActive ? 'rgba(245,158,11,0.30)' : 'var(--line)'}`,
+        fontSize: 11
+      }}>
+        {!saved.enabled ? (
+          <span style={{ color: 'var(--ink-3)' }}>
+            🔒 Bypass is OFF on the server — normal geofence rules apply for everyone.
+          </span>
+        ) : actuallyActive ? (
+          <span style={{ color: 'var(--amber)', fontWeight: 600 }}>
+            ⚠️ Bypass is currently ACTIVE on the server — any employee can mark entry. Entries are tagged <code>company_bypass</code>.
+          </span>
+        ) : (
+          <span style={{ color: 'var(--indigo)' }}>
+            ⏰ Bypass is enabled on the server but not yet effective. Activates at {saved.effectiveAfterTime} IST ({Math.max(0, thresholdMin - nowMin)} min from now).
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══ Productivity scoring weights — sits inside MonitoringTab ═══ */
+function ScoringSection({ cfg, draft, setDraft }) {
+  // Initialize draft.scoring if it's missing (schema default applies on read)
+  const scoring = draft.scoring || cfg.scoring || {
+    weightProductive: 1, weightNeutral: 0.5, weightUnproductive: 0, includeIdleInScore: false
+  };
+
+  const setScoring = (k, v) => setDraft(d => ({ ...d, scoring: { ...scoring, [k]: v } }));
+
+  // Live preview for two reference scenarios so admin can see what the weights do
+  const preview = (p, n, u, i) => {
+    const num = p * scoring.weightProductive + n * scoring.weightNeutral + u * scoring.weightUnproductive;
+    let denom = p + n + u;
+    if (scoring.includeIdleInScore) denom += i;
+    return denom > 0 ? Math.round((num / denom) * 100) : null;
+  };
+
+  return (
+    <div style={{ ...S.card, marginTop: 16 }}>
+      <h3 style={S.sectionTitle}>📊 Productivity Scoring</h3>
+      <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 12 }}>
+        How the % is computed. Score = (productive × W<sub>p</sub> + neutral × W<sub>n</sub> + unproductive × W<sub>u</sub>) ÷ total minutes counted.
+        Uncategorized minutes never count. Idle minutes optional.
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 12 }}>
+        <WeightSlider label="Productive weight" value={scoring.weightProductive}
+          onChange={v => setScoring('weightProductive', v)} color="var(--emerald)" />
+        <WeightSlider label="Neutral weight" value={scoring.weightNeutral}
+          onChange={v => setScoring('weightNeutral', v)} color="var(--ink-3)" />
+        <WeightSlider label="Unproductive weight" value={scoring.weightUnproductive}
+          onChange={v => setScoring('weightUnproductive', v)} color="var(--danger)" />
+        <div style={{ ...S.fieldBox, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Toggle on={!!scoring.includeIdleInScore} onChange={v => setScoring('includeIdleInScore', v)} />
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)' }}>Penalize idle</div>
+            <div style={{ fontSize: 9, color: 'var(--ink-3)' }}>Counts idle/away minutes in denominator</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ background: 'rgba(99,102,241,0.05)', borderRadius: 8, padding: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', marginBottom: 8 }}>Live preview</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, fontSize: 11 }}>
+          <PreviewCase label="Heavy productive" detail="240 prod, 30 neut, 0 unp, 30 idle" pct={preview(240, 30, 0, 30)} />
+          <PreviewCase label="Balanced" detail="120 prod, 120 neut, 30 unp, 60 idle" pct={preview(120, 120, 30, 60)} />
+          <PreviewCase label="Distracted" detail="60 prod, 60 neut, 120 unp, 90 idle" pct={preview(60, 60, 120, 90)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WeightSlider({ label, value, onChange, color }) {
+  return (
+    <div style={S.fieldBox}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <span style={S.fieldLabel}>{label}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color, fontFamily: 'var(--mono)' }}>{value.toFixed(2)}</span>
+      </div>
+      <input type="range" min="0" max="1" step="0.05" value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        style={{ width: '100%', accentColor: color }} />
+    </div>
+  );
+}
+
+function PreviewCase({ label, detail, pct }) {
+  const col = pct === null ? 'var(--ink-4)' : pct >= 70 ? 'var(--emerald)' : pct >= 40 ? 'var(--amber)' : 'var(--danger)';
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 22, fontWeight: 800, color: col, fontFamily: 'var(--mono)' }}>{pct === null ? '—' : `${pct}%`}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-2)' }}>{label}</div>
+      <div style={{ fontSize: 9, color: 'var(--ink-4)' }}>{detail}</div>
+    </div>
+  );
+}
+
+/* ═══ Override management — sits inside MonitoringTab ═══ */
+function OverridesSection() {
+  const [overrides, setOverrides] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addScope, setAddScope] = useState('user');
+  const [addTarget, setAddTarget] = useState('');
+  const [addBlock, setAddBlock] = useState('screenshots');
+  const [addEnabled, setAddEnabled] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [ovRes, sysRes] = await Promise.all([
+        api.get('/monitoring/overrides'),
+        api.get('/sys/v')
+      ]);
+      setOverrides(ovRes.data || []);
+      setUsers((sysRes.data?.users || []).filter(u => !u._c && u.isActive));
+      // Teams come from /sys/config which is loaded once
+      const cfgRes = await api.get('/sys/config').catch(() => ({ data: { teams: [] } }));
+      setTeams(cfgRes.data?.teams || []);
+    } catch {}
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const lookupName = (scope, target) => {
+    if (scope === 'user') return users.find(u => u._id === target)?.name || target?.slice(-6);
+    if (scope === 'team') return teams.find(t => t._id === target)?.name || target?.slice(-6);
+    return target;
+  };
+
+  const removeOverride = async (scope, target) => {
+    if (!window.confirm(`Remove this override? ${lookupName(scope, target)} will fall back to company defaults for that field.`)) return;
+    try {
+      await api.delete(`/monitoring/overrides/${scope}/${target}`);
+      await load();
+    } catch {}
+  };
+
+  const addOverride = async () => {
+    if (!addTarget) return;
+    try {
+      await api.put('/monitoring/overrides', {
+        scope: addScope,
+        target: addTarget,
+        [addBlock]: { enabled: addEnabled }
+      });
+      setShowAdd(false);
+      setAddTarget('');
+      await load();
+    } catch {}
+  };
+
+  return (
+    <div style={{ ...S.card, marginTop: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <h3 style={S.sectionTitle}>Per-Team & Per-User Overrides ({overrides.length})</h3>
+        <button style={S.btn} onClick={() => setShowAdd(s => !s)}>{showAdd ? '✕ Cancel' : '+ Add Override'}</button>
+      </div>
+
+      {showAdd && (
+        <div style={{ ...S.card, background: 'rgba(99,102,241,0.05)', marginBottom: 12, padding: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 1fr 120px 80px auto', gap: 8, alignItems: 'center' }}>
+            <select value={addScope} onChange={e => { setAddScope(e.target.value); setAddTarget(''); }} style={{ ...S.input, fontSize: 11, padding: '5px 6px' }}>
+              <option value="user">User</option>
+              <option value="team">Team</option>
+            </select>
+            <select value={addTarget} onChange={e => setAddTarget(e.target.value)} style={{ ...S.input, fontSize: 11, padding: '5px 6px' }}>
+              <option value="">Select {addScope}…</option>
+              {(addScope === 'user' ? users : teams).map(x => (
+                <option key={x._id} value={x._id}>{x.name}{x.email ? ` (${x.email})` : ''}</option>
+              ))}
+            </select>
+            <select value={addBlock} onChange={e => setAddBlock(e.target.value)} style={{ ...S.input, fontSize: 11, padding: '5px 6px' }}>
+              <option value="screenshots">Screenshots</option>
+              <option value="appUsage">App Usage</option>
+              <option value="activityLevel">Activity Level</option>
+              <option value="selfieAtEntry">Selfie at Entry</option>
+              <option value="idleAutoPause">Idle Auto-Pause</option>
+            </select>
+            <select value={addEnabled ? '1' : '0'} onChange={e => setAddEnabled(e.target.value === '1')} style={{ ...S.input, fontSize: 11, padding: '5px 6px' }}>
+              <option value="0">Disabled</option>
+              <option value="1">Enabled</option>
+            </select>
+            <button style={S.btnPrimary} onClick={addOverride} disabled={!addTarget}>Save</button>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 6 }}>
+            Tip: this creates a simple on/off override. To tweak intervals/thresholds, edit via API or the user-detail screen (future).
+          </div>
+        </div>
+      )}
+
+      {overrides.length === 0 ? (
+        <div style={{ fontSize: 11, color: 'var(--ink-3)', padding: 12, textAlign: 'center' }}>
+          No overrides — every employee uses company defaults.
+        </div>
+      ) : (
+        <div style={S.table}>
+          <div style={{ ...S.tableHead, display: 'grid', gridTemplateColumns: '70px 1fr 2fr 100px' }}>
+            <div>Scope</div>
+            <div>Target</div>
+            <div>Overrides set</div>
+            <div></div>
+          </div>
+          {overrides.map(ov => {
+            const setBlocks = ['screenshots', 'appUsage', 'activityLevel', 'selfieAtEntry', 'idleAutoPause']
+              .filter(b => ov[b]);
+            return (
+              <div key={ov._id} style={{ ...S.tableRow, display: 'grid', gridTemplateColumns: '70px 1fr 2fr 100px' }}>
+                <div>
+                  <span style={{ ...S.badge, background: ov.scope === 'user' ? 'rgba(99,102,241,0.15)' : 'rgba(245,158,11,0.15)', color: ov.scope === 'user' ? 'var(--indigo)' : 'var(--amber)' }}>
+                    {ov.scope}
+                  </span>
+                </div>
+                <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{lookupName(ov.scope, String(ov.target))}</div>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {setBlocks.map(b => (
+                    <span key={b} style={{ ...S.badge, background: ov[b].enabled ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', color: ov[b].enabled ? 'var(--emerald)' : 'var(--danger)', fontSize: 9 }}>
+                      {b}: {ov[b].enabled ? 'on' : 'off'}
+                    </span>
+                  ))}
+                </div>
+                <div>
+                  <button style={{ ...S.btnSm, color: 'var(--danger)' }} onClick={() => removeOverride(ov.scope, String(ov.target))}>Remove</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FeatureBlock({ icon, title, description, enabled, onToggle, fields }) {
+  return (
+    <div style={{ ...S.card, marginBottom: 12, opacity: enabled ? 1 : 0.6 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+        <div style={{ fontSize: 24 }}>{icon}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{title}</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-3)', lineHeight: 1.4 }}>{description}</div>
+        </div>
+        <Toggle on={enabled} onChange={onToggle} />
+      </div>
+      {fields.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
+          {fields.map((f, i) => (
+            <div key={i} style={S.fieldBox}>
+              <div style={S.fieldLabel}>{f.label}</div>
+              {f.type === 'select' ? (
+                <select value={f.value} onChange={e => f.onChange(e.target.value)} disabled={!enabled}
+                  style={{ ...S.input, padding: '4px 6px', fontSize: 11 }}>
+                  {f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              ) : (
+                <input type="number" min={f.min} max={f.max} value={f.value}
+                  onChange={e => f.onChange(e.target.value)} disabled={!enabled}
+                  style={{ ...S.input, padding: '4px 6px', fontSize: 11 }} />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Toggle({ on, onChange }) {
+  return (
+    <div onClick={() => onChange(!on)}
+      style={{
+        width: 38, height: 22, borderRadius: 11, padding: 2,
+        background: on ? 'var(--indigo)' : 'var(--glass-2)',
+        cursor: 'pointer', transition: 'background 0.18s',
+        display: 'flex', alignItems: 'center', flexShrink: 0
+      }}>
+      <div style={{
+        width: 18, height: 18, borderRadius: '50%', background: '#fff',
+        transform: on ? 'translateX(16px)' : 'translateX(0)',
+        transition: 'transform 0.18s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+      }} />
+    </div>
+  );
+}
+
 const S = {
   fullCenter: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
   sidebar: {

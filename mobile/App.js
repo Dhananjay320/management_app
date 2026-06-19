@@ -18,11 +18,40 @@ import { registerRootComponent } from 'expo';
 const APP_URL = 'https://airanva.com';
 const EAS_PROJECT_ID = '08eaff49-210a-49f2-a42b-129a7f485d85';
 
+// Best-effort native-side hint logger. Fire-and-forget HTTP POST to the
+// diagnostics endpoint when something in the native shell fails BEFORE the
+// WebView has a chance to install its own crash reporter. Won't survive a hard
+// native crash (the process is gone) but captures soft failures: permission
+// denials, WebView load errors, push registration failures.
+function logNativeHint(message, extra = {}) {
+  try {
+    fetch(`${APP_URL}/api/v1/diagnostics/crash`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'native_hint',
+        message: String(message || '').slice(0, 400),
+        platform: 'mobile-webview',
+        appVersion: '1.0.0', // bump when releasing new APK
+        context: extra
+      }),
+    }).catch(() => {});
+  } catch (_) {}
+}
+
 // Lazy-require so a module load failure can't break the JS bundle
 let Notifications = null;
 let Device = null;
-try { Notifications = require('expo-notifications'); } catch (e) { console.warn('expo-notifications load failed:', e?.message); }
-try { Device = require('expo-device'); } catch (e) { console.warn('expo-device load failed:', e?.message); }
+try { Notifications = require('expo-notifications'); }
+catch (e) {
+  console.warn('expo-notifications load failed:', e?.message);
+  logNativeHint('expo-notifications load failed', { error: e?.message });
+}
+try { Device = require('expo-device'); }
+catch (e) {
+  console.warn('expo-device load failed:', e?.message);
+  logNativeHint('expo-device load failed', { error: e?.message });
+}
 
 try {
   if (Notifications?.setNotificationHandler) {
@@ -130,6 +159,30 @@ function App() {
           // Re-inject on every URL change inside the SPA so the post-login
           // AppLayout always has the token
           onNavigationStateChange={() => { if (pushToken) injectToken(pushToken); }}
+          onError={(e) => {
+            const { nativeEvent } = e || {};
+            logNativeHint('WebView onError', {
+              description: nativeEvent?.description,
+              code: nativeEvent?.code,
+              url: nativeEvent?.url
+            });
+          }}
+          onHttpError={(e) => {
+            const { nativeEvent } = e || {};
+            logNativeHint('WebView HTTP error', {
+              statusCode: nativeEvent?.statusCode,
+              url: nativeEvent?.url
+            });
+          }}
+          onRenderProcessGone={(e) => {
+            const { nativeEvent } = e || {};
+            logNativeHint('WebView render process gone', {
+              didCrash: nativeEvent?.didCrash
+            });
+            // Reload the WebView once after a render-process death so the user
+            // isn't stuck on a blank screen.
+            try { webViewRef.current?.reload(); } catch (_) {}
+          }}
           renderLoading={() => (
             <View style={styles.loading}>
               <View style={styles.dot} />

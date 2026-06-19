@@ -18,6 +18,11 @@ const io = new Server(server, {
 // Make io accessible to routes
 app.set('io', io);
 
+// We sit behind nginx — trust X-Forwarded-For so req.ip is the real client IP.
+// Critical for the office WiFi geofence check, which compares the client's IP
+// (or IPv6 prefix) to the office router's known subnet.
+app.set('trust proxy', true);
+
 // Middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -98,6 +103,7 @@ app.use('/api/v1/reports', require('./routes/reports'));
 app.use('/api/v1/pending-actions', require('./routes/pendingActions'));
 app.use('/api/v1/monitoring', require('./routes/monitoring'));
 app.use('/api/v1/usage', require('./routes/usage'));
+app.use('/api/v1/diagnostics', require('./routes/diagnostics'));
 
 app.use('/api/v1/sys', require('./routes/core'));
 

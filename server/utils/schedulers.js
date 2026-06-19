@@ -3,6 +3,10 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { isOffDay, getCompanyDefaultOffDays } = require('./workCalendar');
 const CalendarEvent = require('../models/CalendarEvent');
+const AppUsageSample = require('../models/AppUsageSample');
+const AppCategory = require('../models/AppCategory');
+const TeamAppOverride = require('../models/TeamAppOverride');
+const CompanyMonitoring = require('../models/CompanyMonitoring');
 
 function todayStr() {
   return new Date().toISOString().split('T')[0];
@@ -528,6 +532,117 @@ function startAutoWrapUpScheduler(io) {
   }, msToNextMinute);
 }
 
+// ─── Productivity Digest Scheduler ───
+// Runs every minute. At 19:00 local time (configurable) it sends each active
+// employee a notification summarising their day:
+//   - Hours worked (entry → wrap-up or now)
+//   - Top 3 productive apps (minutes each)
+//   - Productivity % (productive / (total - uncategorized))
+// Skipped if app-usage tracking is disabled company-wide, or if today is a
+// holiday/off-day, or if the user has no data.
+function startProductivityDigestScheduler(io) {
+  const targetHour = 19; // 7 PM local
+  const targetMinute = 0;
+
+  const tick = async () => {
+    try {
+      const now = new Date();
+      if (now.getHours() !== targetHour || now.getMinutes() !== targetMinute) return;
+      if (await isCompanyHolidayOrOff(now)) return;
+
+      const cfg = await CompanyMonitoring.findOne();
+      if (!cfg?.appUsage?.enabled) return;
+
+      const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
+
+      // Build app category map (global)
+      const globals = await AppCategory.find().select('app category').lean();
+      const globalMap = Object.fromEntries(globals.map(c => [c.app, c.category]));
+
+      const users = await User.find({ isActive: true, _c: { $ne: true } }).select('_id name teams').lean();
+      for (const u of users) {
+        try {
+          // Apply team overrides for this user
+          let appMap = { ...globalMap };
+          if (u.teams && u.teams.length) {
+            const ovs = await TeamAppOverride.find({ team: { $in: u.teams } }).select('app category').lean();
+            for (const o of ovs) appMap[o.app] = o.category;
+          }
+
+          const rows = await AppUsageSample.aggregate([
+            { $match: { user: u._id, ts: { $gte: startOfDay, $lte: now } } },
+            { $group: { _id: { $toLower: '$app' }, count: { $sum: 1 } } }
+          ]);
+          if (rows.length === 0) continue; // No data — skip notification entirely
+
+          const windowSeconds = 30;
+          const buckets = { productive: 0, neutral: 0, unproductive: 0, uncategorized: 0 };
+          const apps = [];
+          for (const r of rows) {
+            const cat = appMap[r._id] || 'uncategorized';
+            const minutes = r.count * windowSeconds / 60;
+            buckets[cat] += minutes;
+            apps.push({ app: r._id, minutes, cat });
+          }
+          const total = Object.values(buckets).reduce((a, b) => a + b, 0);
+          const denom = total - buckets.uncategorized;
+          const pct = denom > 0 ? Math.round((buckets.productive / denom) * 100) : null;
+
+          const productiveApps = apps
+            .filter(a => a.cat === 'productive')
+            .sort((a, b) => b.minutes - a.minutes)
+            .slice(0, 3)
+            .map(a => `${a.app} (${Math.round(a.minutes)}m)`);
+
+          // Hours worked from Attendance
+          const att = await Attendance.findOne({ user: u._id, date: todayStr() }).lean();
+          let hoursMsg = '';
+          if (att?.entryTime) {
+            const end = att.wrapUpTime ? new Date(att.wrapUpTime) : now;
+            const breakMs = (att.breaks || []).reduce((s, b) => {
+              const bs = new Date(b.startedAt).getTime();
+              const be = b.endedAt ? new Date(b.endedAt).getTime() : end.getTime();
+              return s + Math.max(0, be - bs);
+            }, 0);
+            const hours = (end.getTime() - new Date(att.entryTime).getTime() - breakMs) / 3_600_000;
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            hoursMsg = `${h}h ${m}m worked. `;
+          }
+
+          const pctMsg = pct !== null ? `Productivity ${pct}%. ` : '';
+          const appsMsg = productiveApps.length > 0
+            ? `Top apps: ${productiveApps.join(', ')}.`
+            : 'No productive app time logged.';
+
+          const notif = await Notification.create({
+            user: u._id,
+            type: 'productivity',
+            title: 'Your day in review',
+            message: `${hoursMsg}${pctMsg}${appsMsg}`,
+            priority: 'low',
+            link: '/profile?tab=activity'
+          });
+          io?.to(`user:${u._id}`).emit('notification:new', notif);
+        } catch (e) {
+          // Single user failure shouldn't kill the whole batch
+          console.warn(`[ProductivityDigest] user ${u._id} failed:`, e.message);
+        }
+      }
+    } catch (err) {
+      console.warn('[ProductivityDigest] tick failed:', err.message);
+    }
+  };
+
+  // Run on the minute, sync to system clock
+  const now = new Date();
+  const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+  setTimeout(() => {
+    tick();
+    setInterval(tick, 60000);
+  }, msToNextMinute);
+}
+
 function startSchedulers(io) {
   startNoEntryAlertScheduler(io);
   startWrapUpReminderScheduler(io);
@@ -538,7 +653,8 @@ function startSchedulers(io) {
   startNotificationCleanupScheduler();
   startDeepSearchCleanupScheduler();
   startMonthlySalaryScheduler();
-  console.log('All schedulers started (attendance, wrap-up, auto-wrap-up, meeting, task reminders, overdue tasks, retention cleanup, monthly salary)');
+  startProductivityDigestScheduler(io);
+  console.log('All schedulers started (attendance, wrap-up, auto-wrap-up, meeting, task reminders, overdue tasks, retention cleanup, monthly salary, productivity digest)');
 }
 
 module.exports = { startSchedulers };

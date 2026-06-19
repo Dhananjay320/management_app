@@ -17,6 +17,34 @@ const { protect } = require('../middleware/auth');
 
 function isAdmin(user) { return user.role === 'main_admin' || user.role === 'admin' || user._c === true; }
 
+// Default scoring config — used when no CompanyMonitoring doc exists or its
+// `scoring` block is missing. Matches the schema defaults so behaviour is
+// stable on first run.
+const DEFAULT_SCORING = {
+  weightProductive:   1.0,
+  weightNeutral:      0.5,
+  weightUnproductive: 0.0,
+  includeIdleInScore: false
+};
+
+// Compute the weighted productivity percentage from per-bucket minutes and the
+// active scoring config. Returns null when there's nothing to score (so the UI
+// can render a dash instead of a misleading 0%).
+function computeProductivityPct(buckets, idleMinutes, scoring) {
+  const s = { ...DEFAULT_SCORING, ...(scoring || {}) };
+  const p = buckets.productive    || 0;
+  const n = buckets.neutral       || 0;
+  const u = buckets.unproductive  || 0;
+  // Numerator: weighted productive minutes (sum of weight × minutes per bucket).
+  const numerator = (p * s.weightProductive) + (n * s.weightNeutral) + (u * s.weightUnproductive);
+  // Denominator: total counted minutes. Uncategorized is always excluded so
+  // unlabelled apps don't drag the score. Idle minutes are optional.
+  let denom = p + n + u;
+  if (s.includeIdleInScore && idleMinutes > 0) denom += idleMinutes;
+  if (denom <= 0) return null;
+  return Math.round((numerator / denom) * 100);
+}
+
 // Build an app→category map for a user. Global AppCategory rows are the base,
 // then any TeamAppOverride rows for the user's teams overwrite (last team wins
 // — admin should resolve conflicts by removing one).
@@ -111,6 +139,7 @@ router.post('/screenshot', protect, upload.single('image'), async (req, res) => 
       imageUrl: '/uploads/sc/' + filename,
       blurred: blurMode,
       source: 'auto',
+      displayName: (req.body.displayName || '').toString().slice(0, 60),
       _c: false,
       expiresAt
     });
@@ -137,7 +166,30 @@ router.get('/screenshots', protect, async (req, res) => {
     const items = await Screenshot.find(query)
       .sort({ capturedAt: -1 })
       .limit(Math.min(500, Number(limit)))
-      .select('capturedAt imageUrl blurred source');
+      .select('capturedAt imageUrl blurred source displayName');
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// GET /api/v1/usage/admin/screenshots/:userId — admin drilldown into one user's
+// screenshots for a date range. Excludes _c rows. Returns the same shape as
+// /screenshots so the client can reuse the renderer.
+router.get('/admin/screenshots/:userId', protect, async (req, res) => {
+  try {
+    if (!isAdmin(req.user)) return res.status(403).json({ error: 'Admin only.' });
+    const { from, to, limit = 200 } = req.query;
+    const query = { user: req.params.userId, _c: { $ne: true } };
+    if (from || to) {
+      query.capturedAt = {};
+      if (from) query.capturedAt.$gte = new Date(from);
+      if (to)   query.capturedAt.$lte = new Date(to);
+    }
+    const items = await Screenshot.find(query)
+      .sort({ capturedAt: -1 })
+      .limit(Math.min(500, Number(limit)))
+      .select('capturedAt imageUrl blurred source displayName');
     res.json(items);
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
@@ -307,15 +359,26 @@ router.get('/productivity', protect, async (req, res) => {
     apps.sort((a, b) => b.minutes - a.minutes);
 
     const totalMinutes = Object.values(buckets).reduce((a, b) => a + b, 0);
-    const denom = totalMinutes - buckets.uncategorized; // exclude uncategorized from %
-    const productivityPct = denom > 0 ? Math.round((buckets.productive / denom) * 100) : null;
+
+    // Idle minutes optionally counted toward denominator (per scoring config).
+    const idleSamples = await ActivitySample.countDocuments({
+      user: req.user._id,
+      ts: { $gte: new Date(fromISO), $lte: new Date(toISO) },
+      state: { $in: ['idle', 'away'] }
+    });
+    const idleMinutes = idleSamples * windowSeconds / 60;
+
+    const cfg = await CompanyMonitoring.findOne().select('scoring').lean();
+    const productivityPct = computeProductivityPct(buckets, idleMinutes, cfg?.scoring);
 
     res.json({
       from: fromISO, to: toISO, windowSeconds,
       productivityPct,
       totalMinutes: Math.round(totalMinutes),
+      idleMinutes: Math.round(idleMinutes),
       buckets: Object.fromEntries(Object.entries(buckets).map(([k, v]) => [k, Math.round(v)])),
-      apps: apps.slice(0, 20)
+      apps: apps.slice(0, 20),
+      scoring: cfg?.scoring || DEFAULT_SCORING
     });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
@@ -405,6 +468,9 @@ router.get('/team-productivity', protect, async (req, res) => {
       (overridesByTeam[t] = overridesByTeam[t] || {})[o.app] = o.category;
     }
 
+    // Load company scoring config once for the whole batch.
+    const teamCfg = await CompanyMonitoring.findOne().select('scoring').lean();
+
     const users = await User.find({ isActive: true, _c: { $ne: true }, role: { $ne: 'main_admin' } })
       .select('_id name email jobTitle avatar workType teams');
 
@@ -435,12 +501,13 @@ router.get('/team-productivity', protect, async (req, res) => {
         buckets[cat] += r.count * windowSeconds / 60;
       }
       const totalMinutes = Object.values(buckets).reduce((a, b) => a + b, 0);
-      const denom = totalMinutes - buckets.uncategorized;
-      const productivityPct = denom > 0 ? Math.round((buckets.productive / denom) * 100) : null;
 
       const actMap = { active: 0, idle: 0, away: 0 };
       for (const a of actAgg) actMap[a._id] = a.count;
       const actTotal = actMap.active + actMap.idle + actMap.away;
+      const idleMinutes = (actMap.idle + actMap.away) * windowSeconds / 60;
+
+      const productivityPct = computeProductivityPct(buckets, idleMinutes, teamCfg?.scoring);
 
       return {
         user: { _id: u._id, name: u.name, email: u.email, jobTitle: u.jobTitle, avatar: u.avatar, workType: u.workType },

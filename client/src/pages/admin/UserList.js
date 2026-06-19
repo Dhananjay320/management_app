@@ -59,8 +59,8 @@ export default function UserList() {
   };
 
   const getWorkTypeBadge = (wt) => {
-    if (wt === 'full_office') return { label: 'Office', bg: 'rgba(99,102,241,0.08)', color: '#6366F1' };
-    if (wt === 'full_remote') return { label: 'Remote', bg: 'rgba(6,182,212,0.08)', color: '#06B6D4' };
+    if (wt === 'full_office') return { label: 'Full Office', bg: 'rgba(99,102,241,0.08)', color: '#6366F1' };
+    if (wt === 'full_remote') return { label: 'Full Remote', bg: 'rgba(6,182,212,0.08)', color: '#06B6D4' };
     return { label: 'Hybrid', bg: 'rgba(245,158,11,0.08)', color: '#F59E0B' };
   };
 
@@ -99,8 +99,8 @@ export default function UserList() {
         </select>
         <select value={filterWorkType} onChange={e => setFilterWorkType(e.target.value)} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 11, color: 'var(--ink-2)', background: 'var(--glass)', fontFamily: 'Inter, sans-serif' }}>
           <option value="all">All Work Types</option>
-          <option value="full_office">Office</option>
-          <option value="full_remote">Remote</option>
+          <option value="full_office">Full Office</option>
+          <option value="full_remote">Full Remote</option>
           <option value="hybrid">Hybrid</option>
         </select>
         <select value={filterTeam} onChange={e => setFilterTeam(e.target.value)} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontSize: 11, color: 'var(--ink-2)', background: 'var(--glass)', fontFamily: 'Inter, sans-serif' }}>
