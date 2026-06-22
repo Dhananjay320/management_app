@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { registerRootComponent } from 'expo';
 
 const APP_URL = 'https://airanva.com';
-const EAS_PROJECT_ID = '08eaff49-210a-49f2-a42b-129a7f485d85';
+const EAS_PROJECT_ID = '';
 
 // Best-effort native-side hint logger. Fire-and-forget HTTP POST to the
 // diagnostics endpoint when something in the native shell fails BEFORE the
